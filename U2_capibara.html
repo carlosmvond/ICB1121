@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>El Capibara Hambriento</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,sans-serif;background:#f5f0e8;color:#1a1a1a;padding:1rem}
+h1{font-size:16px;font-weight:500;color:#5a3e1b;margin-bottom:1rem}
+.top{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
+.panel{background:#fff;border:0.5px solid #ddd;border-radius:14px;padding:1.1rem}
+.panel h2{font-size:11px;font-weight:500;color:#999;margin-bottom:0.65rem;text-transform:uppercase;letter-spacing:0.06em}
+.mix-row{display:flex;gap:10px;margin-bottom:10px}
+.mix-card{flex:1;border-radius:10px;padding:0.8rem;border:0.5px solid #ddd}
+.mix-a{background:#FEF9EC;border-color:#EF9F27}
+.mix-b{background:#E6F1FB;border-color:#378ADD}
+.mix-card h3{font-size:12px;font-weight:500;margin-bottom:5px}
+.mix-card .detail{font-size:12px;color:#555;line-height:1.8}
+.pdot{display:inline-block;width:8px;height:8px;border-radius:50%;background:#1D9E75;margin-right:3px;vertical-align:middle}
+.fdot{display:inline-block;width:8px;height:8px;border-radius:50%;background:#D85A30;margin-right:3px;vertical-align:middle}
+.input-row{display:flex;gap:8px;align-items:flex-end;margin-top:12px}
+.ig{flex:1}
+.ig label{display:block;font-size:12px;color:#666;margin-bottom:3px}
+.ig input{width:100%;font-size:22px;font-weight:500;padding:8px 10px;border:0.5px solid #ccc;border-radius:8px;text-align:center;font-family:monospace}
+.ig input:focus{outline:none;border-color:#185FA5}
+.ig .unit{font-size:11px;color:#aaa;text-align:center;margin-top:2px}
+.btn-feed{flex:0 0 auto;padding:10px 16px;font-size:13px;font-weight:500;border:none;border-radius:8px;cursor:pointer;background:#534AB7;color:#fff}
+.btn-feed:hover{background:#3C3489}
+.btn-reset{width:100%;margin-top:8px;padding:7px;font-size:12px;border:0.5px solid #ccc;border-radius:8px;background:#f8f8f6;cursor:pointer}
+.result-bar{margin-top:10px;padding:9px 12px;border-radius:8px;font-size:12px;display:none;line-height:1.6}
+.rok{background:#EAF3DE;color:#1a3d08;border:0.5px solid #3B6D11}
+.rerr{background:#FCEBEB;color:#791F1F;border:0.5px solid #A32D2D}
+.rwarn{background:#FAEEDA;color:#633806;border:0.5px solid #854F0B}
+.bar-row{display:flex;align-items:center;gap:7px;margin-bottom:6px}
+.bar-label{font-size:11px;color:#666;width:62px;flex-shrink:0}
+.bar-track{flex:1;height:14px;background:#f0f0ee;border-radius:7px;overflow:hidden}
+.bar-fill{height:100%;border-radius:7px;transition:width 0.5s,background 0.4s}
+.bar-val{font-size:11px;font-family:monospace;color:#999;width:60px;text-align:right;flex-shrink:0}
+.tries-row{display:flex;gap:5px;margin-top:6px;flex-wrap:wrap}
+.tb{font-size:11px;padding:2px 7px;border-radius:4px;font-family:monospace}
+.tok{background:#EAF3DE;color:#1a3d08}
+.terr{background:#FCEBEB;color:#791F1F}
+canvas{display:block;border-radius:12px}
+#main-canvas{width:100%;height:340px}
+</style>
+</head>
+<body>
+
+<h1>🐾 El capibara hambriento — dieta de laboratorio</h1>
+
+<div class="top">
+<div class="panel">
+  <h2>Mezclas disponibles</h2>
+  <div class="mix-row">
+    <div class="mix-card mix-a">
+      <h3 style="color:#854F0B">Mezcla A</h3>
+      <div class="detail">
+        <span class="pdot"></span>10% proteína<br>
+        <span class="fdot"></span>6% grasa
+      </div>
+    </div>
+    <div class="mix-card mix-b">
+      <h3 style="color:#185FA5">Mezcla B</h3>
+      <div class="detail">
+        <span class="pdot"></span>20% proteína<br>
+        <span class="fdot"></span>2% grasa
+      </div>
+    </div>
+  </div>
+  <p style="font-size:12px;color:#888;font-style:italic">
+    El capibara necesita <strong>20 g proteína</strong> y <strong>6 g grasa</strong>.<br>
+    Plantea el sistema y determina cuántos gramos de cada mezcla usar.
+  </p>
+
+  <div class="input-row">
+    <div class="ig">
+      <label>Mezcla A (g)</label>
+      <input type="number" id="ia" placeholder="?" min="0" step="1">
+      <div class="unit">g de A</div>
+    </div>
+    <div class="ig">
+      <label>Mezcla B (g)</label>
+      <input type="number" id="ib" placeholder="?" min="0" step="1">
+      <div class="unit">g de B</div>
+    </div>
+    <button class="btn-feed" onclick="checkAnswer()">&#9654; Alimentar</button>
+  </div>
+  <div class="result-bar" id="rbar"></div>
+  <button class="btn-reset" onclick="resetGame()">&#8635; Reiniciar</button>
+</div>
+
+<div class="panel">
+  <h2>Nutrientes aportados</h2>
+  <div class="bar-row">
+    <span class="bar-label"><span class="pdot"></span>Proteína</span>
+    <div class="bar-track"><div class="bar-fill" id="bprot" style="width:0%;background:#b0b0aa"></div></div>
+    <span class="bar-val" id="vprot">0 / 20 g</span>
+  </div>
+  <div class="bar-row">
+    <span class="bar-label"><span class="fdot"></span>Grasa</span>
+    <div class="bar-track"><div class="bar-fill" id="bfat" style="width:0%;background:#b0b0aa"></div></div>
+    <span class="bar-val" id="vfat">0 / 6 g</span>
+  </div>
+  <div style="margin-top:10px">
+    <h2 style="margin-bottom:5px">Intentos</h2>
+    <div class="tries-row" id="tries-row"></div>
+  </div>
+  <div style="margin-top:12px;font-size:12px;color:#888">
+    <span class="pdot"></span> verde = proteína &nbsp;&nbsp;
+    <span class="fdot"></span> naranja = grasa
+  </div>
+</div>
+</div>
+
+<div class="panel" style="padding:0.75rem">
+  <canvas id="main-canvas"></canvas>
+  <div style="font-size:13px;font-weight:500;color:#5a3e1b;text-align:center;margin-top:8px" id="capi-msg">¡Tengo hambre! Prepara mi comida... 🌿</div>
+</div>
+
+<script>
+const SOL_A=80, SOL_B=60;
+let tries=[], state='idle', T=0, rafId=null;
+let mixPhase=0; // 0=none, 1=pouring, 2=mixing, 3=done
+let mixA=0, mixB=0, mixProt=0, mixFat=0;
+let particles=[];
+
+const MSGS={
+  idle:'¡Tengo hambre! Prepara mi comida... 🌿',
+  happy:'¡Delicioso! ¡Eso es exactamente lo que necesito! 😄',
+  sad:'Hmm, algo no está bien en las proporciones... 😕',
+  confused:'Las cantidades no son correctas. ¡Revisa el sistema! 🤔',
+  angry:'¡Esto está muy mal! ¡No me gusta! 😤',
+  dead:'😵 ¡Nooo! ¡Es exactamente al revés! El capibara te quita 1 punto en la próxima prueba. 📝'
+};
+
+function seededRand(seed){
+  let s=seed%2147483647; if(s<=0) s+=2147483646;
+  return ()=>{s=s*16807%2147483647; return (s-1)/2147483646;};
+}
+
+function checkAnswer(){
+  const a=parseFloat(document.getElementById('ia').value);
+  const b=parseFloat(document.getElementById('ib').value);
+  if(isNaN(a)||isNaN(b)||a<0||b<0){showR('Ingresa valores válidos.','rwarn');return;}
+  mixA=a; mixB=b;
+  mixProt=0.10*a+0.20*b;
+  mixFat=0.06*a+0.02*b;
+  updateBars(mixProt,mixFat);
+  const err=Math.abs(mixProt-20)+Math.abs(mixFat-6);
+  const ok=Math.abs(mixProt-20)<0.5&&Math.abs(mixFat-6)<0.5;
+  const reversed=Math.abs(a-SOL_B)<2&&Math.abs(b-SOL_A)<2;
+  tries.push(ok);
+  renderTries();
+  if(ok){
+    showR(`✓ ¡Correcto! A=${a} g, B=${b} g → ${mixProt.toFixed(1)} g proteína, ${mixFat.toFixed(1)} g grasa.`,'rok');
+    setState('happy');
+  } else if(reversed){
+    showR(`✗ ¡Nooo! Pusiste A=${a} g y B=${b} g — ¡es exactamente al revés! La solución es A=${SOL_A} g y B=${SOL_B} g.`,'rerr');
+    setState('dead');
+  } else {
+    showR(`✗ Obtienes ${mixProt.toFixed(2)} g proteína y ${mixFat.toFixed(2)} g grasa. ¡Revisa tu sistema!`,'rerr');
+    setState(err>15?'angry':err>5?'sad':'confused');
+  }
+  startMixAnim();
+}
+
+function showR(msg,cls){const el=document.getElementById('rbar');el.textContent=msg;el.className='result-bar '+cls;el.style.display='block';}
+function updateBars(p,f){
+  const pp=Math.min(120,p/20*100),fp=Math.min(120,f/6*100);
+  const pok=Math.abs(p-20)<0.5,fok=Math.abs(f-6)<0.5;
+  document.getElementById('bprot').style.width=pp+'%';
+  document.getElementById('bprot').style.background=pok?'#1D9E75':(p>20?'#E24B4A':'#378ADD');
+  document.getElementById('bfat').style.width=fp+'%';
+  document.getElementById('bfat').style.background=fok?'#1D9E75':(f>6?'#E24B4A':'#378ADD');
+  document.getElementById('vprot').textContent=p.toFixed(1)+' / 20 g';
+  document.getElementById('vfat').textContent=f.toFixed(1)+' / 6 g';
+}
+function renderTries(){document.getElementById('tries-row').innerHTML=tries.map((ok,i)=>`<span class="tb ${ok?'tok':'terr'}">${i+1}° ${ok?'✓':'✗'}</span>`).join('');}
+function setState(s){state=s;T=0;document.getElementById('capi-msg').textContent=MSGS[s];}
+function startMixAnim(){mixPhase=1;particles=[];}
+
+function resetGame(){
+  tries=[];['ia','ib'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('rbar').style.display='none';
+  updateBars(0,0);
+  document.getElementById('tries-row').innerHTML='';
+  mixPhase=0; particles=[];
+  setState('idle');
+}
+
+// ─── DRAWING ───────────────────────────────────────────────
+function setup(id){
+  const c=document.getElementById(id);
+  const dpr=window.devicePixelRatio||1;
+  c.width=c.offsetWidth*dpr; c.height=c.offsetHeight*dpr;
+  const ctx=c.getContext('2d'); ctx.scale(dpr,dpr);
+  return{ctx,W:c.offsetWidth,H:c.offsetHeight};
+}
+
+function drawScene(){
+  const{ctx,W,H}=setup('main-canvas');
+
+  // sky + ground
+  ctx.fillStyle='#d8eec8'; ctx.fillRect(0,0,W,H);
+  ctx.fillStyle='#a8cc78'; ctx.fillRect(0,H*0.68,W,H*0.32);
+
+  // grass tufts
+  ctx.fillStyle='#6fa832';
+  for(let i=0;i<14;i++){
+    const gx=i*(W/13);
+    drawGrassTuft(ctx,gx,H*0.68);
+  }
+
+  // ── sacks ──────────────────────────────────
+  const sackAx=W*0.12, sackBx=W*0.28, sackY=H*0.55;
+  drawSack(ctx, sackAx, sackY, 'A', '#EF9F27', '#854F0B', mixPhase>0?Math.min(1,(T-0)/30):0);
+  drawSack(ctx, sackBx, sackY, 'B', '#378ADD', '#0C447C', mixPhase>0?Math.min(1,(T-15)/30):0);
+
+  // ── bowl / mixing area ─────────────────────
+  const bowlX=W*0.5, bowlY=H*0.72;
+  drawBowl(ctx, bowlX, bowlY, W*0.18);
+
+  // particles in bowl
+  if(mixPhase>=1&&particles.length>0){
+    ctx.save();
+    ctx.beginPath();
+    ctx.ellipse(bowlX, bowlY-4, W*0.17, 22, 0, 0, Math.PI*2);
+    ctx.clip();
+    particles.forEach(p=>{
+      ctx.globalAlpha=p.alpha;
+      ctx.beginPath(); ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
+      ctx.fillStyle=p.color; ctx.fill();
+      ctx.globalAlpha=1;
+    });
+    ctx.restore();
+  }
+
+  // pour streams
+  if(mixPhase===1){
+    if(T>0&&T<45){
+      const prog=Math.min(1,(T)/40);
+      drawStream(ctx, sackAx, sackY-30, bowlX-W*0.05, bowlY-10, '#EF9F27', prog);
+    }
+    if(T>15&&T<55){
+      const prog=Math.min(1,(T-15)/40);
+      drawStream(ctx, sackBx, sackY-30, bowlX+W*0.05, bowlY-10, '#378ADD', prog);
+    }
+    if(T>55){
+      mixPhase=2; T=0;
+      spawnParticles(bowlX, bowlY, W);
+    }
+  }
+
+  // mixing swirl
+  if(mixPhase===2){
+    const swirl=Math.min(T*0.3, 12);
+    ctx.strokeStyle='rgba(100,100,100,0.15)'; ctx.lineWidth=2;
+    ctx.beginPath();
+    for(let a=0;a<swirl;a+=0.08){
+      const r=a*5;
+      const px=bowlX+r*Math.cos(a+T*0.1);
+      const py=bowlY-8+r*0.4*Math.sin(a+T*0.1);
+      a<0.09?ctx.moveTo(px,py):ctx.lineTo(px,py);
+    }
+    ctx.stroke();
+    // wiggle particles
+    particles.forEach(p=>{
+      p.x+=Math.sin(T*0.2+p.phase)*0.6;
+      p.y+=Math.cos(T*0.15+p.phase)*0.4;
+    });
+    if(T>60){mixPhase=3;}
+  }
+
+  // ── capybara ───────────────────────────────
+  const cx=W*0.78, cy=H*0.52;
+  const bounce=state==='happy'?Math.sin(T*0.15)*6:0;
+  const shk=state==='angry'?Math.sin(T*0.35)*4:0;
+  drawCapybara(ctx, cx+shk, cy+bounce, W*0.22);
+
+  // expressions
+  if(state==='happy'){
+    ['#FFD700','#FF69B4','#00CED1','#7CFC00'].forEach((col,i)=>{
+      const sx=cx-20+i*28+Math.sin(T*0.2+i)*10;
+      const sy=cy-80+Math.cos(T*0.15+i*1.5)*12;
+      ctx.fillStyle=col; ctx.beginPath(); ctx.arc(sx,sy,5,0,Math.PI*2); ctx.fill();
+    });
+    ctx.font='20px system-ui'; ctx.textAlign='center';
+    ctx.fillText('❤️',cx+55,cy-60+Math.sin(T*0.12)*8);
+  }
+  if(state==='angry'){
+    ctx.font='18px system-ui'; ctx.textAlign='center';
+    ctx.fillText('💢',cx+55,cy-65);
+    for(let i=0;i<2;i++){
+      const sy=cy-50-(T*1.2+i*20)%50;
+      ctx.strokeStyle=`rgba(210,80,50,${0.6-sy/(cy-50)*0.5})`; ctx.lineWidth=2;
+      ctx.beginPath();
+      ctx.moveTo(cx+35+i*16,cy-40);
+      ctx.bezierCurveTo(cx+30+i*16,sy+10,cx+40+i*16,sy,cx+35+i*16,sy-10);
+      ctx.stroke();
+    }
+  }
+  if(state==='sad'){
+    ctx.font='18px system-ui'; ctx.textAlign='center';
+    ctx.fillText('😢',cx+55,cy-55+Math.sin(T*0.06)*4);
+  }
+  if(state==='confused'){
+    ctx.font='20px system-ui'; ctx.textAlign='center';
+    ctx.fillText('❓',cx+58,cy-65+Math.sin(T*0.1)*7);
+  }
+
+  T++;
+  rafId=requestAnimationFrame(drawScene);
+}
+
+function drawGrassTuft(ctx,x,y){
+  ctx.beginPath();
+  ctx.moveTo(x,y); ctx.lineTo(x+3,y-11); ctx.lineTo(x+6,y);
+  ctx.moveTo(x+5,y); ctx.lineTo(x+8,y-8); ctx.lineTo(x+11,y);
+  ctx.fill();
+}
+
+function drawSack(ctx,x,y,label,col,dark,tilt){
+  ctx.save();
+  ctx.translate(x,y);
+  ctx.rotate(tilt*0.25);
+
+  // sack body
+  ctx.fillStyle=col;
+  ctx.beginPath();
+  ctx.moveTo(-22,10);
+  ctx.bezierCurveTo(-28,-10,-28,-40,-8,-45);
+  ctx.bezierCurveTo(0,-48,8,-48,16,-45);
+  ctx.bezierCurveTo(36,-40,36,-10,30,10);
+  ctx.closePath();
+  ctx.fill();
+  ctx.strokeStyle=dark; ctx.lineWidth=1.5; ctx.stroke();
+
+  // tie
+  ctx.fillStyle=dark;
+  ctx.beginPath(); ctx.ellipse(4,-44,8,5,0,0,Math.PI*2); ctx.fill();
+
+  // texture lines
+  ctx.strokeStyle='rgba(0,0,0,0.1)'; ctx.lineWidth=1;
+  ctx.beginPath(); ctx.moveTo(-10,-10); ctx.lineTo(18,-10); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(-14,-22); ctx.lineTo(22,-22); ctx.stroke();
+
+  // label
+  ctx.fillStyle='#fff'; ctx.font='bold 18px system-ui'; ctx.textAlign='center';
+  ctx.fillText(label,4,-2);
+
+  // particles suggestion
+  const rng=seededRand(label.charCodeAt(0));
+  for(let i=0;i<6;i++){
+    const px=-10+rng()*24, py=-35+rng()*20;
+    ctx.beginPath(); ctx.arc(px,py,2,0,Math.PI*2);
+    ctx.fillStyle=label==='A'?'rgba(29,158,117,0.6)':'rgba(29,158,117,0.6)'; ctx.fill();
+    ctx.beginPath(); ctx.arc(px+8,py+5,1.5,0,Math.PI*2);
+    ctx.fillStyle='rgba(216,90,48,0.6)'; ctx.fill();
+  }
+
+  ctx.restore();
+}
+
+function drawBowl(ctx,x,y,rx){
+  // rim
+  ctx.fillStyle='#e8e0d0';
+  ctx.beginPath(); ctx.ellipse(x,y,rx,14,0,0,Math.PI*2); ctx.fill();
+  ctx.strokeStyle='#c8c0b0'; ctx.lineWidth=1.5; ctx.stroke();
+  // interior
+  ctx.fillStyle='#f5f0e8';
+  ctx.beginPath(); ctx.ellipse(x,y,rx-6,10,0,0,Math.PI*2); ctx.fill();
+}
+
+function spawnParticles(bowlX,bowlY,W){
+  particles=[];
+  const rng=seededRand(77);
+  const total=Math.round(60);
+  const protFrac=mixProt/(mixProt+mixFat+0.001);
+  for(let i=0;i<total;i++){
+    const isP=rng()<protFrac;
+    particles.push({
+      x:bowlX+(rng()-0.5)*W*0.28,
+      y:bowlY-5+(rng()-0.5)*16,
+      r:2.5+rng()*2,
+      color:isP?'rgba(29,158,117,0.85)':'rgba(216,90,48,0.85)',
+      alpha:0.9,
+      phase:rng()*Math.PI*2
+    });
+  }
+}
+
+function drawStream(ctx,x1,y1,x2,y2,color,progress){
+  if(progress<=0) return;
+  const pts=Math.round(progress*12);
+  ctx.strokeStyle=color; ctx.lineWidth=4; ctx.lineCap='round';
+  ctx.beginPath();
+  const mx=(x1+x2)/2, my=(y1+y2)/2-30;
+  for(let i=0;i<=pts;i++){
+    const t=i/12;
+    const px=(1-t)*(1-t)*x1+2*(1-t)*t*mx+t*t*x2;
+    const py=(1-t)*(1-t)*y1+2*(1-t)*t*my+t*t*y2;
+    i===0?ctx.moveTo(px,py):ctx.lineTo(px,py);
+  }
+  ctx.globalAlpha=0.7; ctx.stroke(); ctx.globalAlpha=1;
+
+  // droplets
+  for(let i=0;i<3;i++){
+    const dt=((T*0.04+i*0.33)%1)*progress;
+    const px=(1-dt)*(1-dt)*x1+2*(1-dt)*dt*mx+dt*dt*x2;
+    const py=(1-dt)*(1-dt)*y1+2*(1-dt)*dt*my+dt*dt*y2;
+    ctx.beginPath(); ctx.arc(px,py,3,0,Math.PI*2);
+    ctx.fillStyle=color; ctx.fill();
+  }
+}
+
+function drawCapybara(ctx,cx,cy,size){
+  const s=size/100;
+  ctx.save();
+  ctx.translate(cx,cy);
+
+  const lw=2.2*s;
+
+  // shadow
+  ctx.fillStyle='rgba(0,0,0,0.07)';
+  ctx.beginPath(); ctx.ellipse(0,75*s,52*s,9*s,0,0,Math.PI*2); ctx.fill();
+
+  // body — big rounded blob sitting upright like the reference
+  ctx.fillStyle='#c87832';
+  ctx.strokeStyle='#5a3010'; ctx.lineWidth=lw;
+  ctx.beginPath();
+  ctx.moveTo(-38*s, 70*s);
+  ctx.bezierCurveTo(-70*s,70*s, -80*s,30*s, -78*s,-10*s);
+  ctx.bezierCurveTo(-76*s,-50*s, -50*s,-72*s, 0,-75*s);
+  ctx.bezierCurveTo(50*s,-72*s,  76*s,-50*s,  78*s,-10*s);
+  ctx.bezierCurveTo(80*s,30*s,   70*s,70*s,   38*s,70*s);
+  ctx.closePath();
+  ctx.fill(); ctx.stroke();
+
+  // front legs — stubby rounded at bottom
+  ctx.fillStyle='#c07028';
+  ctx.strokeStyle='#5a3010'; ctx.lineWidth=lw;
+  [[-32,48],[10,48]].forEach(([lx,ly])=>{
+    ctx.beginPath();
+    ctx.roundRect(lx*s,ly*s,22*s,30*s,10*s);
+    ctx.fill(); ctx.stroke();
+  });
+
+  // head — big round, sits on top of body, centered
+  ctx.fillStyle='#c87832';
+  ctx.strokeStyle='#5a3010'; ctx.lineWidth=lw;
+  ctx.beginPath();
+  ctx.ellipse(0,-62*s,50*s,42*s,0,0,Math.PI*2);
+  ctx.fill(); ctx.stroke();
+
+  // snout patch — dark brown rounded square, characteristic of capybara
+  ctx.fillStyle='#7a4018';
+  ctx.strokeStyle='#5a3010'; ctx.lineWidth=lw*0.8;
+  ctx.beginPath();
+  ctx.roundRect(-26*s,-75*s,52*s,32*s,12*s);
+  ctx.fill(); ctx.stroke();
+
+  // nostrils
+  ctx.fillStyle='#3a1a08';
+  ctx.beginPath(); ctx.ellipse(-12*s,-62*s,5*s,4*s,0,0,Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(12*s,-62*s,5*s,4*s,0,0,Math.PI*2); ctx.fill();
+
+  // mouth
+  ctx.strokeStyle='#3a1a08'; ctx.lineWidth=lw*0.9; ctx.lineCap='round';
+  if(state==='happy'){
+    ctx.beginPath();
+    ctx.moveTo(-18*s,-52*s);
+    ctx.quadraticCurveTo(0,-42*s,18*s,-52*s);
+    ctx.stroke();
+  } else if(state==='sad'||state==='angry'){
+    ctx.beginPath();
+    ctx.moveTo(-18*s,-46*s);
+    ctx.quadraticCurveTo(0,-56*s,18*s,-46*s);
+    ctx.stroke();
+  } else {
+    ctx.beginPath();
+    ctx.moveTo(-14*s,-50*s); ctx.lineTo(14*s,-50*s); ctx.stroke();
+  }
+
+  // eyes
+  if(state==='dead'){
+    // X eyes
+    ctx.strokeStyle='#1a0a04'; ctx.lineWidth=3*s; ctx.lineCap='round';
+    [[-22,-78],[22,-78]].forEach(([ex,ey])=>{
+      ctx.beginPath(); ctx.moveTo((ex-6)*s,(ey-6)*s); ctx.lineTo((ex+6)*s,(ey+6)*s); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo((ex+6)*s,(ey-6)*s); ctx.lineTo((ex-6)*s,(ey+6)*s); ctx.stroke();
+    });
+    // tongue out
+    ctx.fillStyle='#e05080';
+    ctx.beginPath(); ctx.ellipse(0,-46*s,10*s,8*s,0,0,Math.PI*2); ctx.fill();
+    ctx.strokeStyle='#b03060'; ctx.lineWidth=1.5*s; ctx.stroke();
+    // spiral on head
+    ctx.strokeStyle='rgba(100,100,200,0.4)'; ctx.lineWidth=1.5*s;
+    ctx.beginPath();
+    for(let a=0;a<6;a+=0.15){
+      const r=a*4, px=0+r*Math.cos(a+T*0.05), py=-100*s+r*Math.sin(a+T*0.05)*0.5;
+      a<0.16?ctx.moveTo(px,py):ctx.lineTo(px,py);
+    }
+    ctx.stroke();
+  } else {
+    ctx.fillStyle='#1a0a04';
+    ctx.beginPath(); ctx.arc(-22*s,-78*s,7*s,0,Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(22*s,-78*s,7*s,0,Math.PI*2); ctx.fill();
+    // eye shine
+    ctx.fillStyle='#fff';
+    ctx.beginPath(); ctx.arc(-19*s,-81*s,3*s,0,Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(25*s,-81*s,3*s,0,Math.PI*2); ctx.fill();
+  }
+
+  // angry brows
+  if(state==='angry'){
+    ctx.strokeStyle='#3a1a00'; ctx.lineWidth=3*s; ctx.lineCap='round';
+    ctx.beginPath(); ctx.moveTo(-32*s,-90*s); ctx.lineTo(-14*s,-85*s); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(32*s,-90*s); ctx.lineTo(14*s,-85*s); ctx.stroke();
+  }
+
+  // sad brows
+  if(state==='sad'){
+    ctx.strokeStyle='#5a3010'; ctx.lineWidth=2.5*s; ctx.lineCap='round';
+    ctx.beginPath(); ctx.moveTo(-32*s,-87*s); ctx.lineTo(-14*s,-90*s); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(32*s,-87*s); ctx.lineTo(14*s,-90*s); ctx.stroke();
+  }
+
+  // dead stars floating
+  if(state==='dead'){
+    ['⭐','💫','✨'].forEach((star,i)=>{
+      ctx.font='14px system-ui'; ctx.textAlign='center';
+      const sx=(-30+i*30)*s+Math.sin(T*0.08+i)*12;
+      const sy=(-110-i*10)*s+Math.cos(T*0.06+i)*8;
+      ctx.fillText(star,sx,sy);
+    });
+  }
+
+  // ears — small rounded on top sides of head
+  ctx.fillStyle='#b86a28';
+  ctx.strokeStyle='#5a3010'; ctx.lineWidth=lw*0.9;
+  [[-42,-98],[42,-98]].forEach(([ex,ey])=>{
+    ctx.beginPath(); ctx.ellipse(ex*s,ey*s,12*s,9*s,0,0,Math.PI*2); ctx.fill(); ctx.stroke();
+  });
+
+  // rosy cheeks if happy
+  if(state==='happy'){
+    ctx.fillStyle='rgba(220,100,80,0.22)';
+    ctx.beginPath(); ctx.ellipse(-32*s,-68*s,14*s,9*s,0,0,Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(32*s,-68*s,14*s,9*s,0,0,Math.PI*2); ctx.fill();
+  }
+
+  // floating stars when dead
+  if(state==='dead'){
+    ['⭐','💫','✨'].forEach((star,i)=>{
+      ctx.font='16px system-ui'; ctx.textAlign='center';
+      const sx=(-35+i*35)*s+Math.sin(T*0.08+i)*10;
+      const sy=(-115-i*8)*s+Math.cos(T*0.06+i)*8;
+      ctx.fillText(star,sx,sy);
+    });
+  }
+
+  ctx.restore();
+}
+
+['ia','ib'].forEach(id=>document.getElementById(id).addEventListener('keydown',e=>{if(e.key==='Enter')checkAnswer();}));
+
+drawScene();
+</script>
+</body>
+</html>
