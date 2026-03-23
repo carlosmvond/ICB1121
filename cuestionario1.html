@@ -379,6 +379,13 @@ let submitted = false;
 function showScreen(id){
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
   document.getElementById('screen-'+id).classList.add('active');
+  if(id === 'activity'){
+    treeSubmitted = false; score = 0; currentQ = 1;
+    updateScoreDisplay();
+    setTimeout(()=>drawTrees(0), 100);
+    document.getElementById('q1-panel').style.display = 'block';
+    document.getElementById('q2-panel').style.display = 'none';
+  }
 }
 function showTeacher(){
   const pwd = prompt('Ingresa la clave de profesor:');
@@ -745,17 +752,7 @@ function goToQ2(){
 }
 
 // draw trees on load when activity starts
-const origShowScreen = showScreen;
-function showScreen(id){
-  origShowScreen(id);
-  if(id === 'activity'){
-    treeSubmitted = false; score = 0; currentQ = 1;
-    updateScoreDisplay();
-    setTimeout(()=>drawTrees(0), 100);
-    document.getElementById('q1-panel').style.display = 'block';
-    document.getElementById('q2-panel').style.display = 'none';
-  }
-}
+
 
 // ── PRACTICE MODE ──────────────────────────────────────
 let pracScore = 0;
