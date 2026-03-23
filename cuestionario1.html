@@ -99,6 +99,19 @@ body{font-family:system-ui,sans-serif;background:#f0f0ee;color:#1a1a1a;padding:1
 .status-badge.open{background:#EAF3DE;color:#1a3d08}
 .status-badge.closed{background:#FCEBEB;color:#791F1F}
 .status-badge.waiting{background:#f8f8f6;color:#888}
+
+/* ── tree problem ── */
+.tree-problem{background:#fff;border:0.5px solid #ddd;border-radius:14px;padding:1rem;margin-bottom:10px}
+.tree-canvas-wrap{border-radius:10px;overflow:hidden;margin-bottom:10px;border:0.5px solid #eee}
+.tree-input-row{display:flex;gap:8px;align-items:flex-end;margin-top:10px}
+.tree-input-row input{flex:1;font-size:22px;font-weight:500;padding:9px 12px;border:0.5px solid #ccc;border-radius:8px;text-align:center;font-family:monospace}
+.tree-input-row input:focus{outline:none;border-color:#185FA5}
+.score-bar{display:flex;align-items:center;justify-content:space-between;background:#f8f8f6;border-radius:8px;padding:7px 12px;margin-bottom:10px}
+.score-num{font-size:20px;font-weight:700;font-family:monospace;color:#185FA5}
+.score-lbl{font-size:11px;color:#aaa}
+.tree-result{margin-top:8px;padding:9px 12px;border-radius:8px;font-size:13px;display:none;line-height:1.6}
+.tree-result.ok{background:#EAF3DE;color:#1a3d08;border:0.5px solid #3B6D11}
+.tree-result.err{background:#FCEBEB;color:#791F1F;border:0.5px solid #A32D2D}
 </style>
 </head>
 <body>
@@ -134,52 +147,75 @@ body{font-family:system-ui,sans-serif;background:#f0f0ee;color:#1a1a1a;padding:1
 
 <!-- ── SCREEN: ACTIVITY ── -->
 <div class="screen" id="screen-activity">
-  <div class="problem-box">
-    <h2>Problema</h2>
-    <div class="problem-text">
-      Se pretende mantener a los animales bajo una dieta estricta. A cada animal se le debe suministrar
-      <span class="highlight">20 g de proteína</span> y <span class="highlight">6 g de grasa</span>.
-      La mezcla A contiene <span class="highlight">10% de proteína</span> y <span class="highlight">6% de grasa</span>.
-      La mezcla B contiene <span class="highlight">20% de proteína</span> y <span class="highlight">2% de grasa</span>.
-      ¿Cuántos gramos de cada mezcla usar?
-    </div>
-    <div class="vars">
-      <div>• <strong>A</strong> = gramos de mezcla A</div>
-      <div>• <strong>B</strong> = gramos de mezcla B</div>
+  <div class="score-bar">
+    <div><div class="score-lbl">PUNTAJE</div><div class="score-num" id="score-display">0</div></div>
+    <div style="text-align:right"><div class="score-lbl">PREGUNTA</div><div class="score-num" id="q-display" style="color:#1D9E75">1 / 2</div></div>
+  </div>
+
+  <!-- Q1: árboles -->
+  <div id="q1-panel">
+    <div class="tree-problem">
+      <h2 style="font-size:10px;font-weight:500;color:#aaa;text-transform:uppercase;letter-spacing:0.07em;margin-bottom:0.6rem">Pregunta 1</h2>
+      <div class="problem-text" style="font-size:13px;color:#444;line-height:1.9;background:#f8f8f6;border-radius:8px;padding:0.8rem;margin-bottom:10px">
+        El <strong>árbol A</strong> mide hoy <span class="highlight">2 m</span> y crece <span class="highlight">3 m por año</span>.<br>
+        El <strong>árbol B</strong> mide hoy <span class="highlight">14 m</span> y crece <span class="highlight">1 m por año</span>.<br>
+        ¿En cuántos años tendrán la misma altura?
+      </div>
+      <div class="tree-canvas-wrap">
+        <canvas id="tree-canvas" style="width:100%;height:200px;display:block;background:#e8f5e1"></canvas>
+      </div>
+      <div style="font-size:12px;color:#666;margin-bottom:6px">Escribe la ecuación: <span style="font-family:monospace;color:#185FA5">2 + 3t = 14 + t</span> → despeja t</div>
+      <div class="tree-input-row">
+        <input type="number" id="tree-answer" placeholder="t = ?" min="0" step="1">
+        <button class="btn check" onclick="checkTree()">✓ Verificar</button>
+      </div>
+      <div class="tree-result" id="tree-result"></div>
     </div>
   </div>
 
-  <div class="problem-box">
-    <h2>Construye el sistema de ecuaciones</h2>
-    <div class="eq-label">Ecuación de proteína:</div>
-    <div class="eq-row" id="eq-0">
-      <div class="slot" id="slot-0-0" onclick="clickSlot(0,0)">?</div>
-      <span class="fixed">·A +</span>
-      <div class="slot" id="slot-0-1" onclick="clickSlot(0,1)">?</div>
-      <span class="fixed">·B =</span>
-      <div class="slot" id="slot-0-2" onclick="clickSlot(0,2)">?</div>
+  <!-- Q2: mezclas -->
+  <div id="q2-panel" style="display:none">
+    <div class="problem-box">
+      <h2 style="font-size:10px;font-weight:500;color:#aaa;text-transform:uppercase;letter-spacing:0.07em;margin-bottom:0.6rem">Pregunta 2</h2>
+      <div class="problem-text" style="font-size:13px;color:#444;line-height:1.9;background:#f8f8f6;border-radius:8px;padding:0.8rem;margin-bottom:10px">
+        A cada animal se le debe suministrar <span class="highlight">20 g de proteína</span> y <span class="highlight">6 g de grasa</span>.
+        La mezcla A contiene <span class="highlight">10% proteína</span> y <span class="highlight">6% grasa</span>.
+        La mezcla B contiene <span class="highlight">20% proteína</span> y <span class="highlight">2% grasa</span>.
+        ¿Cuántos gramos de cada mezcla usar?
+      </div>
+      <div class="vars" style="font-size:12px;color:#555;margin-bottom:10px;line-height:1.8">
+        <div>• <strong>A</strong> = gramos de mezcla A</div>
+        <div>• <strong>B</strong> = gramos de mezcla B</div>
+      </div>
     </div>
-    <div class="eq-label">Ecuación de grasa:</div>
-    <div class="eq-row" id="eq-1">
-      <div class="slot" id="slot-1-0" onclick="clickSlot(1,0)">?</div>
-      <span class="fixed">·A +</span>
-      <div class="slot" id="slot-1-1" onclick="clickSlot(1,1)">?</div>
-      <span class="fixed">·B =</span>
-      <div class="slot" id="slot-1-2" onclick="clickSlot(1,2)">?</div>
+    <div class="problem-box">
+      <h2 style="font-size:10px;font-weight:500;color:#aaa;text-transform:uppercase;letter-spacing:0.07em;margin-bottom:0.6rem">Construye el sistema</h2>
+      <div class="eq-label">Ecuación de proteína:</div>
+      <div class="eq-row" id="eq-0">
+        <div class="slot" id="slot-0-0" onclick="clickSlot(0,0)">?</div>
+        <span class="fixed">·A +</span>
+        <div class="slot" id="slot-0-1" onclick="clickSlot(0,1)">?</div>
+        <span class="fixed">·B =</span>
+        <div class="slot" id="slot-0-2" onclick="clickSlot(0,2)">?</div>
+      </div>
+      <div class="eq-label">Ecuación de grasa:</div>
+      <div class="eq-row" id="eq-1">
+        <div class="slot" id="slot-1-0" onclick="clickSlot(1,0)">?</div>
+        <span class="fixed">·A +</span>
+        <div class="slot" id="slot-1-1" onclick="clickSlot(1,1)">?</div>
+        <span class="fixed">·B =</span>
+        <div class="slot" id="slot-1-2" onclick="clickSlot(1,2)">?</div>
+      </div>
+      <div class="palette-title">Bloques disponibles</div>
+      <div class="blocks" id="blocks-area"></div>
+      <div class="btn-row">
+        <button class="btn check" onclick="checkAnswer()">✓ Verificar</button>
+        <button class="btn" onclick="resetActivity()">↺</button>
+        <button class="btn hint-btn" onclick="toggleHint()">💡 Pista</button>
+      </div>
+      <div class="hint-box" id="hint-box">El aporte de proteína de la mezcla A es 0,10·A. La suma de los aportes debe dar exactamente 20 g.</div>
+      <div class="result" id="result"></div>
     </div>
-
-    <div class="palette-title">Bloques disponibles</div>
-    <div class="blocks" id="blocks-area"></div>
-
-    <div class="btn-row">
-      <button class="btn check" onclick="checkAnswer()">✓ Verificar</button>
-      <button class="btn" onclick="resetActivity()">↺</button>
-      <button class="btn hint-btn" onclick="toggleHint()">💡 Pista</button>
-    </div>
-    <div class="hint-box" id="hint-box">
-      El aporte de proteína de la mezcla A es 10% de A gramos, es decir 0,10·A. La suma de los aportes de ambas mezclas debe dar exactamente 20 g.
-    </div>
-    <div class="result" id="result"></div>
   </div>
 </div>
 
@@ -360,15 +396,19 @@ function checkAnswer(){
   }
   if(allCorrect){
     submitted=true;
+    score += 2;
+    updateScoreDisplay();
     const elapsed = Math.round((Date.now()-startTime)/1000);
-    studentsRef.child(myKey).update({status:'correct', score:100, time:elapsed});
+    studentsRef.child(myKey).update({status:'correct', score:score, time:elapsed});
     res.className='result ok';
-    res.innerHTML=`✓ ¡Correcto! Completado en ${elapsed} s.<br><strong>Solución:</strong> A = 80 g de mezcla A, B = 60 g de mezcla B`;
+    res.innerHTML=`✓ ¡Correcto! +2 puntos. Completado en ${elapsed} s.<br><strong>Solución:</strong> A = 80 g de mezcla A, B = 60 g de mezcla B`;
     showDoneScreen(elapsed, true);
   } else {
+    score = Math.max(0, score - 1);
+    updateScoreDisplay();
     res.className='result err';
-    res.textContent='✗ Hay bloques incorrectos. Los huecos en rojo deben corregirse.';
-    studentsRef.child(myKey).update({status:'wrong'});
+    res.textContent='✗ Hay bloques incorrectos. -1 punto. Los huecos en rojo deben corregirse.';
+    studentsRef.child(myKey).update({status:'wrong', score:score});
   }
 }
 
@@ -480,6 +520,153 @@ function teacherReset(){
   sessionRef.set({status:'idle'});
   studentsRef.remove();
   document.getElementById('teacher-ranking').style.display='none';
+}
+
+// ── score & question state ──────────────────────────────
+let score = 0;
+let currentQ = 1;
+let treeSubmitted = false;
+let treeAnimId = null;
+let treeYear = 0;
+
+function updateScoreDisplay(){
+  document.getElementById('score-display').textContent = score;
+  document.getElementById('q-display').textContent = currentQ + ' / 2';
+}
+
+// ── tree animation ──────────────────────────────────────
+function drawTrees(animYear){
+  const c = document.getElementById('tree-canvas');
+  if(!c) return;
+  const dpr = window.devicePixelRatio||1;
+  c.width = c.offsetWidth*dpr; c.height = c.offsetHeight*dpr;
+  const ctx = c.getContext('2d'); ctx.scale(dpr,dpr);
+  const W = c.offsetWidth, H = c.offsetHeight;
+
+  // sky + ground
+  ctx.fillStyle = '#e8f5e1'; ctx.fillRect(0,0,W,H);
+  ctx.fillStyle = '#a8cc78'; ctx.fillRect(0,H*0.78,W,H*0.22);
+
+  // sun
+  ctx.fillStyle = '#FFD700';
+  ctx.beginPath(); ctx.arc(W*0.85, H*0.12, 18, 0, Math.PI*2); ctx.fill();
+
+  const maxH = 20; // max height in meters for scale
+  const scaleY = H*0.70 / maxH;
+
+  function drawTree(x, heightM, color, label){
+    const px = x, baseY = H*0.78;
+    const treeH = heightM * scaleY;
+    const trunkW = Math.max(6, treeH*0.12);
+    const crownR = Math.max(10, treeH*0.38);
+
+    // trunk
+    ctx.fillStyle = '#8B5e10';
+    ctx.fillRect(px - trunkW/2, baseY - treeH*0.35, trunkW, treeH*0.35);
+
+    // crown layers
+    [1, 0.75, 0.5].forEach((scale, i) => {
+      ctx.fillStyle = i===0 ? color : (i===1 ? color+'cc' : color+'88');
+      ctx.beginPath();
+      ctx.moveTo(px, baseY - treeH*0.35 - crownR*scale*2.2 + i*crownR*0.5);
+      ctx.lineTo(px - crownR*scale*1.1, baseY - treeH*0.35 - i*crownR*0.3);
+      ctx.lineTo(px + crownR*scale*1.1, baseY - treeH*0.35 - i*crownR*0.3);
+      ctx.closePath(); ctx.fill();
+    });
+
+    // height label
+    ctx.fillStyle = '#333'; ctx.font = 'bold 11px monospace'; ctx.textAlign = 'center';
+    ctx.fillText(heightM.toFixed(1)+' m', px, baseY - treeH*0.35 - crownR*2.4 - 6);
+
+    // name label
+    ctx.fillStyle = '#555'; ctx.font = '11px system-ui'; ctx.textAlign = 'center';
+    ctx.fillText(label, px, baseY + 16);
+  }
+
+  const hA = 2 + 3*animYear;
+  const hB = 14 + 1*animYear;
+
+  drawTree(W*0.3, hA, '#2d8a4e', 'Árbol A');
+  drawTree(W*0.7, hB, '#1a5c8a', 'Árbol B');
+
+  // year label
+  ctx.fillStyle = '#444'; ctx.font = 'bold 13px monospace'; ctx.textAlign = 'center';
+  ctx.fillText('Año: ' + animYear.toFixed(1), W/2, H*0.92);
+
+  // equal height line
+  if(Math.abs(hA - hB) < 0.3){
+    ctx.strokeStyle = 'rgba(255,100,0,0.6)'; ctx.lineWidth = 1.5; ctx.setLineDash([4,3]);
+    const eqY = H*0.78 - hA*scaleY*0.35;
+    ctx.beginPath(); ctx.moveTo(W*0.15, eqY); ctx.lineTo(W*0.85, eqY); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = '#d45a00'; ctx.font = 'bold 11px system-ui'; ctx.textAlign = 'center';
+    ctx.fillText('¡Misma altura!', W/2, eqY - 6);
+  }
+}
+
+function animateTrees(targetYear, onDone){
+  let yr = 0;
+  const step = targetYear / 60;
+  function frame(){
+    yr = Math.min(yr + step, targetYear);
+    drawTrees(yr);
+    if(yr < targetYear) treeAnimId = requestAnimationFrame(frame);
+    else if(onDone) onDone();
+  }
+  frame();
+}
+
+function checkTree(){
+  if(treeSubmitted) return;
+  const val = parseInt(document.getElementById('tree-answer').value);
+  const res = document.getElementById('tree-result');
+  res.style.display = 'block';
+
+  if(isNaN(val)){
+    res.className = 'tree-result err';
+    res.textContent = 'Ingresa un número entero.';
+    return;
+  }
+
+  if(val === 6){
+    treeSubmitted = true;
+    score += 2;
+    updateScoreDisplay();
+    studentsRef.child(myKey).update({score, treeStatus:'correct'});
+    res.className = 'tree-result ok';
+    res.textContent = '✓ ¡Correcto! t = 6 años. +2 puntos 🎉';
+    animateTrees(6, ()=>{
+      setTimeout(()=>goToQ2(), 1500);
+    });
+  } else {
+    score = Math.max(0, score - 1);
+    updateScoreDisplay();
+    studentsRef.child(myKey).update({score, treeStatus:'wrong'});
+    res.className = 'tree-result err';
+    res.textContent = `✗ Incorrecto (t ≠ ${val}). -1 punto. Intenta de nuevo.`;
+    animateTrees(val > 0 ? Math.min(val, 20) : 0, null);
+  }
+}
+
+function goToQ2(){
+  currentQ = 2;
+  updateScoreDisplay();
+  document.getElementById('q1-panel').style.display = 'none';
+  document.getElementById('q2-panel').style.display = 'block';
+  renderBlocks();
+}
+
+// draw trees on load when activity starts
+const origShowScreen = showScreen;
+function showScreen(id){
+  origShowScreen(id);
+  if(id === 'activity'){
+    treeSubmitted = false; score = 0; currentQ = 1;
+    updateScoreDisplay();
+    setTimeout(()=>drawTrees(0), 100);
+    document.getElementById('q1-panel').style.display = 'block';
+    document.getElementById('q2-panel').style.display = 'none';
+  }
 }
 </script>
 </body>
