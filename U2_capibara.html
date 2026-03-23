@@ -176,7 +176,7 @@ function checkAnswer(){
   mixProt=0.10*a+0.20*b;
   mixFat=0.06*a+0.02*b;
   const err=Math.abs(mixProt-20)+Math.abs(mixFat-6);
-  const ok=Math.abs(mixProt-20)<0.5&&Math.abs(mixFat-6)<0.5;
+  const ok=a===SOL_A&&b===SOL_B;
   const reversed=Math.abs(a-SOL_B)<2&&Math.abs(b-SOL_A)<2;
   tries.push(ok);
   renderTries();
