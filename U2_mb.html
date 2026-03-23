@@ -25,12 +25,12 @@ h1{font-size:15px;font-weight:500;color:#444;margin-bottom:1rem}
 .ig label{display:flex;justify-content:space-between;align-items:center;font-size:12px;color:#666;margin-bottom:4px}
 .ig label .ig-val{font-size:16px;font-weight:500;font-family:monospace;color:#333}
 .ig input[type=range]{width:100%}
-.bar-row{display:flex;align-items:center;gap:8px;margin-bottom:8px}
-.bar-label{font-size:12px;color:#666;width:80px;flex-shrink:0}
-.bar-track{flex:1;height:16px;background:#f0f0ee;border-radius:8px;overflow:visible;position:relative}
-.bar-fill{height:100%;border-radius:8px;transition:width 0.3s;overflow:hidden;max-width:100%}
-.bar-marker{position:absolute;top:-3px;width:2px;height:22px;background:#333;border-radius:1px;pointer-events:none}
-.bar-val{font-size:11px;font-family:monospace;color:#888;width:70px;text-align:right;flex-shrink:0}
+
+
+
+
+
+
 .btn-check{width:100%;padding:11px;font-size:14px;font-weight:500;border:none;border-radius:8px;cursor:pointer;background:#534AB7;color:#fff;margin-top:4px}
 .btn-check:hover{background:#3C3489}
 .btn-reset{width:100%;margin-top:8px;padding:8px;font-size:12px;border:0.5px solid #ccc;border-radius:8px;background:#f8f8f6;cursor:pointer}
@@ -43,7 +43,7 @@ h1{font-size:15px;font-weight:500;color:#444;margin-bottom:1rem}
 .tok{background:#EAF3DE;color:#1a3d08}
 .terr{background:#FCEBEB;color:#791F1F}
 canvas{display:block;border-radius:12px;width:100%}
-#phone-canvas{height:320px}
+#phone-canvas{height:420px}
 #bar-canvas{height:90px}
 #new-btn{display:none;width:100%;margin-top:8px;padding:10px;font-size:13px;font-weight:500;border:none;border-radius:8px;cursor:pointer;background:#D85A30;color:#fff}
 </style>
@@ -55,8 +55,8 @@ canvas{display:block;border-radius:12px;width:100%}
 
 <div class="problem-box">
   <p style="font-size:13px;color:#444;line-height:1.8;margin-bottom:10px">
-    Un capibara usó su celular durante <strong>90 minutos</strong> entre Spotify y YouTube.<br>
-    Consumió <strong>450 MB</strong> de datos en total.<br>
+    Un estudiante usó su celular durante <strong>90 minutos</strong> entre Spotify y YouTube.<br>
+    Consumió <strong>300 MB</strong> de datos en total.<br>
     Spotify consume <strong>2 MB/min</strong> y YouTube consume <strong>8 MB/min</strong>.<br>
     Determina cuántos minutos usó cada app.
   </p>
@@ -89,26 +89,7 @@ canvas{display:block;border-radius:12px;width:100%}
     <input type="range" id="yt" min="0" max="90" step="1" value="0" oninput="onSlide()">
   </div>
 
-  <h2 style="margin-top:10px;margin-bottom:8px">Uso calculado</h2>
-  <div class="bar-row">
-    <span class="bar-label">⏱ Tiempo</span>
-    <div class="bar-track">
-      <div class="bar-fill" id="bar-time" style="width:0%;background:#534AB7"></div>
-      <div class="bar-marker" id="mark-time" style="left:100%"></div>
-    </div>
-    <span class="bar-val" id="val-time">0 / 90 min</span>
-  </div>
-  <div class="bar-row">
-    <span class="bar-label">📶 Datos</span>
-    <div class="bar-track">
-      <div class="bar-fill" id="bar-mb" style="width:0%"></div>
-      <div class="bar-marker" id="mark-mb" style="left:100%"></div>
-    </div>
-    <span class="bar-val" id="val-mb">0 / 450 MB</span>
-  </div>
-  <div style="display:flex;gap:12px;margin-top:4px;font-size:10px;color:#aaa">
-    <span style="display:inline-block;width:10px;height:2px;background:#333;vertical-align:middle;margin-right:4px;border-radius:1px"></span>cantidad requerida
-  </div>
+
 
   <div style="display:flex;gap:8px;margin-top:12px">
     <button class="btn-check" id="btn-check" onclick="checkAnswer()">▶ Verificar</button>
@@ -136,13 +117,13 @@ canvas{display:block;border-radius:12px;width:100%}
 </div>
 
 <script>
-const SOL_SP=45, SOL_YT=45;
-const TIME_MAX=135, MB_MAX=600, TIME_TARGET=90, MB_TARGET=450;
+const SOL_SP=70, SOL_YT=20;
+const TIME_MAX=135, MB_MAX=450, TIME_TARGET=90, MB_TARGET=300;
 let tries=[], phoneState='idle', T=0, wrongCount=0;
 
 const MSGS={
   idle:'Esperando... 📱',
-  happy:'¡Perfecto! Batería al 100% 🔋😄',
+  happy:'¡Respuesta correcta! 🐾✓',
   nodata:'¡Datos agotados! 📵 Revisa el consumo.',
   time:'¡Tiempo excedido! ⏰ Revisa los minutos.',
   wrong:'Hmm, algo no cuadra. ¡Revisa el sistema! 🤔',
@@ -156,18 +137,7 @@ function onSlide(){
   document.getElementById('yt-v').textContent=yt+' min';
   const time=sp+yt;
   const mb=2*sp+8*yt;
-  const tp=Math.min(100,time/TIME_MAX*100);
-  const mp=Math.min(100,mb/MB_MAX*100);
-  document.getElementById('bar-time').style.width=tp+'%';
-  document.getElementById('bar-mb').style.width=mp+'%';
-  // color for mb bar: green=spotify portion, red=youtube portion
-  const spFrac=mb>0?(2*sp/mb):0;
-  document.getElementById('bar-mb').style.background=
-    `linear-gradient(to right, #1DB954 ${spFrac*100}%, #FF0000 ${spFrac*100}%)`;
-  document.getElementById('val-time').textContent=time+' / 90 min';
-  document.getElementById('val-mb').textContent=mb.toFixed(0)+' / 450 MB';
-  document.getElementById('mark-time').style.left=(TIME_TARGET/TIME_MAX*100)+'%';
-  document.getElementById('mark-mb').style.left=(MB_TARGET/MB_MAX*100)+'%';
+
 }
 
 function checkAnswer(){
@@ -214,10 +184,7 @@ function resetGame(){
   document.getElementById('new-btn').style.display='none';
   document.getElementById('btn-check').disabled=false;
   document.getElementById('btn-check').style.opacity='1';
-  document.getElementById('bar-time').style.width='0%';
-  document.getElementById('bar-mb').style.width='0%';
-  document.getElementById('val-time').textContent='0 / 90 min';
-  document.getElementById('val-mb').textContent='0 / 450 MB';
+
   setPhoneState('idle');
   document.getElementById('trump-panel').style.display='none';
   document.getElementById('phone-panel').style.display='block';
@@ -249,7 +216,7 @@ function drawPhone(){
   // screen
   const sx=px+4, sy=py+10, sw=pw-8, sh=ph-20;
   ctx.fillStyle= phoneState==='dead'?'#111':
-                 phoneState==='happy'?'#e8f8f0':'#1e1e2e';
+                 phoneState==='happy'?'#0a2e1a':'#1e1e2e';
   roundRect(ctx,sx,sy,sw,sh,pw*0.09);
   ctx.fill();
   // notch
@@ -310,7 +277,7 @@ function drawPhone(){
   // target marker
   ctx.fillStyle='#fff'; ctx.fillRect(dbX+dbW-1,dbY-2,2,dbH+4);
   ctx.fillStyle='rgba(255,255,255,0.7)'; ctx.font=`${sw*0.08}px system-ui`; ctx.textAlign='center';
-  ctx.fillText('📶 '+mb.toFixed(0)+' / 450 MB', W/2, dbY+dbH+14);
+  ctx.fillText('📶 '+mb.toFixed(0)+' / 300 MB', W/2, dbY+dbH+14);
 
   // happy sparkles
   if(phoneState==='happy'){
@@ -322,12 +289,23 @@ function drawPhone(){
     });
   }
 
-  // notification if data exceeded
+  // notifications stacked
+  let notifCount=0;
   if(mb>MB_TARGET&&phoneState!=='happy'){
-    ctx.fillStyle='rgba(255,50,50,0.92)';
-    roundRect(ctx,sx+4,sy+sh*0.78,sw-8,sh*0.14,8); ctx.fill();
-    ctx.fillStyle='#fff'; ctx.font=`bold ${sw*0.09}px system-ui`; ctx.textAlign='center';
-    ctx.fillText('⚠ ¡Datos agotados! 📵',W/2,sy+sh*0.78+sh*0.09);
+    const ny=sy+sh*0.78;
+    ctx.fillStyle='rgba(220,50,50,0.92)';
+    roundRect(ctx,sx+4,ny,sw-8,sh*0.12,8); ctx.fill();
+    ctx.fillStyle='#fff'; ctx.font=`bold ${sw*0.085}px system-ui`; ctx.textAlign='center';
+    ctx.fillText('⚠ ¡Datos agotados! 📵',W/2,ny+sh*0.085);
+    notifCount++;
+  }
+  const time=sp+yt;
+  if(time>TIME_TARGET&&phoneState!=='happy'){
+    const ny=sy+sh*0.78+notifCount*(sh*0.13+3);
+    ctx.fillStyle='rgba(180,100,0,0.92)';
+    roundRect(ctx,sx+4,ny,sw-8,sh*0.12,8); ctx.fill();
+    ctx.fillStyle='#fff'; ctx.font=`bold ${sw*0.085}px system-ui`; ctx.textAlign='center';
+    ctx.fillText('⏰ ¡Demasiado tiempo!',W/2,ny+sh*0.085);
   }
 
   T++;
@@ -379,10 +357,7 @@ function roundRect(ctx,x,y,w,h,r){
 
 let trumpRunning=false, trumpT=0;
 const TRUMP_MSGS=[
-  '¡Hasta cuándo las ecuaciones malas! ¡Terrible!',
-  '¡Nadie resuelve peor que tú! ¡Nadie!',
-  '¡Voy a construir un muro entre tú y la matemática!',
-  '¡Estas ecuaciones son un desastre! ¡Un desastre total!'
+  '¡Voy a construir un muro entre tú y la matemática!'
 ];
 
 function showTrump(){
