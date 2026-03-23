@@ -114,9 +114,10 @@ canvas{display:block;border-radius:12px}
     <div class="tries-row" id="tries-row"></div>
   </div>
   <div style="display:flex;gap:8px;margin-top:12px">
-    <button class="btn-feed" style="flex:1" onclick="checkAnswer()">&#9654; Alimentar al capibara</button>
+    <button class="btn-feed" style="flex:1" id="btn-feed" onclick="checkAnswer()">&#9654; Alimentar al capibara</button>
     <button class="btn-reset" style="flex:0 0 auto;width:auto;padding:0 14px" onclick="resetGame()">&#8635;</button>
   </div>
+  <button id="btn-new-capi" onclick="newCapibara()" style="display:none;width:100%;margin-top:8px;padding:10px;font-size:13px;font-weight:500;border:none;border-radius:8px;cursor:pointer;background:#D85A30;color:#fff">🐾 Intentar con otro capibara</button>
 </div>
 </div>
 
@@ -127,7 +128,7 @@ canvas{display:block;border-radius:12px}
 
 <script>
 const SOL_A=80, SOL_B=60;
-let tries=[], state='idle', T=0, rafId=null;
+let tries=[], state='idle', T=0, rafId=null, wrongCount=0, capiIdx=0;
 let mixPhase=0; // 0=none, 1=pouring, 2=mixing, 3=done
 let mixA=0, mixB=0, mixProt=0, mixFat=0;
 let particles=[];
@@ -138,7 +139,7 @@ const MSGS={
   sad:'Hmm, algo no está bien en las proporciones... 😕',
   confused:'Las cantidades no son correctas. ¡Revisa el sistema! 🤔',
   angry:'¡Esto está muy mal! ¡No me gusta! 😤',
-  dead:'😵 ¡Nooo! ¡Es exactamente al revés! El capibara te quita 1 punto en la próxima prueba. 📝'
+  dead:'😵 ¡El capibara te quita 1 punto en la próxima prueba! 📝'
 };
 
 function seededRand(seed){
@@ -167,27 +168,39 @@ function onSlide(){
 }
 
 function checkAnswer(){
+  if(state==='dead'&&wrongCount>=3) return;
   const a=parseFloat(document.getElementById('ia').value);
   const b=parseFloat(document.getElementById('ib').value);
   if(isNaN(a)||isNaN(b)||a<0||b<0){showR('Ingresa valores válidos.','rwarn');return;}
   mixA=a; mixB=b;
   mixProt=0.10*a+0.20*b;
   mixFat=0.06*a+0.02*b;
-  updateBars(mixProt,mixFat);
   const err=Math.abs(mixProt-20)+Math.abs(mixFat-6);
   const ok=Math.abs(mixProt-20)<0.5&&Math.abs(mixFat-6)<0.5;
   const reversed=Math.abs(a-SOL_B)<2&&Math.abs(b-SOL_A)<2;
   tries.push(ok);
   renderTries();
   if(ok){
+    wrongCount=0;
     showR(`✓ ¡Correcto! A=${a} g, B=${b} g → ${mixProt.toFixed(1)} g proteína, ${mixFat.toFixed(1)} g grasa.`,'rok');
     setState('happy');
   } else if(reversed){
-    showR(`✗ ¡Nooo! Pusiste A=${a} g y B=${b} g — ¡es exactamente al revés! La solución es A=${SOL_A} g y B=${SOL_B} g.`,'rerr');
+    wrongCount++;
+    showR(`✗ ¡El capibara te quita 1 punto en la próxima prueba! 📝`,'rerr');
     setState('dead');
   } else {
-    showR(`✗ Obtienes ${mixProt.toFixed(2)} g proteína y ${mixFat.toFixed(2)} g grasa. ¡Revisa tu sistema!`,'rerr');
-    setState(err>15?'angry':err>5?'sad':'confused');
+    wrongCount++;
+    if(wrongCount>=3){
+      showR(`💀 ¡Tres intentos fallidos! El capibara no aguantó más...`,'rerr');
+      setState('dead');
+      document.getElementById('btn-new-capi').style.display='block';
+      document.getElementById('btn-feed').disabled=true;
+      document.getElementById('btn-feed').style.opacity='0.4';
+    } else {
+      const left=3-wrongCount;
+      showR(`✗ Obtienes ${mixProt.toFixed(2)} g proteína y ${mixFat.toFixed(2)} g grasa. ¡Revisa! Te quedan ${left} intento${left===1?'':'s'}.`,'rerr');
+      setState(err>15?'angry':err>5?'sad':'confused');
+    }
   }
   startMixAnim();
 }
@@ -215,7 +228,7 @@ function resetGame(){
   document.getElementById('rbar').style.display='none';
   updateBars(0,0);
   document.getElementById('tries-row').innerHTML='';
-  mixPhase=0; particles=[];
+  mixPhase=0; particles=[]; wrongCount=0;
   setState('idle');
 }
 
@@ -353,40 +366,75 @@ function drawGrassTuft(ctx,x,y){
 function drawSack(ctx,x,y,label,col,dark,tilt){
   ctx.save();
   ctx.translate(x,y);
-  ctx.rotate(tilt*0.25);
+  // tilt pivot from bottom center, rotate when pouring
+  ctx.rotate(tilt*0.55);
 
-  // sack body
+  const lw=1.8;
+
+  // shadow under sack
+  ctx.fillStyle='rgba(0,0,0,0.07)';
+  ctx.beginPath(); ctx.ellipse(4,14,22,6,0,0,Math.PI*2); ctx.fill();
+
+  // sack body — burlap bag shape, wide at bottom, cinched at top
   ctx.fillStyle=col;
   ctx.beginPath();
-  ctx.moveTo(-22,10);
-  ctx.bezierCurveTo(-28,-10,-28,-40,-8,-45);
-  ctx.bezierCurveTo(0,-48,8,-48,16,-45);
-  ctx.bezierCurveTo(36,-40,36,-10,30,10);
+  ctx.moveTo(-20,12);
+  ctx.bezierCurveTo(-26,8,-30,-8,-26,-28);
+  ctx.bezierCurveTo(-22,-42,-14,-48,-4,-50);
+  ctx.bezierCurveTo(6,-52,14,-48,18,-42);
+  ctx.bezierCurveTo(28,-32,32,-12,28,6);
+  ctx.bezierCurveTo(24,14,16,14,4,14);
+  ctx.bezierCurveTo(-8,14,-16,14,-20,12);
   ctx.closePath();
   ctx.fill();
-  ctx.strokeStyle=dark; ctx.lineWidth=1.5; ctx.stroke();
+  ctx.strokeStyle=dark; ctx.lineWidth=lw; ctx.stroke();
 
-  // tie
+  // lighter highlight on left side (burlap texture feel)
+  ctx.fillStyle='rgba(255,255,255,0.12)';
+  ctx.beginPath();
+  ctx.moveTo(-18,8);
+  ctx.bezierCurveTo(-24,4,-26,-10,-22,-28);
+  ctx.bezierCurveTo(-20,-36,-14,-42,-6,-46);
+  ctx.bezierCurveTo(-2,-48,0,-44,0,-36);
+  ctx.bezierCurveTo(-4,-28,-8,-14,-10,4);
+  ctx.closePath(); ctx.fill();
+
+  // cinch / tie at top — rope look
   ctx.fillStyle=dark;
-  ctx.beginPath(); ctx.ellipse(4,-44,8,5,0,0,Math.PI*2); ctx.fill();
+  ctx.beginPath();
+  ctx.ellipse(7,-43,9,5,Math.PI*0.1,0,Math.PI*2);
+  ctx.fill();
+  // rope knot details
+  ctx.strokeStyle='rgba(0,0,0,0.25)'; ctx.lineWidth=1;
+  ctx.beginPath(); ctx.moveTo(2,-40); ctx.bezierCurveTo(5,-44,10,-44,12,-40); ctx.stroke();
 
-  // texture lines
-  ctx.strokeStyle='rgba(0,0,0,0.1)'; ctx.lineWidth=1;
-  ctx.beginPath(); ctx.moveTo(-10,-10); ctx.lineTo(18,-10); ctx.stroke();
-  ctx.beginPath(); ctx.moveTo(-14,-22); ctx.lineTo(22,-22); ctx.stroke();
+  // horizontal fold lines (burlap texture)
+  ctx.strokeStyle='rgba(0,0,0,0.08)'; ctx.lineWidth=1.2;
+  [[-5,-8,20,-6],[-8,-20,22,-18],[-10,-32,18,-31]].forEach(([x1,y1,x2,y2])=>{
+    ctx.beginPath();
+    ctx.moveTo(x1,y1);
+    ctx.quadraticCurveTo((x1+x2)/2,y1-2,x2,y2);
+    ctx.stroke();
+  });
 
-  // label
-  ctx.fillStyle='#fff'; ctx.font='bold 18px system-ui'; ctx.textAlign='center';
-  ctx.fillText(label,4,-2);
+  // vertical stitch line
+  ctx.strokeStyle='rgba(0,0,0,0.06)'; ctx.lineWidth=1;
+  ctx.beginPath(); ctx.moveTo(4,-44); ctx.lineTo(4,12); ctx.stroke();
 
-  // particles suggestion
-  const rng=seededRand(label.charCodeAt(0));
-  for(let i=0;i<6;i++){
-    const px=-10+rng()*24, py=-35+rng()*20;
+  // label badge
+  ctx.fillStyle='rgba(0,0,0,0.18)';
+  ctx.beginPath(); ctx.roundRect(-10,-18,26,22,6); ctx.fill();
+  ctx.fillStyle='rgba(255,255,255,0.92)';
+  ctx.font='bold 15px system-ui'; ctx.textAlign='center';
+  ctx.fillText(label,3,-2);
+
+  // small nutrient dots on sack face
+  const rng=seededRand(label.charCodeAt(0)*31);
+  const protCol='rgba(29,158,117,0.75)', fatCol='rgba(216,90,48,0.75)';
+  for(let i=0;i<5;i++){
+    const px=-8+rng()*18, py=-38+rng()*16;
     ctx.beginPath(); ctx.arc(px,py,2,0,Math.PI*2);
-    ctx.fillStyle=label==='A'?'rgba(29,158,117,0.6)':'rgba(29,158,117,0.6)'; ctx.fill();
-    ctx.beginPath(); ctx.arc(px+8,py+5,1.5,0,Math.PI*2);
-    ctx.fillStyle='rgba(216,90,48,0.6)'; ctx.fill();
+    ctx.fillStyle=rng()<0.6?protCol:fatCol; ctx.fill();
   }
 
   ctx.restore();
@@ -444,6 +492,163 @@ function drawStream(ctx,x1,y1,x2,y2,color,progress){
   }
 }
 
+// 5 capybara hair styles: 0=none, 1=mohawk, 2=curly wig, 3=straight fringe, 4=spiky, 5=afro
+const CAPI_STYLES=['none','mohawk','curls','fringe','freddy','afro'];
+function newCapibara(){
+  const available=CAPI_STYLES.filter((_,i)=>i!==capiIdx);
+  capiIdx=CAPI_STYLES.indexOf(available[Math.floor(Math.random()*available.length)]);
+  wrongCount=0;
+  tries=[];
+  document.getElementById('tries-row').innerHTML='';
+  document.getElementById('rbar').style.display='none';
+  document.getElementById('btn-new-capi').style.display='none';
+  document.getElementById('btn-feed').disabled=false;
+  document.getElementById('btn-feed').style.opacity='1';
+  setState('idle');
+}
+
+function drawCapybaraHair(ctx,s,style){
+  if(style==='none') return;
+  if(style==='mohawk'){
+    ctx.fillStyle='#c02060';
+    [-20,-10,0,10,20].forEach((ox,i)=>{
+      const h=22+Math.sin(i*1.2)*8;
+      ctx.beginPath();
+      ctx.moveTo(ox*s,-96*s);
+      ctx.bezierCurveTo((ox-4)*s,(-96-h)*s,(ox+4)*s,(-96-h)*s,ox*s,(-96-h+4)*s);
+      ctx.lineTo(ox*s,-96*s);
+      ctx.fill();
+    });
+  }
+  if(style==='curls'){
+    ctx.fillStyle='#f5c842';
+    ctx.strokeStyle='#c8950a'; ctx.lineWidth=1.5*s;
+    [[-38,-85],[-25,-100],[-10,-108],[8,-108],[24,-100],[38,-85]].forEach(([ox,oy])=>{
+      ctx.beginPath();
+      ctx.arc(ox*s,oy*s,10*s,0,Math.PI*2);
+      ctx.fill(); ctx.stroke();
+    });
+    [[-30,-96],[-15,-106],[5,-110],[22,-106],[36,-94]].forEach(([ox,oy])=>{
+      ctx.beginPath(); ctx.arc(ox*s,oy*s,8*s,0,Math.PI*2);
+      ctx.fill(); ctx.stroke();
+    });
+  }
+  if(style==='fringe'){
+    ctx.fillStyle='#3a2008';
+    ctx.beginPath();
+    ctx.moveTo(-48*s,-90*s);
+    ctx.bezierCurveTo(-40*s,-108*s,-20*s,-114*s,0,-116*s);
+    ctx.bezierCurveTo(20*s,-114*s,40*s,-108*s,48*s,-90*s);
+    ctx.bezierCurveTo(30*s,-88*s,15*s,-86*s,0,-86*s);
+    ctx.bezierCurveTo(-18*s,-86*s,-34*s,-88*s,-48*s,-90*s);
+    ctx.fill();
+    // fringe strands
+    ctx.strokeStyle='#2a1204'; ctx.lineWidth=2*s; ctx.lineCap='round';
+    [-30,-18,-6,6,18,30].forEach(ox=>{
+      ctx.beginPath();
+      ctx.moveTo(ox*s,-90*s);
+      ctx.lineTo((ox+2)*s,-75*s);
+      ctx.stroke();
+    });
+  }
+  if(style==='freddy'){
+    // Freddy Mercury — dark swept-back hair + iconic thick mustache
+
+    // swept-back dark hair, voluminous on sides
+    ctx.fillStyle='#1a0e06';
+    ctx.strokeStyle='#0a0602'; ctx.lineWidth=1.5*s;
+    // left side poof
+    ctx.beginPath();
+    ctx.moveTo(-46*s,-86*s);
+    ctx.bezierCurveTo(-68*s,-90*s,-72*s,-115*s,-50*s,-118*s);
+    ctx.bezierCurveTo(-36*s,-120*s,-22*s,-112*s,-18*s,-100*s);
+    ctx.bezierCurveTo(-28*s,-94*s,-38*s,-88*s,-46*s,-86*s);
+    ctx.fill(); ctx.stroke();
+    // right side poof
+    ctx.beginPath();
+    ctx.moveTo(44*s,-86*s);
+    ctx.bezierCurveTo(66*s,-90*s,70*s,-115*s,48*s,-118*s);
+    ctx.bezierCurveTo(34*s,-120*s,20*s,-112*s,16*s,-100*s);
+    ctx.bezierCurveTo(26*s,-94*s,36*s,-88*s,44*s,-86*s);
+    ctx.fill(); ctx.stroke();
+    // top center sweep
+    ctx.beginPath();
+    ctx.moveTo(-18*s,-100*s);
+    ctx.bezierCurveTo(-14*s,-122*s,14*s,-122*s,18*s,-100*s);
+    ctx.bezierCurveTo(10*s,-96*s,-10*s,-96*s,-18*s,-100*s);
+    ctx.fill(); ctx.stroke();
+    // hair shine lines
+    ctx.strokeStyle='rgba(80,50,20,0.4)'; ctx.lineWidth=1.2*s; ctx.lineCap='round';
+    [[-40,-114,-28,-96],[-20,-118,-12,-100],[8,-118,18,-100],[30,-114,40,-96]].forEach(([x1,y1,x2,y2])=>{
+      ctx.beginPath(); ctx.moveTo(x1*s,y1*s); ctx.lineTo(x2*s,y2*s); ctx.stroke();
+    });
+
+    // iconic thick Freddy mustache — drawn below the snout patch
+    // mustache base (very thick, wide)
+    ctx.fillStyle='#1a0e06';
+    ctx.strokeStyle='#0a0602'; ctx.lineWidth=1*s;
+    // left wing
+    ctx.beginPath();
+    ctx.moveTo(2*s,-52*s);
+    ctx.bezierCurveTo(-4*s,-52*s,-20*s,-50*s,-26*s,-44*s);
+    ctx.bezierCurveTo(-28*s,-40*s,-24*s,-36*s,-18*s,-38*s);
+    ctx.bezierCurveTo(-10*s,-40*s,-4*s,-46*s,2*s,-50*s);
+    ctx.closePath(); ctx.fill(); ctx.stroke();
+    // right wing
+    ctx.beginPath();
+    ctx.moveTo(2*s,-52*s);
+    ctx.bezierCurveTo(8*s,-52*s,24*s,-50*s,30*s,-44*s);
+    ctx.bezierCurveTo(32*s,-40*s,28*s,-36*s,22*s,-38*s);
+    ctx.bezierCurveTo(14*s,-40*s,8*s,-46*s,2*s,-50*s);
+    ctx.closePath(); ctx.fill(); ctx.stroke();
+
+    // microphone in paw (tiny detail)
+    ctx.fillStyle='#888';
+    ctx.beginPath(); ctx.roundRect(38*s,30*s,6*s,28*s,3*s); ctx.fill();
+    ctx.fillStyle='#555';
+    ctx.beginPath(); ctx.ellipse(41*s,30*s,6*s,8*s,0,0,Math.PI*2); ctx.fill();
+  }
+  if(style==='afro'){
+    // Trump hair — iconic blonde sweep-over combover
+    // base layer — big sweep from right to left
+    ctx.fillStyle='#f0c830';
+    ctx.strokeStyle='#c8a010'; ctx.lineWidth=1.5*s;
+    ctx.beginPath();
+    ctx.moveTo(48*s,-82*s);
+    ctx.bezierCurveTo(55*s,-110*s,20*s,-125*s,-10*s,-118*s);
+    ctx.bezierCurveTo(-38*s,-112*s,-52*s,-98*s,-48*s,-88*s);
+    ctx.bezierCurveTo(-30*s,-82*s,10*s,-80*s,48*s,-82*s);
+    ctx.fill(); ctx.stroke();
+    // sweep-over top — the famous comb-over flap
+    ctx.fillStyle='#f5d040';
+    ctx.beginPath();
+    ctx.moveTo(46*s,-84*s);
+    ctx.bezierCurveTo(30*s,-128*s,-20*s,-132*s,-44*s,-110*s);
+    ctx.bezierCurveTo(-30*s,-104*s,-10*s,-100*s,20*s,-100*s);
+    ctx.bezierCurveTo(34*s,-98*s,44*s,-92*s,46*s,-84*s);
+    ctx.fill(); ctx.stroke();
+    // hair strand lines — parallel sweep lines
+    ctx.strokeStyle='#c8a010'; ctx.lineWidth=1*s; ctx.lineCap='round';
+    [[-35,-108,-10,-92],[-20,-114,10,-96],[-5,-118,28,-100],[10,-116,40,-100]].forEach(([x1,y1,x2,y2])=>{
+      ctx.beginPath();
+      ctx.moveTo(x1*s,y1*s);
+      ctx.bezierCurveTo((x1+10)*s,(y1+4)*s,(x2-10)*s,(y2-4)*s,x2*s,y2*s);
+      ctx.stroke();
+    });
+    // front tuft sticking up slightly
+    ctx.fillStyle='#f0c830';
+    ctx.beginPath();
+    ctx.moveTo(-30*s,-104*s);
+    ctx.bezierCurveTo(-38*s,-122*s,-20*s,-128*s,-10*s,-118*s);
+    ctx.bezierCurveTo(-5*s,-110*s,-15*s,-104*s,-30*s,-104*s);
+    ctx.fill();
+    // small label
+    ctx.fillStyle='rgba(0,0,0,0.35)';
+    ctx.font=`bold ${8*s}px system-ui`; ctx.textAlign='center';
+    ctx.fillText('MAKE CAPI GREAT AGAIN',0*s,-130*s);
+  }
+}
+
 function drawCapybara(ctx,cx,cy,size){
   const s=size/100;
   ctx.save();
@@ -466,6 +671,25 @@ function drawCapybara(ctx,cx,cy,size){
   ctx.bezierCurveTo(80*s,30*s,   70*s,70*s,   38*s,70*s);
   ctx.closePath();
   ctx.fill(); ctx.stroke();
+
+  // US flag badge on chest for Trump capybara
+  if(CAPI_STYLES[capiIdx]==='afro'){
+    const fx=8*s, fy=-10*s, fw=26*s, fh=17*s;
+    ctx.fillStyle='#B22234';
+    ctx.beginPath(); ctx.roundRect(fx,fy,fw,fh,2*s); ctx.fill();
+    ctx.fillStyle='#fff';
+    [1,3,5].forEach(i=>{ ctx.fillRect(fx,fy+fh*i/7,fw,fh/7); });
+    ctx.fillStyle='#3C3B6E';
+    ctx.fillRect(fx,fy,fw*0.42,fh*0.55);
+    ctx.fillStyle='#fff';
+    for(let row=0;row<3;row++) for(let col=0;col<4;col++){
+      ctx.beginPath();
+      ctx.arc(fx+(col+0.6)*fw*0.105,fy+(row+0.6)*fh*0.18,1.3*s,0,Math.PI*2);
+      ctx.fill();
+    }
+    ctx.strokeStyle='rgba(0,0,0,0.25)'; ctx.lineWidth=0.8*s;
+    ctx.beginPath(); ctx.roundRect(fx,fy,fw,fh,2*s); ctx.stroke();
+  }
 
   // front legs — stubby rounded at bottom
   ctx.fillStyle='#c07028';
@@ -589,6 +813,9 @@ function drawCapybara(ctx,cx,cy,size){
       ctx.fillText(star,sx,sy);
     });
   }
+
+  // draw hair on top of everything
+  drawCapybaraHair(ctx,s,CAPI_STYLES[capiIdx]);
 
   ctx.restore();
 }
