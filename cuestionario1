@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ICB1121 — Actividad interactiva</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,sans-serif;background:#f0f0ee;color:#1a1a1a;padding:1rem;max-width:560px;margin:0 auto}
+
+/* ── screens ── */
+.screen{display:none}
+.screen.active{display:block}
+
+/* ── join screen ── */
+.join-card{background:#fff;border:0.5px solid #ddd;border-radius:16px;padding:2rem;text-align:center;margin-top:2rem}
+.join-card h1{font-size:22px;font-weight:600;color:#185FA5;margin-bottom:0.5rem}
+.join-card p{font-size:13px;color:#888;margin-bottom:1.5rem}
+.join-card input{width:100%;font-size:18px;padding:10px 14px;border:0.5px solid #ccc;border-radius:10px;text-align:center;margin-bottom:10px;font-family:monospace}
+.join-card input:focus{outline:none;border-color:#185FA5}
+.btn-join{width:100%;padding:13px;font-size:15px;font-weight:600;border:none;border-radius:10px;background:#185FA5;color:#fff;cursor:pointer}
+.btn-join:hover{background:#0C447C}
+.btn-join:disabled{background:#aaa;cursor:not-allowed}
+
+/* ── waiting screen ── */
+.waiting-card{background:#fff;border:0.5px solid #ddd;border-radius:16px;padding:2rem;text-align:center;margin-top:1rem}
+.waiting-card h2{font-size:18px;color:#444;margin-bottom:0.5rem}
+.waiting-card .name-badge{font-size:28px;font-weight:700;color:#185FA5;margin:1rem 0}
+.waiting-card p{font-size:13px;color:#888}
+.pulse{animation:pulse 1.5s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
+
+/* ── activity screen ── */
+.problem-box{background:#fff;border:0.5px solid #ddd;border-radius:14px;padding:1rem;margin-bottom:10px}
+.problem-box h2{font-size:10px;font-weight:500;color:#aaa;text-transform:uppercase;letter-spacing:0.07em;margin-bottom:0.6rem}
+.problem-text{font-size:13px;color:#444;line-height:1.9;background:#f8f8f6;border-radius:8px;padding:0.8rem;margin-bottom:10px}
+.highlight{background:#fff3cd;border-radius:3px;padding:1px 3px;font-weight:500}
+.vars{font-size:12px;color:#555;line-height:1.8;margin-bottom:4px}
+
+.eq-label{font-size:11px;color:#aaa;margin:8px 0 4px;text-transform:uppercase;letter-spacing:0.05em}
+.eq-row{display:flex;align-items:center;gap:5px;flex-wrap:wrap;min-height:42px;background:#f8f8f6;border-radius:10px;padding:5px 8px;border:0.5px solid #eee;margin-bottom:6px}
+.fixed{font-size:15px;font-weight:500;color:#555;padding:0 2px}
+.slot{min-width:52px;height:34px;border:1.5px dashed #ccc;border-radius:8px;background:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:500;font-family:monospace;color:#888;cursor:pointer;padding:0 5px;transition:all 0.15s}
+.slot.filled{border:1.5px solid #185FA5;background:#E6F1FB;color:#185FA5;border-style:solid}
+.slot.correct{border-color:#3B6D11;background:#EAF3DE;color:#1a3d08}
+.slot.wrong{border-color:#A32D2D;background:#FCEBEB;color:#A32D2D;animation:shake 0.3s}
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-4px)}75%{transform:translateX(4px)}}
+
+.palette-title{font-size:11px;color:#aaa;margin:10px 0 5px;text-transform:uppercase;letter-spacing:0.05em}
+.blocks{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:12px}
+.block{padding:6px 11px;font-size:13px;font-weight:500;font-family:monospace;border-radius:8px;cursor:pointer;border:0.5px solid #ddd;background:#fff;color:#333;transition:all 0.15s;user-select:none}
+.block:hover{background:#f0f0ee}
+.block.number{border-color:#aac0f0;background:#E6F1FB;color:#185FA5}
+.block.variable{border-color:#aadfc0;background:#EAF3DE;color:#0F6E56}
+.block.used{opacity:0.3;pointer-events:none}
+.block.selected{outline:2.5px solid #185FA5;transform:translateY(-2px);box-shadow:0 2px 8px rgba(0,0,0,0.1)}
+
+.btn-row{display:flex;gap:7px;margin-top:4px}
+.btn{flex:1;padding:9px;font-size:13px;border-radius:8px;cursor:pointer;border:0.5px solid #ccc;background:#f8f8f6;color:#444;font-weight:500}
+.btn.check{background:#534AB7;border-color:#534AB7;color:#fff}
+.btn.check:hover{background:#3C3489}
+.btn.hint-btn{background:#FEF9EC;border-color:#EF9F27;color:#854F0B}
+
+.result{margin-top:10px;padding:10px 14px;border-radius:8px;font-size:13px;display:none;line-height:1.7}
+.result.ok{background:#EAF3DE;color:#1a3d08;border:0.5px solid #3B6D11}
+.result.err{background:#FCEBEB;color:#791F1F;border:0.5px solid #A32D2D}
+.hint-box{font-size:12px;color:#854F0B;background:#FAEEDA;border-radius:7px;padding:7px 10px;margin-top:8px;display:none}
+
+/* ── ranking screen ── */
+.ranking-card{background:#fff;border:0.5px solid #ddd;border-radius:14px;padding:1rem;margin-top:10px}
+.ranking-card h2{font-size:14px;font-weight:600;color:#444;margin-bottom:10px;text-align:center}
+.rank-row{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:9px;margin-bottom:5px;background:#f8f8f6;font-size:13px}
+.rank-row.me{background:#E6F1FB;border:0.5px solid #aac0f0}
+.rank-pos{font-size:16px;font-weight:700;width:28px;text-align:center}
+.rank-name{flex:1;font-weight:500}
+.rank-score{font-family:monospace;font-weight:600;color:#185FA5}
+.rank-badge{font-size:11px;padding:2px 7px;border-radius:4px;background:#EAF3DE;color:#1a3d08;margin-left:4px}
+
+/* ── teacher screen ── */
+.teacher-link{background:#fff;border:0.5px solid #ddd;border-radius:12px;padding:1rem;margin-bottom:10px}
+.teacher-link h2{font-size:12px;font-weight:500;color:#999;margin-bottom:8px;text-transform:uppercase;letter-spacing:0.06em}
+.mode-btns{display:flex;gap:8px;margin-bottom:12px}
+.mode-btn{flex:1;padding:8px;font-size:13px;border-radius:8px;cursor:pointer;border:0.5px solid #ccc;background:#f8f8f6;color:#444}
+.mode-btn.active{background:#185FA5;border-color:#185FA5;color:#fff;font-weight:500}
+.students-list{font-size:12px}
+.student-row{display:flex;align-items:center;justify-content:space-between;padding:6px 8px;border-radius:7px;margin-bottom:4px;background:#f8f8f6}
+.student-row .sname{font-weight:500}
+.student-row .sbadge{font-size:11px;padding:2px 7px;border-radius:4px}
+.sbadge.done{background:#EAF3DE;color:#1a3d08}
+.sbadge.wrong{background:#FCEBEB;color:#791F1F}
+.sbadge.waiting{background:#f0f0ee;color:#888}
+.teacher-controls{display:flex;gap:7px;margin-top:10px}
+.tc-btn{flex:1;padding:9px;font-size:13px;border-radius:8px;cursor:pointer;border:0.5px solid;font-weight:500}
+.tc-btn.start{background:#EAF3DE;border-color:#3B6D11;color:#1a3d08}
+.tc-btn.reset{background:#FCEBEB;border-color:#A32D2D;color:#791F1F}
+.tc-btn.show{background:#E6F1FB;border-color:#185FA5;color:#185FA5}
+
+.status-badge{display:inline-block;padding:3px 10px;border-radius:10px;font-size:11px;font-weight:500;margin-bottom:8px}
+.status-badge.open{background:#EAF3DE;color:#1a3d08}
+.status-badge.closed{background:#FCEBEB;color:#791F1F}
+.status-badge.waiting{background:#f8f8f6;color:#888}
+</style>
+</head>
+<body>
+
+<!-- ── SCREEN: ROLE SELECT ── -->
+<div class="screen active" id="screen-role">
+  <div class="join-card">
+    <h1>ICB 1121</h1>
+    <p>Actividad interactiva — Sistemas de ecuaciones</p>
+    <button class="btn-join" style="margin-bottom:10px" onclick="showTeacher()">👨‍🏫 Soy el profesor</button>
+    <button class="btn-join" style="background:#1D9E75" onclick="showJoin()">👨‍🎓 Soy estudiante</button>
+  </div>
+</div>
+
+<!-- ── SCREEN: JOIN ── -->
+<div class="screen" id="screen-join">
+  <div class="join-card">
+    <h1>🧩 Actividad</h1>
+    <p>Ingresa tu nombre para participar</p>
+    <input type="text" id="name-input" placeholder="Tu nombre" maxlength="20">
+    <button class="btn-join" id="btn-join" onclick="joinActivity()">Entrar →</button>
+  </div>
+</div>
+
+<!-- ── SCREEN: WAITING ── -->
+<div class="screen" id="screen-waiting">
+  <div class="waiting-card">
+    <h2>¡Listo! Esperando al profesor...</h2>
+    <div class="name-badge" id="waiting-name"></div>
+    <p class="pulse">La actividad comenzará en breve 🎯</p>
+  </div>
+</div>
+
+<!-- ── SCREEN: ACTIVITY ── -->
+<div class="screen" id="screen-activity">
+  <div class="problem-box">
+    <h2>Problema</h2>
+    <div class="problem-text">
+      Se pretende mantener a los animales bajo una dieta estricta. A cada animal se le debe suministrar
+      <span class="highlight">20 g de proteína</span> y <span class="highlight">6 g de grasa</span>.
+      La mezcla A contiene <span class="highlight">10% de proteína</span> y <span class="highlight">6% de grasa</span>.
+      La mezcla B contiene <span class="highlight">20% de proteína</span> y <span class="highlight">2% de grasa</span>.
+      ¿Cuántos gramos de cada mezcla usar?
+    </div>
+    <div class="vars">
+      <div>• <strong>A</strong> = gramos de mezcla A</div>
+      <div>• <strong>B</strong> = gramos de mezcla B</div>
+    </div>
+  </div>
+
+  <div class="problem-box">
+    <h2>Construye el sistema de ecuaciones</h2>
+    <div class="eq-label">Ecuación de proteína:</div>
+    <div class="eq-row" id="eq-0">
+      <div class="slot" id="slot-0-0" onclick="clickSlot(0,0)">?</div>
+      <span class="fixed">·A +</span>
+      <div class="slot" id="slot-0-1" onclick="clickSlot(0,1)">?</div>
+      <span class="fixed">·B =</span>
+      <div class="slot" id="slot-0-2" onclick="clickSlot(0,2)">?</div>
+    </div>
+    <div class="eq-label">Ecuación de grasa:</div>
+    <div class="eq-row" id="eq-1">
+      <div class="slot" id="slot-1-0" onclick="clickSlot(1,0)">?</div>
+      <span class="fixed">·A +</span>
+      <div class="slot" id="slot-1-1" onclick="clickSlot(1,1)">?</div>
+      <span class="fixed">·B =</span>
+      <div class="slot" id="slot-1-2" onclick="clickSlot(1,2)">?</div>
+    </div>
+
+    <div class="palette-title">Bloques disponibles</div>
+    <div class="blocks" id="blocks-area"></div>
+
+    <div class="btn-row">
+      <button class="btn check" onclick="checkAnswer()">✓ Verificar</button>
+      <button class="btn" onclick="resetActivity()">↺</button>
+      <button class="btn hint-btn" onclick="toggleHint()">💡 Pista</button>
+    </div>
+    <div class="hint-box" id="hint-box">
+      El aporte de proteína de la mezcla A es 10% de A gramos, es decir 0,10·A. La suma de los aportes de ambas mezclas debe dar exactamente 20 g.
+    </div>
+    <div class="result" id="result"></div>
+  </div>
+</div>
+
+<!-- ── SCREEN: DONE ── -->
+<div class="screen" id="screen-done">
+  <div class="waiting-card">
+    <h2>✓ ¡Actividad completada!</h2>
+    <div class="name-badge" id="done-name" style="font-size:18px"></div>
+    <p style="margin-top:8px;color:#1a3d08;font-weight:500" id="done-msg"></p>
+  </div>
+  <div class="ranking-card" id="ranking-area"></div>
+</div>
+
+<!-- ── SCREEN: TEACHER ── -->
+<div class="screen" id="screen-teacher">
+  <div class="teacher-link">
+    <h2>Panel del Profesor</h2>
+    <div id="activity-status" class="status-badge waiting">⏳ Actividad no iniciada</div>
+    <div class="teacher-controls">
+      <button class="tc-btn start" onclick="teacherStart()">▶ Iniciar actividad</button>
+      <button class="tc-btn show" onclick="teacherShowRanking()">📊 Ver ranking</button>
+      <button class="tc-btn reset" onclick="teacherReset()">↺ Resetear</button>
+    </div>
+  </div>
+  <div class="teacher-link">
+    <h2>Estudiantes conectados</h2>
+    <div id="students-list"><p style="color:#aaa;font-size:12px">Ningún estudiante conectado aún.</p></div>
+  </div>
+  <div class="ranking-card" id="teacher-ranking" style="display:none">
+    <h2>📊 Ranking en vivo</h2>
+    <div id="teacher-ranking-list"></div>
+  </div>
+</div>
+
+
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyBRlYXe71cyD-pxrxN5ay1AsAPkVXYoDPQ",
+  authDomain: "icb1121.firebaseapp.com",
+  databaseURL: "https://icb1121-default-rtdb.firebaseio.com",
+  projectId: "icb1121",
+  storageBucket: "icb1121.firebasestorage.app",
+  messagingSenderId: "938191218557",
+  appId: "1:938191218557:web:07cd2d5e4df59d14094e14"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+const sessionRef = db.ref('session');
+const studentsRef = db.ref('students');
+
+let myName = '';
+let myKey = '';
+let selected = null;
+
+const CORRECT = [
+  ['0.10','0.20','20'],
+  ['0.06','0.02','6']
+];
+const BLOCKS = [
+  {label:'0.10',type:'number'},{label:'0.20',type:'number'},
+  {label:'0.06',type:'number'},{label:'0.02',type:'number'},
+  {label:'20',type:'number'},{label:'6',type:'number'},
+  {label:'0.30',type:'number'},{label:'0.50',type:'number'}
+];
+
+let filled = [[null,null,null],[null,null,null]];
+let startTime = null;
+let submitted = false;
+
+// ── navigation ──────────────────────────────────────────
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById('screen-'+id).classList.add('active');
+}
+function showTeacher(){ showScreen('teacher'); listenTeacher(); }
+function showJoin(){ showScreen('join'); }
+
+// ── join ────────────────────────────────────────────────
+function joinActivity(){
+  const name = document.getElementById('name-input').value.trim();
+  if(!name) return;
+  myName = name;
+  myKey = studentsRef.push({name, status:'waiting', score:null, time:null}).key;
+  document.getElementById('waiting-name').textContent = name;
+  showScreen('waiting');
+  listenSession();
+}
+
+function listenSession(){
+  sessionRef.on('value', snap => {
+    const data = snap.val();
+    if(!data) return;
+    if(data.status === 'active' && !submitted){
+      startTime = data.startTime || Date.now();
+      showScreen('activity');
+      renderBlocks();
+    }
+    if(data.status === 'ranking'){
+      showRanking();
+    }
+  });
+}
+
+// ── activity ────────────────────────────────────────────
+function renderBlocks(){
+  const usedMap = {};
+  filled.forEach(row => row.forEach(v => { if(v) usedMap[v]=(usedMap[v]||0)+1; }));
+  const countMap = {};
+  BLOCKS.forEach(b => countMap[b.label]=(countMap[b.label]||0)+1);
+
+  const area = document.getElementById('blocks-area');
+  area.innerHTML = BLOCKS.map(b => {
+    const uses = usedMap[b.label]||0;
+    const avail = countMap[b.label];
+    const isUsed = uses >= avail;
+    const isSel = selected === b.label;
+    return `<div class="block ${b.type} ${isUsed?'used':''} ${isSel?'selected':''}"
+      onclick="selectBlock('${b.label}')">${b.label}</div>`;
+  }).join('');
+}
+
+function selectBlock(label){
+  selected = selected===label ? null : label;
+  renderBlocks();
+}
+
+function clickSlot(eq, sl){
+  if(submitted) return;
+  if(selected){
+    filled[eq][sl] = selected;
+    selected = null;
+  } else if(filled[eq][sl]){
+    filled[eq][sl] = null;
+  }
+  updateSlots();
+  renderBlocks();
+}
+
+function updateSlots(){
+  for(let e=0;e<2;e++) for(let s=0;s<3;s++){
+    const el = document.getElementById(`slot-${e}-${s}`);
+    const val = filled[e][s];
+    el.textContent = val || '?';
+    el.className = 'slot' + (val?' filled':'');
+  }
+}
+
+function checkAnswer(){
+  if(submitted) return;
+  let allFilled=true, allCorrect=true;
+  for(let e=0;e<2;e++) for(let s=0;s<3;s++){
+    if(!filled[e][s]){allFilled=false;continue;}
+    const el=document.getElementById(`slot-${e}-${s}`);
+    if(filled[e][s]===CORRECT[e][s]){
+      el.className='slot correct';
+    } else {
+      el.className='slot wrong';
+      allCorrect=false;
+      setTimeout(()=>el.className='slot filled',600);
+    }
+  }
+  const res = document.getElementById('result');
+  res.style.display='block';
+  if(!allFilled){
+    res.className='result err';
+    res.textContent='¡Faltan bloques por colocar!';
+    return;
+  }
+  if(allCorrect){
+    submitted=true;
+    const elapsed = Math.round((Date.now()-startTime)/1000);
+    studentsRef.child(myKey).update({status:'correct', score:100, time:elapsed});
+    res.className='result ok';
+    res.innerHTML=`✓ ¡Correcto! Completado en ${elapsed} s.<br><strong>Solución:</strong> A = 80 g de mezcla A, B = 60 g de mezcla B`;
+    showDoneScreen(elapsed, true);
+  } else {
+    res.className='result err';
+    res.textContent='✗ Hay bloques incorrectos. Los huecos en rojo deben corregirse.';
+    studentsRef.child(myKey).update({status:'wrong'});
+  }
+}
+
+function resetActivity(){
+  if(submitted) return;
+  filled=[[null,null,null],[null,null,null]];
+  selected=null;
+  updateSlots();
+  renderBlocks();
+  document.getElementById('result').style.display='none';
+}
+
+function toggleHint(){
+  const h=document.getElementById('hint-box');
+  h.style.display=h.style.display==='none'||!h.style.display?'block':'none';
+}
+
+function showDoneScreen(elapsed, correct){
+  document.getElementById('done-name').textContent=myName;
+  document.getElementById('done-msg').textContent=
+    correct?`¡Sistema planteado correctamente en ${elapsed} s! 🎉`:'Intenta de nuevo cuando el profesor reinicie.';
+  setTimeout(()=>showScreen('done'),1200);
+  listenRanking();
+}
+
+function showRanking(){
+  showScreen('done');
+  listenRanking();
+}
+
+function listenRanking(){
+  studentsRef.on('value', snap => {
+    const data = snap.val();
+    if(!data) return;
+    const rows = Object.entries(data)
+      .filter(([k,v])=>v.status==='correct')
+      .sort((a,b)=>(a[1].time||999)-(b[1].time||999));
+    const area = document.getElementById('ranking-area');
+    if(!rows.length){area.innerHTML='<p style="color:#aaa;font-size:12px;text-align:center">Aún no hay respuestas correctas.</p>';return;}
+    const medals=['🥇','🥈','🥉'];
+    area.innerHTML='<h2 style="font-size:14px;font-weight:600;color:#444;margin-bottom:10px;text-align:center">📊 Ranking</h2>'+
+      rows.map(([k,v],i)=>`
+      <div class="rank-row ${k===myKey?'me':''}">
+        <span class="rank-pos">${medals[i]||i+1}</span>
+        <span class="rank-name">${v.name}${k===myKey?' (tú)':''}</span>
+        <span class="rank-score">${v.time}s</span>
+      </div>`).join('');
+  });
+}
+
+// ── teacher ─────────────────────────────────────────────
+function listenTeacher(){
+  studentsRef.on('value', snap => {
+    const data = snap.val() || {};
+    const list = document.getElementById('students-list');
+    const entries = Object.entries(data);
+    if(!entries.length){
+      list.innerHTML='<p style="color:#aaa;font-size:12px">Ningún estudiante conectado aún.</p>';
+      return;
+    }
+    list.innerHTML=entries.map(([k,v])=>{
+      const badge = v.status==='correct'
+        ? `<span class="sbadge done">✓ Correcto (${v.time}s)</span>`
+        : v.status==='wrong'
+        ? `<span class="sbadge wrong">✗ Incorrecto</span>`
+        : `<span class="sbadge waiting">Esperando</span>`;
+      return `<div class="student-row"><span class="sname">${v.name}</span>${badge}</div>`;
+    }).join('');
+  });
+  sessionRef.on('value', snap => {
+    const data = snap.val();
+    const badge = document.getElementById('activity-status');
+    if(!data||data.status==='idle'){
+      badge.textContent='⏳ Actividad no iniciada';badge.className='status-badge waiting';
+    } else if(data.status==='active'){
+      badge.textContent='✅ Actividad en curso';badge.className='status-badge open';
+    } else if(data.status==='ranking'){
+      badge.textContent='📊 Mostrando ranking';badge.className='status-badge open';
+    }
+  });
+}
+
+function teacherStart(){
+  sessionRef.set({status:'active', startTime:Date.now()});
+}
+
+function teacherShowRanking(){
+  sessionRef.update({status:'ranking'});
+  document.getElementById('teacher-ranking').style.display='block';
+  studentsRef.on('value', snap => {
+    const data = snap.val()||{};
+    const rows = Object.entries(data)
+      .filter(([k,v])=>v.status==='correct')
+      .sort((a,b)=>(a[1].time||999)-(b[1].time||999));
+    const medals=['🥇','🥈','🥉'];
+    document.getElementById('teacher-ranking-list').innerHTML=
+      rows.length
+        ? rows.map(([k,v],i)=>`
+          <div class="rank-row">
+            <span class="rank-pos">${medals[i]||i+1}</span>
+            <span class="rank-name">${v.name}</span>
+            <span class="rank-score">${v.time}s</span>
+          </div>`).join('')
+        : '<p style="color:#aaa;font-size:12px">Aún no hay respuestas correctas.</p>';
+  });
+}
+
+function teacherReset(){
+  sessionRef.set({status:'idle'});
+  studentsRef.remove();
+  document.getElementById('teacher-ranking').style.display='none';
+}
+</script>
+</body>
+</html>
