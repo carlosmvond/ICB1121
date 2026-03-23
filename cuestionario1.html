@@ -122,7 +122,8 @@ body{font-family:system-ui,sans-serif;background:#f0f0ee;color:#1a1a1a;padding:1
     <h1>ICB 1121</h1>
     <p>Actividad interactiva — Sistemas de ecuaciones</p>
     <button class="btn-join" style="margin-bottom:10px" onclick="showTeacher()">👨‍🏫 Soy el profesor</button>
-    <button class="btn-join" style="background:#1D9E75" onclick="showJoin()">👨‍🎓 Soy estudiante</button>
+    <button class="btn-join" style="background:#1D9E75;margin-bottom:10px" onclick="showJoin()">👨‍🎓 Soy estudiante</button>
+    <button class="btn-join" style="background:#854F0B" onclick="startPractice()">📚 Practicar solo</button>
   </div>
 </div>
 
@@ -229,7 +230,94 @@ body{font-family:system-ui,sans-serif;background:#f0f0ee;color:#1a1a1a;padding:1
   <div class="ranking-card" id="ranking-area"></div>
 </div>
 
-<!-- ── SCREEN: TEACHER ── -->
+<!-- ── SCREEN: PRACTICE ── -->
+<div class="screen" id="screen-practice">
+  <div class="score-bar">
+    <div><div class="score-lbl">PUNTAJE</div><div class="score-num" id="prac-score">0</div></div>
+    <div style="text-align:right"><div class="score-lbl">PREGUNTA</div><div class="score-num" id="prac-q" style="color:#1D9E75">1 / 2</div></div>
+  </div>
+
+  <!-- P1: árboles -->
+  <div id="prac-q1">
+    <div class="tree-problem">
+      <h2 style="font-size:10px;font-weight:500;color:#aaa;text-transform:uppercase;letter-spacing:0.07em;margin-bottom:0.6rem">Pregunta 1 — Práctica</h2>
+      <div class="problem-text" style="font-size:13px;color:#444;line-height:1.9;background:#f8f8f6;border-radius:8px;padding:0.8rem;margin-bottom:10px">
+        El <strong>árbol A</strong> mide hoy <span class="highlight">2 m</span> y crece <span class="highlight">3 m por año</span>.<br>
+        El <strong>árbol B</strong> mide hoy <span class="highlight">14 m</span> y crece <span class="highlight">1 m por año</span>.<br>
+        ¿En cuántos años tendrán la misma altura?
+      </div>
+      <div class="tree-canvas-wrap">
+        <canvas id="ptree-canvas" style="width:100%;height:200px;display:block;background:#e8f5e1"></canvas>
+      </div>
+      <div style="font-size:12px;color:#666;margin-bottom:6px">Escribe la ecuación: <span style="font-family:monospace;color:#185FA5">2 + 3t = 14 + t</span> → despeja t</div>
+      <div class="tree-input-row">
+        <input type="number" id="ptree-answer" placeholder="t = ?" min="0" step="1">
+        <button class="btn check" onclick="checkPracTree()">✓ Verificar</button>
+      </div>
+      <div class="tree-result" id="ptree-result"></div>
+      <button id="prac-next-1" class="btn run" style="width:100%;margin-top:10px;display:none" onclick="pracGoQ2()">Siguiente pregunta →</button>
+    </div>
+  </div>
+
+  <!-- P2: mezclas -->
+  <div id="prac-q2" style="display:none">
+    <div class="problem-box">
+      <h2 style="font-size:10px;font-weight:500;color:#aaa;text-transform:uppercase;letter-spacing:0.07em;margin-bottom:0.6rem">Pregunta 2 — Práctica</h2>
+      <div class="problem-text" style="font-size:13px;color:#444;line-height:1.9;background:#f8f8f6;border-radius:8px;padding:0.8rem;margin-bottom:10px">
+        A cada animal se le debe suministrar <span class="highlight">20 g de proteína</span> y <span class="highlight">6 g de grasa</span>.
+        La mezcla A contiene <span class="highlight">10% proteína</span> y <span class="highlight">6% grasa</span>.
+        La mezcla B contiene <span class="highlight">20% proteína</span> y <span class="highlight">2% grasa</span>.
+        ¿Cuántos gramos de cada mezcla usar?
+      </div>
+      <div style="font-size:12px;color:#555;margin-bottom:10px;line-height:1.8">
+        <div>• <strong>A</strong> = gramos de mezcla A</div>
+        <div>• <strong>B</strong> = gramos de mezcla B</div>
+      </div>
+    </div>
+    <div class="problem-box">
+      <h2 style="font-size:10px;font-weight:500;color:#aaa;text-transform:uppercase;letter-spacing:0.07em;margin-bottom:0.6rem">Construye el sistema</h2>
+      <div class="eq-label">Ecuación de proteína:</div>
+      <div class="eq-row" id="peq-0">
+        <div class="slot" id="pslot-0-0" onclick="clickPracSlot(0,0)">?</div>
+        <span class="fixed">·A +</span>
+        <div class="slot" id="pslot-0-1" onclick="clickPracSlot(0,1)">?</div>
+        <span class="fixed">·B =</span>
+        <div class="slot" id="pslot-0-2" onclick="clickPracSlot(0,2)">?</div>
+      </div>
+      <div class="eq-label">Ecuación de grasa:</div>
+      <div class="eq-row" id="peq-1">
+        <div class="slot" id="pslot-1-0" onclick="clickPracSlot(1,0)">?</div>
+        <span class="fixed">·A +</span>
+        <div class="slot" id="pslot-1-1" onclick="clickPracSlot(1,1)">?</div>
+        <span class="fixed">·B =</span>
+        <div class="slot" id="pslot-1-2" onclick="clickPracSlot(1,2)">?</div>
+      </div>
+      <div class="palette-title">Bloques disponibles</div>
+      <div class="blocks" id="pblocks-area"></div>
+      <div class="btn-row">
+        <button class="btn check" onclick="checkPracMix()">✓ Verificar</button>
+        <button class="btn" onclick="resetPracMix()">↺</button>
+        <button class="btn hint-btn" onclick="togglePracHint()">💡 Pista</button>
+      </div>
+      <div class="hint-box" id="phint-box">El aporte de proteína de la mezcla A es 0,10·A. La suma debe dar exactamente 20 g.</div>
+      <div class="result" id="presult"></div>
+      <button id="prac-next-2" class="btn run" style="width:100%;margin-top:10px;display:none" onclick="pracDone()">Ver resultado final →</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── SCREEN: PRACTICE DONE ── -->
+<div class="screen" id="screen-practicdone">
+  <div class="waiting-card" style="text-align:center;padding:2rem">
+    <h2 style="font-size:22px;margin-bottom:1rem">🎉 ¡Práctica completada!</h2>
+    <div style="font-size:36px;font-weight:700;font-family:monospace;color:#185FA5;margin-bottom:0.5rem" id="final-score">0</div>
+    <div style="font-size:13px;color:#888;margin-bottom:1.5rem">puntos de 4 posibles</div>
+    <div id="final-msg" style="font-size:14px;color:#444;margin-bottom:1.5rem"></div>
+    <button class="btn-join" style="background:#854F0B" onclick="restartPractice()">↺ Practicar de nuevo</button>
+  </div>
+</div>
+
+<!-- ── SCREEN: TEACHER ── --><!-- ── SCREEN: TEACHER ── -->
 <div class="screen" id="screen-teacher">
   <div class="teacher-link">
     <h2>Panel del Profesor</h2>
@@ -668,6 +756,185 @@ function showScreen(id){
     document.getElementById('q2-panel').style.display = 'none';
   }
 }
+
+// ── PRACTICE MODE ──────────────────────────────────────
+let pracScore = 0;
+let pracFilled = [[null,null,null],[null,null,null]];
+let pracSelected = null;
+let pracTreeDone = false;
+let pracMixDone = false;
+
+function startPractice(){
+  pracScore = 0; pracTreeDone = false; pracMixDone = false;
+  pracFilled = [[null,null,null],[null,null,null]];
+  pracSelected = null;
+  document.getElementById('prac-score').textContent = '0';
+  document.getElementById('prac-q').textContent = '1 / 2';
+  document.getElementById('prac-q1').style.display = 'block';
+  document.getElementById('prac-q2').style.display = 'none';
+  document.getElementById('prac-next-1').style.display = 'none';
+  document.getElementById('ptree-result').style.display = 'none';
+  document.getElementById('ptree-answer').value = '';
+  showScreen('practice');
+  setTimeout(()=>drawPracTrees(0), 100);
+}
+
+function drawPracTrees(yr){
+  const c = document.getElementById('ptree-canvas');
+  if(!c) return;
+  const dpr = window.devicePixelRatio||1;
+  c.width = c.offsetWidth*dpr; c.height = c.offsetHeight*dpr;
+  const ctx = c.getContext('2d'); ctx.scale(dpr,dpr);
+  const W = c.offsetWidth, H = c.offsetHeight;
+  ctx.fillStyle = '#e8f5e1'; ctx.fillRect(0,0,W,H);
+  ctx.fillStyle = '#a8cc78'; ctx.fillRect(0,H*0.78,W,H*0.22);
+  ctx.fillStyle = '#FFD700'; ctx.beginPath(); ctx.arc(W*0.85,H*0.12,18,0,Math.PI*2); ctx.fill();
+  const maxH=20, scaleY=H*0.70/maxH;
+  function drawT(x,hM,col,lbl){
+    const baseY=H*0.78, tH=hM*scaleY, tW=Math.max(6,tH*0.12), cR=Math.max(10,tH*0.38);
+    ctx.fillStyle='#8B5e10'; ctx.fillRect(x-tW/2,baseY-tH*0.35,tW,tH*0.35);
+    [1,0.75,0.5].forEach((sc,i)=>{
+      ctx.fillStyle=i===0?col:(i===1?col+'cc':col+'88');
+      ctx.beginPath(); ctx.moveTo(x,baseY-tH*0.35-cR*sc*2.2+i*cR*0.5);
+      ctx.lineTo(x-cR*sc*1.1,baseY-tH*0.35-i*cR*0.3);
+      ctx.lineTo(x+cR*sc*1.1,baseY-tH*0.35-i*cR*0.3);
+      ctx.closePath(); ctx.fill();
+    });
+    ctx.fillStyle='#333'; ctx.font='bold 11px monospace'; ctx.textAlign='center';
+    ctx.fillText(hM.toFixed(1)+' m',x,baseY-tH*0.35-cR*2.4-6);
+    ctx.fillStyle='#555'; ctx.font='11px system-ui';
+    ctx.fillText(lbl,x,baseY+16);
+  }
+  const hA=2+3*yr, hB=14+1*yr;
+  drawT(W*0.3,hA,'#2d8a4e','Árbol A');
+  drawT(W*0.7,hB,'#1a5c8a','Árbol B');
+  ctx.fillStyle='#444'; ctx.font='bold 13px monospace'; ctx.textAlign='center';
+  ctx.fillText('Año: '+yr.toFixed(1),W/2,H*0.92);
+  if(Math.abs(hA-hB)<0.3){
+    ctx.strokeStyle='rgba(255,100,0,0.6)'; ctx.lineWidth=1.5; ctx.setLineDash([4,3]);
+    const eqY=H*0.78-hA*scaleY*0.35;
+    ctx.beginPath(); ctx.moveTo(W*0.15,eqY); ctx.lineTo(W*0.85,eqY); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle='#d45a00'; ctx.font='bold 11px system-ui'; ctx.textAlign='center';
+    ctx.fillText('¡Misma altura!',W/2,eqY-6);
+  }
+}
+
+function animPracTrees(target, onDone){
+  let yr=0; const step=target/60;
+  function frame(){
+    yr=Math.min(yr+step,target); drawPracTrees(yr);
+    if(yr<target) requestAnimationFrame(frame);
+    else if(onDone) onDone();
+  }
+  frame();
+}
+
+function checkPracTree(){
+  if(pracTreeDone) return;
+  const val=parseInt(document.getElementById('ptree-answer').value);
+  const res=document.getElementById('ptree-result');
+  res.style.display='block';
+  if(isNaN(val)){res.className='tree-result err';res.textContent='Ingresa un número entero.';return;}
+  if(val===6){
+    pracTreeDone=true; pracScore+=2;
+    document.getElementById('prac-score').textContent=pracScore;
+    res.className='tree-result ok';
+    res.innerHTML='✓ ¡Correcto! t = 6 años. +2 puntos 🎉';
+    animPracTrees(6,()=>{document.getElementById('prac-next-1').style.display='block';});
+  } else {
+    pracScore=Math.max(0,pracScore-1);
+    document.getElementById('prac-score').textContent=pracScore;
+    res.className='tree-result err';
+    res.textContent='✗ Incorrecto. -1 punto. Intenta de nuevo.';
+    animPracTrees(Math.min(Math.max(val,0),20),null);
+  }
+}
+
+function pracGoQ2(){
+  document.getElementById('prac-q').textContent='2 / 2';
+  document.getElementById('prac-q1').style.display='none';
+  document.getElementById('prac-q2').style.display='block';
+  renderPracBlocks();
+}
+
+function renderPracBlocks(){
+  const usedMap={};
+  pracFilled.forEach(row=>row.forEach(v=>{if(v)usedMap[v]=(usedMap[v]||0)+1;}));
+  const countMap={};
+  BLOCKS.forEach(b=>countMap[b.label]=(countMap[b.label]||0)+1);
+  document.getElementById('pblocks-area').innerHTML=BLOCKS.map(b=>{
+    const used=(usedMap[b.label]||0)>=(countMap[b.label]);
+    const sel=pracSelected===b.label;
+    return `<div class="block ${b.type} ${used?'used':''} ${sel?'selected':''}"
+      style="${sel?'outline:2.5px solid #185FA5;transform:translateY(-2px)':''}"
+      onclick="selectPracBlock('${b.label}')">${b.label}</div>`;
+  }).join('');
+}
+
+function selectPracBlock(label){pracSelected=pracSelected===label?null:label;renderPracBlocks();}
+
+function clickPracSlot(eq,sl){
+  if(pracMixDone) return;
+  if(pracSelected){pracFilled[eq][sl]=pracSelected;pracSelected=null;}
+  else if(pracFilled[eq][sl]) pracFilled[eq][sl]=null;
+  updatePracSlots(); renderPracBlocks();
+}
+
+function updatePracSlots(){
+  for(let e=0;e<2;e++) for(let s=0;s<3;s++){
+    const el=document.getElementById(`pslot-${e}-${s}`);
+    const v=pracFilled[e][s];
+    el.textContent=v||'?'; el.className='slot'+(v?' filled':'');
+  }
+}
+
+function checkPracMix(){
+  if(pracMixDone) return;
+  let allFilled=true, allCorrect=true;
+  for(let e=0;e<2;e++) for(let s=0;s<3;s++){
+    if(!pracFilled[e][s]){allFilled=false;continue;}
+    const el=document.getElementById(`pslot-${e}-${s}`);
+    if(pracFilled[e][s]===CORRECT[e][s]) el.className='slot correct';
+    else{el.className='slot wrong';allCorrect=false;setTimeout(()=>el.className='slot filled',600);}
+  }
+  const res=document.getElementById('presult');
+  res.style.display='block';
+  if(!allFilled){res.className='result err';res.textContent='¡Faltan bloques!';return;}
+  if(allCorrect){
+    pracMixDone=true; pracScore+=2;
+    document.getElementById('prac-score').textContent=pracScore;
+    res.className='result ok';
+    res.innerHTML='✓ ¡Correcto! +2 puntos 🎉<br><strong>Solución:</strong> A = 80 g, B = 60 g';
+    document.getElementById('prac-next-2').style.display='block';
+  } else {
+    pracScore=Math.max(0,pracScore-1);
+    document.getElementById('prac-score').textContent=pracScore;
+    res.className='result err';
+    res.textContent='✗ Hay bloques incorrectos. -1 punto.';
+  }
+}
+
+function resetPracMix(){
+  pracFilled=[[null,null,null],[null,null,null]]; pracSelected=null;
+  updatePracSlots(); renderPracBlocks();
+  document.getElementById('presult').style.display='none';
+}
+
+function togglePracHint(){
+  const h=document.getElementById('phint-box');
+  h.style.display=h.style.display==='block'?'none':'block';
+}
+
+function pracDone(){
+  document.getElementById('final-score').textContent=pracScore;
+  const msgs=['¡Sigue practicando, puedes mejorar! 💪','¡Buen intento! Revisa las pistas. 📖','¡Muy bien! Casi perfecto. 🌟','¡Perfecto! Dominaste ambos problemas. 🏆'];
+  document.getElementById('final-msg').textContent=msgs[Math.min(pracScore,4)-1]||msgs[0];
+  showScreen('practicdone');
+}
+
+function restartPractice(){ startPractice(); }
+
 </script>
 </body>
 </html>
