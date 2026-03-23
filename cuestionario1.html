@@ -256,7 +256,15 @@ function showScreen(id){
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
   document.getElementById('screen-'+id).classList.add('active');
 }
-function showTeacher(){ showScreen('teacher'); listenTeacher(); }
+function showTeacher(){
+  const pwd = prompt('Ingresa la clave de profesor:');
+  if(pwd === 'icb1121'){
+    showScreen('teacher');
+    listenTeacher();
+  } else {
+    alert('Clave incorrecta.');
+  }
+}
 function showJoin(){ showScreen('join'); }
 
 // ── join ────────────────────────────────────────────────
