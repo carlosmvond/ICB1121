@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>YouTube vs Spotify — Sistema de ecuaciones</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,sans-serif;background:#f0f0ee;color:#1a1a1a;padding:1rem}
+h1{font-size:15px;font-weight:500;color:#444;margin-bottom:1rem}
+.layout{display:flex;flex-direction:column;gap:12px}
+.panel{background:#fff;border:0.5px solid #ddd;border-radius:14px;padding:1.1rem}
+.panel h2{font-size:11px;font-weight:500;color:#999;margin-bottom:0.75rem;text-transform:uppercase;letter-spacing:0.06em}
+.problem-box{background:#fff;border:0.5px solid #ddd;border-radius:14px;padding:1.1rem}
+.app-row{display:flex;gap:10px;margin-bottom:10px}
+.app-card{flex:1;border-radius:10px;padding:0.8rem;border:0.5px solid #ddd;display:flex;align-items:center;gap:10px}
+.app-card.spotify{background:#f0faf4;border-color:#1DB954}
+.app-card.youtube{background:#fff5f5;border-color:#FF0000}
+.app-icon{width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
+.app-icon.sp{background:#1DB954}
+.app-icon.yt{background:#FF0000}
+.app-detail{font-size:12px;color:#555;line-height:1.8}
+.app-detail strong{font-size:13px;color:#222}
+.ig{width:100%;margin-bottom:10px}
+.ig label{display:flex;justify-content:space-between;align-items:center;font-size:12px;color:#666;margin-bottom:4px}
+.ig label .ig-val{font-size:16px;font-weight:500;font-family:monospace;color:#333}
+.ig input[type=range]{width:100%}
+.bar-row{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.bar-label{font-size:12px;color:#666;width:80px;flex-shrink:0}
+.bar-track{flex:1;height:16px;background:#f0f0ee;border-radius:8px;overflow:visible;position:relative}
+.bar-fill{height:100%;border-radius:8px;transition:width 0.3s;overflow:hidden;max-width:100%}
+.bar-marker{position:absolute;top:-3px;width:2px;height:22px;background:#333;border-radius:1px;pointer-events:none}
+.bar-val{font-size:11px;font-family:monospace;color:#888;width:70px;text-align:right;flex-shrink:0}
+.btn-check{width:100%;padding:11px;font-size:14px;font-weight:500;border:none;border-radius:8px;cursor:pointer;background:#534AB7;color:#fff;margin-top:4px}
+.btn-check:hover{background:#3C3489}
+.btn-reset{width:100%;margin-top:8px;padding:8px;font-size:12px;border:0.5px solid #ccc;border-radius:8px;background:#f8f8f6;cursor:pointer}
+.result-bar{margin-top:10px;padding:9px 12px;border-radius:8px;font-size:12px;display:none;line-height:1.6}
+.rok{background:#EAF3DE;color:#1a3d08;border:0.5px solid #3B6D11}
+.rerr{background:#FCEBEB;color:#791F1F;border:0.5px solid #A32D2D}
+.rwarn{background:#FAEEDA;color:#633806;border:0.5px solid #854F0B}
+.tries-row{display:flex;gap:5px;margin-top:6px;flex-wrap:wrap}
+.tb{font-size:11px;padding:2px 7px;border-radius:4px;font-family:monospace}
+.tok{background:#EAF3DE;color:#1a3d08}
+.terr{background:#FCEBEB;color:#791F1F}
+canvas{display:block;border-radius:12px;width:100%}
+#phone-canvas{height:320px}
+#bar-canvas{height:90px}
+#new-btn{display:none;width:100%;margin-top:8px;padding:10px;font-size:13px;font-weight:500;border:none;border-radius:8px;cursor:pointer;background:#D85A30;color:#fff}
+</style>
+</head>
+<body>
+<h1>📱 ¿Cuánto tiempo usó cada app?</h1>
+
+<div class="layout">
+
+<div class="problem-box">
+  <p style="font-size:13px;color:#444;line-height:1.8;margin-bottom:10px">
+    Un capibara usó su celular durante <strong>90 minutos</strong> entre Spotify y YouTube.<br>
+    Consumió <strong>450 MB</strong> de datos en total.<br>
+    Spotify consume <strong>2 MB/min</strong> y YouTube consume <strong>8 MB/min</strong>.<br>
+    Determina cuántos minutos usó cada app.
+  </p>
+  <div class="app-row">
+    <div class="app-card spotify">
+      <div class="app-icon sp">🎵</div>
+      <div class="app-detail">
+        <strong>Spotify</strong><br>
+        2 MB por minuto
+      </div>
+    </div>
+    <div class="app-card youtube">
+      <div class="app-icon yt">▶</div>
+      <div class="app-detail">
+        <strong>YouTube</strong><br>
+        8 MB por minuto
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="panel">
+  <h2>Ingresa tu respuesta</h2>
+  <div class="ig">
+    <label>Spotify <span class="ig-val" id="sp-v">0 min</span></label>
+    <input type="range" id="sp" min="0" max="90" step="1" value="0" oninput="onSlide()">
+  </div>
+  <div class="ig">
+    <label>YouTube <span class="ig-val" id="yt-v">0 min</span></label>
+    <input type="range" id="yt" min="0" max="90" step="1" value="0" oninput="onSlide()">
+  </div>
+
+  <h2 style="margin-top:10px;margin-bottom:8px">Uso calculado</h2>
+  <div class="bar-row">
+    <span class="bar-label">⏱ Tiempo</span>
+    <div class="bar-track">
+      <div class="bar-fill" id="bar-time" style="width:0%;background:#534AB7"></div>
+      <div class="bar-marker" id="mark-time" style="left:100%"></div>
+    </div>
+    <span class="bar-val" id="val-time">0 / 90 min</span>
+  </div>
+  <div class="bar-row">
+    <span class="bar-label">📶 Datos</span>
+    <div class="bar-track">
+      <div class="bar-fill" id="bar-mb" style="width:0%"></div>
+      <div class="bar-marker" id="mark-mb" style="left:100%"></div>
+    </div>
+    <span class="bar-val" id="val-mb">0 / 450 MB</span>
+  </div>
+  <div style="display:flex;gap:12px;margin-top:4px;font-size:10px;color:#aaa">
+    <span style="display:inline-block;width:10px;height:2px;background:#333;vertical-align:middle;margin-right:4px;border-radius:1px"></span>cantidad requerida
+  </div>
+
+  <div style="display:flex;gap:8px;margin-top:12px">
+    <button class="btn-check" id="btn-check" onclick="checkAnswer()">▶ Verificar</button>
+    <button style="flex:0 0 auto;padding:0 14px;font-size:13px;border:0.5px solid #ccc;border-radius:8px;background:#f8f8f6;cursor:pointer" onclick="resetGame()">↺</button>
+  </div>
+  <div class="result-bar" id="rbar"></div>
+  <button id="new-btn" onclick="resetGame()">↺ Intentar de nuevo</button>
+
+  <div style="margin-top:10px">
+    <h2 style="margin-bottom:5px">Intentos</h2>
+    <div class="tries-row" id="tries-row"></div>
+  </div>
+</div>
+
+<div class="panel" id="phone-panel" style="padding:0.75rem">
+  <canvas id="phone-canvas"></canvas>
+  <div style="font-size:13px;font-weight:500;color:#444;text-align:center;margin-top:8px" id="phone-msg">Esperando... 📱</div>
+</div>
+
+<div class="panel" id="trump-panel" style="padding:0.75rem;display:none">
+  <canvas id="trump-canvas" style="height:220px"></canvas>
+  <div style="font-size:13px;font-weight:600;color:#B22234;text-align:center;margin-top:8px" id="trump-msg"></div>
+</div>
+
+</div>
+
+<script>
+const SOL_SP=45, SOL_YT=45;
+const TIME_MAX=135, MB_MAX=600, TIME_TARGET=90, MB_TARGET=450;
+let tries=[], phoneState='idle', T=0, wrongCount=0;
+
+const MSGS={
+  idle:'Esperando... 📱',
+  happy:'¡Perfecto! Batería al 100% 🔋😄',
+  nodata:'¡Datos agotados! 📵 Revisa el consumo.',
+  time:'¡Tiempo excedido! ⏰ Revisa los minutos.',
+  wrong:'Hmm, algo no cuadra. ¡Revisa el sistema! 🤔',
+  dead:'📵 Teléfono apagado...'
+};
+
+function onSlide(){
+  const sp=+document.getElementById('sp').value;
+  const yt=+document.getElementById('yt').value;
+  document.getElementById('sp-v').textContent=sp+' min';
+  document.getElementById('yt-v').textContent=yt+' min';
+  const time=sp+yt;
+  const mb=2*sp+8*yt;
+  const tp=Math.min(100,time/TIME_MAX*100);
+  const mp=Math.min(100,mb/MB_MAX*100);
+  document.getElementById('bar-time').style.width=tp+'%';
+  document.getElementById('bar-mb').style.width=mp+'%';
+  // color for mb bar: green=spotify portion, red=youtube portion
+  const spFrac=mb>0?(2*sp/mb):0;
+  document.getElementById('bar-mb').style.background=
+    `linear-gradient(to right, #1DB954 ${spFrac*100}%, #FF0000 ${spFrac*100}%)`;
+  document.getElementById('val-time').textContent=time+' / 90 min';
+  document.getElementById('val-mb').textContent=mb.toFixed(0)+' / 450 MB';
+  document.getElementById('mark-time').style.left=(TIME_TARGET/TIME_MAX*100)+'%';
+  document.getElementById('mark-mb').style.left=(MB_TARGET/MB_MAX*100)+'%';
+}
+
+function checkAnswer(){
+  if(phoneState==='dead') return;
+  const sp=+document.getElementById('sp').value;
+  const yt=+document.getElementById('yt').value;
+  const time=sp+yt;
+  const mb=2*sp+8*yt;
+  const ok=sp===SOL_SP&&yt===SOL_YT;
+  tries.push(ok);
+  renderTries();
+  if(ok){
+    wrongCount=0;
+    showR(`✓ ¡Correcto! Spotify = ${sp} min, YouTube = ${yt} min.`,'rok');
+    setPhoneState('happy');
+  } else {
+    wrongCount++;
+    if(wrongCount>=3){
+      showR('💀 Tres intentos fallidos. ↺ Inténtalo de nuevo.','rerr');
+      setPhoneState('dead');
+      document.getElementById('new-btn').style.display='block';
+      document.getElementById('btn-check').disabled=true;
+      document.getElementById('btn-check').style.opacity='0.4';
+      showTrump();
+    } else {
+      const left=3-wrongCount;
+      if(mb>MB_TARGET+5){showR(`✗ Consumes ${mb.toFixed(0)} MB — demasiados datos. Te quedan ${left} intento${left===1?'':'s'}.`,'rerr');setPhoneState('nodata');}
+      else if(time>TIME_TARGET+1){showR(`✗ Son ${time} minutos en total — excede los 90 min. Te quedan ${left} intento${left===1?'':'s'}.`,'rerr');setPhoneState('time');}
+      else{showR(`✗ Tiempo: ${time} min, Datos: ${mb.toFixed(0)} MB. Ninguno llega al objetivo. Te quedan ${left} intento${left===1?'':'s'}.`,'rerr');setPhoneState('wrong');}
+    }
+  }
+}
+
+function showR(msg,cls){const el=document.getElementById('rbar');el.textContent=msg;el.className='result-bar '+cls;el.style.display='block';}
+function renderTries(){document.getElementById('tries-row').innerHTML=tries.map((ok,i)=>`<span class="tb ${ok?'tok':'terr'}">${i+1}° ${ok?'✓':'✗'}</span>`).join('');}
+function setPhoneState(s){phoneState=s;T=0;document.getElementById('phone-msg').textContent=MSGS[s];}
+
+function resetGame(){
+  tries=[];wrongCount=0;
+  document.getElementById('sp').value=0; document.getElementById('yt').value=0;
+  document.getElementById('sp-v').textContent='0 min'; document.getElementById('yt-v').textContent='0 min';
+  document.getElementById('rbar').style.display='none';
+  document.getElementById('tries-row').innerHTML='';
+  document.getElementById('new-btn').style.display='none';
+  document.getElementById('btn-check').disabled=false;
+  document.getElementById('btn-check').style.opacity='1';
+  document.getElementById('bar-time').style.width='0%';
+  document.getElementById('bar-mb').style.width='0%';
+  document.getElementById('val-time').textContent='0 / 90 min';
+  document.getElementById('val-mb').textContent='0 / 450 MB';
+  setPhoneState('idle');
+  document.getElementById('trump-panel').style.display='none';
+  document.getElementById('phone-panel').style.display='block';
+  trumpRunning=false;
+}
+
+// ── PHONE ANIMATION ─────────────────────────────────────
+function setup(id){
+  const c=document.getElementById(id);
+  const dpr=window.devicePixelRatio||1;
+  c.width=c.offsetWidth*dpr; c.height=c.offsetHeight*dpr;
+  const ctx=c.getContext('2d'); ctx.scale(dpr,dpr);
+  return{ctx,W:c.offsetWidth,H:c.offsetHeight};
+}
+
+function drawPhone(){
+  const{ctx,W,H}=setup('phone-canvas');
+  ctx.fillStyle='#f0f0ee'; ctx.fillRect(0,0,W,H);
+
+  const sp=+document.getElementById('sp').value;
+  const yt=+document.getElementById('yt').value;
+
+  // phone frame
+  const pw=W*0.45, ph=H*0.88;
+  const px=(W-pw)/2, py=(H-ph)/2;
+  ctx.fillStyle='#1a1a1a';
+  roundRect(ctx,px,py,pw,ph,pw*0.12);
+  ctx.fill();
+  // screen
+  const sx=px+4, sy=py+10, sw=pw-8, sh=ph-20;
+  ctx.fillStyle= phoneState==='dead'?'#111':
+                 phoneState==='happy'?'#e8f8f0':'#1e1e2e';
+  roundRect(ctx,sx,sy,sw,sh,pw*0.09);
+  ctx.fill();
+  // notch
+  ctx.fillStyle='#1a1a1a';
+  roundRect(ctx,W/2-18,py+2,36,12,6);
+  ctx.fill();
+
+  if(phoneState==='dead'){
+    // just dark screen — trump capybara takes over
+    ctx.fillStyle='#222';
+    roundRect(ctx,sx,sy,sw,sh,pw*0.09); ctx.fill();
+    ctx.fillStyle='#444'; ctx.font=`${sw*0.08}px system-ui`; ctx.textAlign='center';
+    ctx.fillText('📵',W/2,sy+sh*0.45+sw*0.05);
+    ctx.fillText('sin señal',W/2,sy+sh*0.65);
+    T++; requestAnimationFrame(drawPhone); return;
+  }
+
+  // status bar
+  ctx.fillStyle='rgba(255,255,255,0.7)'; ctx.font=`${sw*0.085}px system-ui`; ctx.textAlign='left';
+  ctx.fillText('9:41',sx+8,sy+16);
+  // battery
+  const batt=phoneState==='happy'?1:Math.max(0,1-(+document.getElementById('yt').value/90)*0.8);
+  drawBattery(ctx,sx+sw-34,sy+6,28,12,batt);
+
+  // app icons area
+  const appY=sy+sh*0.12;
+  const appSize=sw*0.28;
+
+  // Spotify icon
+  const spActive=sp>0;
+  const ytActive=yt>0;
+
+  drawAppIcon(ctx, sx+sw*0.18, appY, appSize, 'spotify', spActive, sp, T);
+  drawAppIcon(ctx, sx+sw*0.58, appY, appSize, 'youtube', ytActive, yt, T);
+
+  // time labels under icons
+  ctx.fillStyle='rgba(255,255,255,0.8)'; ctx.font=`bold ${sw*0.09}px monospace`; ctx.textAlign='center';
+  ctx.fillText(sp+' min', sx+sw*0.18+appSize/2, appY+appSize+16);
+  ctx.fillText(yt+' min', sx+sw*0.58+appSize/2, appY+appSize+16);
+
+  // data bar on phone screen
+  const dbY=sy+sh*0.62, dbW=sw*0.82, dbH=12;
+  const dbX=sx+(sw-dbW)/2;
+  ctx.fillStyle='rgba(255,255,255,0.15)';
+  roundRect(ctx,dbX,dbY,dbW,dbH,6); ctx.fill();
+  const mb=2*sp+8*yt;
+  const mbFrac=Math.min(1,mb/MB_TARGET);
+  const spFrac=mb>0?(2*sp/mb):0;
+  if(mbFrac>0){
+    ctx.save();
+    roundRect(ctx,dbX,dbY,dbW,dbH,6); ctx.clip();
+    ctx.fillStyle='#1DB954';
+    ctx.fillRect(dbX,dbY,dbW*mbFrac*spFrac,dbH);
+    ctx.fillStyle='#FF0000';
+    ctx.fillRect(dbX+dbW*mbFrac*spFrac,dbY,dbW*mbFrac*(1-spFrac),dbH);
+    ctx.restore();
+  }
+  // target marker
+  ctx.fillStyle='#fff'; ctx.fillRect(dbX+dbW-1,dbY-2,2,dbH+4);
+  ctx.fillStyle='rgba(255,255,255,0.7)'; ctx.font=`${sw*0.08}px system-ui`; ctx.textAlign='center';
+  ctx.fillText('📶 '+mb.toFixed(0)+' / 450 MB', W/2, dbY+dbH+14);
+
+  // happy sparkles
+  if(phoneState==='happy'){
+    ['#1DB954','#FFD700','#FF69B4'].forEach((col,i)=>{
+      const sx2=px+pw*0.2+i*pw*0.3+Math.sin(T*0.15+i)*8;
+      const sy2=py-10+Math.cos(T*0.12+i)*8;
+      ctx.fillStyle=col;
+      ctx.beginPath(); ctx.arc(sx2,sy2,4,0,Math.PI*2); ctx.fill();
+    });
+  }
+
+  // notification if data exceeded
+  if(mb>MB_TARGET&&phoneState!=='happy'){
+    ctx.fillStyle='rgba(255,50,50,0.92)';
+    roundRect(ctx,sx+4,sy+sh*0.78,sw-8,sh*0.14,8); ctx.fill();
+    ctx.fillStyle='#fff'; ctx.font=`bold ${sw*0.09}px system-ui`; ctx.textAlign='center';
+    ctx.fillText('⚠ ¡Datos agotados! 📵',W/2,sy+sh*0.78+sh*0.09);
+  }
+
+  T++;
+  requestAnimationFrame(drawPhone);
+}
+
+function drawAppIcon(ctx,x,y,size,app,active,mins,t){
+  const r=size*0.22;
+  // icon background
+  ctx.fillStyle=app==='spotify'?'#1DB954':'#FF0000';
+  ctx.globalAlpha=active?1:0.35;
+  roundRect(ctx,x,y,size,size,r); ctx.fill();
+  ctx.globalAlpha=1;
+
+  // icon symbol
+  ctx.fillStyle='#fff';
+  ctx.font=`${size*0.5}px system-ui`; ctx.textAlign='center';
+  ctx.fillText(app==='spotify'?'🎵':'▶',x+size/2,y+size*0.62);
+
+  // pulsing ring if active
+  if(active&&mins>0){
+    const pulse=0.5+0.5*Math.sin(t*0.15);
+    ctx.strokeStyle=app==='spotify'?'#1DB954':'#FF0000';
+    ctx.lineWidth=2; ctx.globalAlpha=pulse*0.8;
+    ctx.beginPath(); ctx.arc(x+size/2,y+size/2,size*0.6,0,Math.PI*2); ctx.stroke();
+    ctx.globalAlpha=1;
+  }
+}
+
+function drawBattery(ctx,x,y,w,h,level){
+  ctx.strokeStyle='rgba(255,255,255,0.7)'; ctx.lineWidth=1.2;
+  roundRect(ctx,x,y,w-4,h,3); ctx.stroke();
+  ctx.fillStyle='rgba(255,255,255,0.3)'; ctx.fillRect(x+w-4,y+3,4,h-6);
+  const col=level>0.5?'#4CD94C':level>0.2?'#FFB800':'#FF3B30';
+  ctx.fillStyle=col;
+  ctx.fillRect(x+1,y+1,(w-6)*level,h-2);
+}
+
+function roundRect(ctx,x,y,w,h,r){
+  ctx.beginPath();
+  ctx.moveTo(x+r,y);
+  ctx.lineTo(x+w-r,y); ctx.arcTo(x+w,y,x+w,y+r,r);
+  ctx.lineTo(x+w,y+h-r); ctx.arcTo(x+w,y+h,x+w-r,y+h,r);
+  ctx.lineTo(x+r,y+h); ctx.arcTo(x,y+h,x,y+h-r,r);
+  ctx.lineTo(x,y+r); ctx.arcTo(x,y,x+r,y,r);
+  ctx.closePath();
+}
+
+
+let trumpRunning=false, trumpT=0;
+const TRUMP_MSGS=[
+  '¡Hasta cuándo las ecuaciones malas! ¡Terrible!',
+  '¡Nadie resuelve peor que tú! ¡Nadie!',
+  '¡Voy a construir un muro entre tú y la matemática!',
+  '¡Estas ecuaciones son un desastre! ¡Un desastre total!'
+];
+
+function showTrump(){
+  document.getElementById('trump-panel').style.display='block';
+  document.getElementById('phone-panel').style.display='none';
+  const panel=document.getElementById('trump-panel');
+  const msgs=TRUMP_MSGS;
+  document.getElementById('trump-msg').textContent=msgs[Math.floor(Math.random()*msgs.length)];
+  trumpRunning=true; trumpT=0;
+  drawTrump();
+}
+
+function drawTrump(){
+  if(!trumpRunning) return;
+  const c=document.getElementById('trump-canvas');
+  const dpr=window.devicePixelRatio||1;
+  c.width=c.offsetWidth*dpr; c.height=c.offsetHeight*dpr;
+  const ctx=c.getContext('2d'); ctx.scale(dpr,dpr);
+  const W=c.offsetWidth, H=c.offsetHeight;
+
+  // bg
+  ctx.fillStyle='#f5f0e8'; ctx.fillRect(0,0,W,H);
+
+  // ground
+  ctx.fillStyle='#c5dfa0'; ctx.fillRect(0,H*0.72,W,H*0.28);
+  ctx.fillStyle='#6fa832';
+  for(let i=0;i<10;i++){
+    const gx=i*(W/9);
+    ctx.beginPath(); ctx.moveTo(gx,H*0.72); ctx.lineTo(gx+3,H*0.72-10); ctx.lineTo(gx+6,H*0.72); ctx.fill();
+  }
+
+  const shake=Math.sin(trumpT*0.3)*3;
+  const cx=W/2+shake, cy=H*0.48;
+  const s=Math.min(W,H)*0.0022;
+
+  ctx.save(); ctx.translate(cx,cy);
+
+  // shadow
+  ctx.fillStyle='rgba(0,0,0,0.07)';
+  ctx.beginPath(); ctx.ellipse(0,75*s,52*s,9*s,0,0,Math.PI*2); ctx.fill();
+
+  // body
+  ctx.fillStyle='#c87832';
+  ctx.strokeStyle='#5a3010'; ctx.lineWidth=2.2*s;
+  ctx.beginPath();
+  ctx.moveTo(-38*s,70*s);
+  ctx.bezierCurveTo(-70*s,70*s,-80*s,30*s,-78*s,-10*s);
+  ctx.bezierCurveTo(-76*s,-50*s,-50*s,-72*s,0,-75*s);
+  ctx.bezierCurveTo(50*s,-72*s,76*s,-50*s,78*s,-10*s);
+  ctx.bezierCurveTo(80*s,30*s,70*s,70*s,38*s,70*s);
+  ctx.closePath(); ctx.fill(); ctx.stroke();
+
+  // US flag on chest
+  const fx=8*s,fy=-10*s,fw=26*s,fh=17*s;
+  ctx.fillStyle='#B22234'; ctx.beginPath(); ctx.roundRect(fx,fy,fw,fh,2*s); ctx.fill();
+  ctx.fillStyle='#fff'; [1,3,5].forEach(i=>{ ctx.fillRect(fx,fy+fh*i/7,fw,fh/7); });
+  ctx.fillStyle='#3C3B6E'; ctx.fillRect(fx,fy,fw*0.42,fh*0.55);
+  ctx.fillStyle='#fff';
+  for(let row=0;row<3;row++) for(let col=0;col<4;col++){
+    ctx.beginPath(); ctx.arc(fx+(col+0.6)*fw*0.105,fy+(row+0.6)*fh*0.18,1.3*s,0,Math.PI*2); ctx.fill();
+  }
+  ctx.strokeStyle='rgba(0,0,0,0.25)'; ctx.lineWidth=0.8*s;
+  ctx.beginPath(); ctx.roundRect(fx,fy,fw,fh,2*s); ctx.stroke();
+
+  // front legs
+  ctx.fillStyle='#c07028'; ctx.strokeStyle='#5a3010'; ctx.lineWidth=2.2*s;
+  [[-32,48],[10,48]].forEach(([lx,ly])=>{
+    ctx.beginPath(); ctx.roundRect(lx*s,ly*s,22*s,30*s,10*s); ctx.fill(); ctx.stroke();
+  });
+
+  // head
+  ctx.fillStyle='#c87832'; ctx.strokeStyle='#5a3010'; ctx.lineWidth=2.2*s;
+  ctx.beginPath(); ctx.ellipse(0,-62*s,50*s,42*s,0,0,Math.PI*2); ctx.fill(); ctx.stroke();
+
+  // snout patch
+  ctx.fillStyle='#7a4018'; ctx.strokeStyle='#5a3010'; ctx.lineWidth=1.8*s;
+  ctx.beginPath(); ctx.roundRect(-26*s,-75*s,52*s,32*s,12*s); ctx.fill(); ctx.stroke();
+
+  // nostrils
+  ctx.fillStyle='#3a1a08';
+  ctx.beginPath(); ctx.ellipse(-12*s,-62*s,5*s,4*s,0,0,Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(12*s,-62*s,5*s,4*s,0,0,Math.PI*2); ctx.fill();
+
+  // angry mouth
+  ctx.strokeStyle='#3a1a08'; ctx.lineWidth=2*s; ctx.lineCap='round';
+  ctx.beginPath(); ctx.moveTo(-18*s,-46*s); ctx.quadraticCurveTo(0,-56*s,18*s,-46*s); ctx.stroke();
+
+  // angry eyes
+  ctx.fillStyle='#1a0a04';
+  ctx.beginPath(); ctx.arc(-22*s,-78*s,7*s,0,Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(22*s,-78*s,7*s,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle='#fff';
+  ctx.beginPath(); ctx.arc(-19*s,-81*s,3*s,0,Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(25*s,-81*s,3*s,0,Math.PI*2); ctx.fill();
+
+  // angry brows
+  ctx.strokeStyle='#3a1a00'; ctx.lineWidth=3*s; ctx.lineCap='round';
+  ctx.beginPath(); ctx.moveTo(-32*s,-90*s); ctx.lineTo(-14*s,-85*s); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(32*s,-90*s); ctx.lineTo(14*s,-85*s); ctx.stroke();
+
+  // ears
+  ctx.fillStyle='#b86a28'; ctx.strokeStyle='#5a3010'; ctx.lineWidth=1.8*s;
+  [[-42,-98],[42,-98]].forEach(([ex,ey])=>{
+    ctx.beginPath(); ctx.ellipse(ex*s,ey*s,12*s,9*s,0,0,Math.PI*2); ctx.fill(); ctx.stroke();
+  });
+
+  // Trump combover hair
+  ctx.fillStyle='#f0c830'; ctx.strokeStyle='#c8a010'; ctx.lineWidth=1.5*s;
+  ctx.beginPath();
+  ctx.moveTo(48*s,-82*s);
+  ctx.bezierCurveTo(55*s,-110*s,20*s,-125*s,-10*s,-118*s);
+  ctx.bezierCurveTo(-38*s,-112*s,-52*s,-98*s,-48*s,-88*s);
+  ctx.bezierCurveTo(-30*s,-82*s,10*s,-80*s,48*s,-82*s);
+  ctx.fill(); ctx.stroke();
+  ctx.fillStyle='#f5d040';
+  ctx.beginPath();
+  ctx.moveTo(46*s,-84*s);
+  ctx.bezierCurveTo(30*s,-128*s,-20*s,-132*s,-44*s,-110*s);
+  ctx.bezierCurveTo(-30*s,-104*s,-10*s,-100*s,20*s,-100*s);
+  ctx.bezierCurveTo(34*s,-98*s,44*s,-92*s,46*s,-84*s);
+  ctx.fill(); ctx.stroke();
+  ctx.strokeStyle='#c8a010'; ctx.lineWidth=1*s; ctx.lineCap='round';
+  [[-35,-108,-10,-92],[-20,-114,10,-96],[-5,-118,28,-100]].forEach(([x1,y1,x2,y2])=>{
+    ctx.beginPath(); ctx.moveTo(x1*s,y1*s); ctx.bezierCurveTo((x1+10)*s,(y1+4)*s,(x2-10)*s,(y2-4)*s,x2*s,y2*s); ctx.stroke();
+  });
+
+  // anger steam
+  for(let i=0;i<3;i++){
+    const sx2=(i-1)*28*s;
+    const sy2=-110*s-(trumpT*1.5+i*20)%55*s;
+    ctx.globalAlpha=Math.max(0,0.7-(trumpT%36)/36);
+    ctx.strokeStyle='rgba(200,80,50,0.7)'; ctx.lineWidth=2*s;
+    ctx.beginPath(); ctx.moveTo(sx2,-100*s); ctx.bezierCurveTo(sx2-5*s,sy2+15*s,sx2+5*s,sy2,sx2,sy2-10*s); ctx.stroke();
+    ctx.globalAlpha=1;
+  }
+
+  // speech bubble
+  const bubW=120, bubH=38, bubX=W*0.6-cx, bubY=-120*s;
+  ctx.fillStyle='#fff'; ctx.strokeStyle='#ddd'; ctx.lineWidth=1.5;
+  ctx.beginPath(); ctx.roundRect(bubX,bubY,bubW,bubH,10); ctx.fill(); ctx.stroke();
+  // tail of bubble
+  ctx.fillStyle='#fff';
+  ctx.beginPath(); ctx.moveTo(bubX+10,bubY+bubH); ctx.lineTo(bubX-8,bubY+bubH+14); ctx.lineTo(bubX+24,bubY+bubH); ctx.fill();
+  ctx.strokeStyle='#ddd'; ctx.lineWidth=1;
+  ctx.beginPath(); ctx.moveTo(bubX+10,bubY+bubH-1); ctx.lineTo(bubX-8,bubY+bubH+14); ctx.lineTo(bubX+24,bubY+bubH-1); ctx.stroke();
+  ctx.fillStyle='#B22234'; ctx.font=`bold ${8.5}px system-ui`; ctx.textAlign='center';
+  ctx.fillText('¡WRONG! ¡Terrible!',bubX+bubW/2,bubY+16);
+  ctx.fillStyle='#333'; ctx.font=`${8}px system-ui`;
+  ctx.fillText('¡Las peores ecuaciones!',bubX+bubW/2,bubY+30);
+
+  ctx.restore();
+  trumpT++;
+  requestAnimationFrame(drawTrump);
+}
+
+onSlide();
+drawPhone();
+</script>
+</body>
+</html>
