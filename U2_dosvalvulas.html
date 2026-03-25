@@ -1,1 +1,647 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
+<title>Dos Válvulas — Simulador</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@400;500;600&display=swap');
 
+  :root {
+    --bg: #0f1117;
+    --surface: #1a1d27;
+    --surface2: #22263a;
+    --border: #2e3350;
+    --a1: #38d9a9;   /* válvula A — verde agua */
+    --a1d: #1a6b52;
+    --a2: #f7a94a;   /* válvula B — ámbar */
+    --a2d: #7a4e10;
+    --both: #4a9eff; /* ambas — azul */
+    --water: #4a9eff;
+    --danger: #ff6b6b;
+    --text: #e8ecf4;
+    --text-muted: #7a8099;
+    --text-dim: #3a3f5a;
+    --font-mono: 'Space Mono', monospace;
+    --font-body: 'DM Sans', sans-serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-body);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  header {
+    width: 100%;
+    padding: 0.9rem 1.2rem 0.7rem;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+  }
+  header h1 {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--both);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+  header p { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+
+  .main {
+    width: 100%;
+    max-width: 480px;
+    padding: 1rem 1rem 2rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.9rem;
+  }
+
+  /* ── METRICS ── */
+  .metrics {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 7px;
+  }
+  .metric {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 8px 10px;
+  }
+  .metric .m-label { font-size: 9px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 2px; }
+  .metric .m-value { font-family: var(--font-mono); font-size: 18px; font-weight: 700; color: var(--text); line-height: 1; }
+  .metric .m-unit  { font-family: var(--font-mono); font-size: 10px; color: var(--text-muted); margin-left: 1px; }
+  .metric.c-a { border-color: var(--a1d); }
+  .metric.c-a .m-value { color: var(--a1); }
+  .metric.c-b { border-color: var(--a2d); }
+  .metric.c-b .m-value { color: var(--a2); }
+  .metric.c-vol .m-value { color: var(--both); }
+
+  /* ── SIM AREA ── */
+  .sim-area {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 1.1rem 0.8rem 1rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0;
+    position: relative;
+  }
+
+  /* valves row — alineada con los tubos del SVG */
+  .valves-row {
+    display: flex;
+    justify-content: center;
+    align-items: flex-end;
+    /* gap calibrado: tubos en x=75 y x=145 de viewBox 220, max-width 340px
+       escala = 340/220 ≈ 1.545  → centro A ≈ 116px, centro B ≈ 224px desde left del SVG
+       separación entre centros ≈ 108px → gap entre botones (60px cada uno) = 108-60 = 48px */
+    gap: 48px;
+    margin-bottom: 0;
+  }
+
+  .valve-col {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0;
+  }
+
+  .valve-tag {
+    font-family: var(--font-mono);
+    font-size: 9px;
+    letter-spacing: 0.08em;
+    margin-bottom: 4px;
+  }
+  .valve-tag.a { color: var(--a1); }
+  .valve-tag.b { color: var(--a2); }
+
+  .valve-btn {
+    width: 60px; height: 60px;
+    border-radius: 50%;
+    border: 2px solid var(--border);
+    background: var(--surface2);
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    transition: all 0.2s;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+  }
+  .valve-btn:active { transform: scale(0.91); }
+  .valve-btn.open-a { border-color: var(--a1); background: rgba(56,217,169,0.1); box-shadow: 0 0 14px rgba(56,217,169,0.2); }
+  .valve-btn.open-b { border-color: var(--a2); background: rgba(247,169,74,0.1); box-shadow: 0 0 14px rgba(247,169,74,0.2); }
+  .valve-btn .vb-lbl { font-family: var(--font-mono); font-size: 8px; letter-spacing: 0.05em; color: var(--text-muted); text-transform: uppercase; }
+  .valve-btn.open-a .vb-lbl { color: var(--a1); }
+  .valve-btn.open-b .vb-lbl { color: var(--a2); }
+
+  /* pipes */
+  .pipes-row {
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    gap: 28px;
+  }
+  .pipe {
+    width: 12px; height: 32px;
+    border-radius: 0 0 3px 3px;
+    overflow: hidden;
+    position: relative;
+  }
+  .pipe.pa { background: rgba(56,217,169,0.15); }
+  .pipe.pb { background: rgba(247,169,74,0.15); }
+  .pipe-fill {
+    position: absolute; bottom: 0; left: 0; width: 100%; height: 0%;
+    transition: height 0.2s;
+  }
+  .pa .pipe-fill { background: var(--a1); }
+  .pb .pipe-fill { background: var(--a2); }
+
+  /* tank */
+  .tank-outer { position: relative; width: 180px; }
+  .tank-svg   { display: block; width: 180px; }
+
+  /* stream lines */
+  @keyframes stream-a { to { stroke-dashoffset: -18; } }
+  @keyframes stream-b { to { stroke-dashoffset: -18; } }
+  .stream {
+    fill: none; stroke-linecap: round; stroke-dasharray: 8 6;
+    opacity: 0; transition: opacity 0.2s;
+  }
+  .stream.sa { stroke: var(--a1); stroke-width: 5; animation: stream-a 0.3s linear infinite; }
+  .stream.sb { stroke: var(--a2); stroke-width: 5; animation: stream-b 0.3s linear infinite; }
+  .stream.flowing { opacity: 0.85; }
+
+  /* overflow drops */
+  .drops-wrap { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; overflow: hidden; }
+  @keyframes fall { 0%{transform:translateY(0);opacity:1} 100%{transform:translateY(72px);opacity:0} }
+  .drop { position: absolute; width: 7px; height: 10px; border-radius: 50% 50% 50% 50%/60% 60% 40% 40%; animation: fall 0.8s ease-in forwards; }
+
+  /* status dot */
+  .status-row { display: flex; align-items: center; gap: 10px; margin-top: 8px; }
+  .sdot { width: 7px; height: 7px; border-radius: 50%; background: var(--text-dim); transition: background 0.3s; flex-shrink: 0; }
+  .sdot.on-a { background: var(--a1); animation: pulse 1.4s ease-in-out infinite; }
+  .sdot.on-b { background: var(--a2); animation: pulse 1.4s ease-in-out infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.35} }
+  .status-txt { font-family: var(--font-mono); font-size: 10px; color: var(--text-muted); letter-spacing: 0.04em; }
+
+  .overflow-banner { font-family: var(--font-mono); font-size: 12px; color: var(--danger); letter-spacing: 0.05em; min-height: 16px; margin-top: 6px; text-align: center; }
+
+  /* ── BOTH BUTTON ── */
+  .btn-both {
+    width: 100%;
+    padding: 11px;
+    background: rgba(74,158,255,0.1);
+    border: 1px solid var(--both);
+    border-radius: 10px;
+    color: var(--both);
+    font-family: var(--font-body);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    letter-spacing: 0.02em;
+    -webkit-tap-highlight-color: transparent;
+    transition: background 0.2s;
+  }
+  .btn-both:active { background: rgba(74,158,255,0.2); }
+  .btn-both.active { background: rgba(74,158,255,0.18); box-shadow: 0 0 12px rgba(74,158,255,0.2); }
+
+  /* ── HINT ── */
+  .hint {
+    background: rgba(74,158,255,0.07);
+    border: 1px solid rgba(74,158,255,0.18);
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-size: 11px;
+    color: var(--both);
+    line-height: 1.6;
+  }
+  .hint strong { font-weight: 600; }
+
+  /* ── ANSWER ZONE ── */
+  .answer-zone {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 1rem;
+  }
+  .az-heading { font-size: 13px; font-weight: 600; color: var(--text); margin-bottom: 4px; }
+  .az-sub { font-size: 11px; color: var(--text-muted); line-height: 1.5; margin-bottom: 10px; }
+  .az-sub strong { color: var(--both); font-weight: 500; }
+  .input-row { display: flex; gap: 8px; align-items: center; }
+  .input-row input {
+    flex: 1; padding: 10px 12px;
+    background: var(--surface2); border: 1px solid var(--border); border-radius: 8px;
+    color: var(--text); font-family: var(--font-mono); font-size: 16px;
+    -webkit-appearance: none; outline: none; transition: border-color 0.2s;
+  }
+  .input-row input:focus { border-color: var(--both); }
+  .unit-tag { font-family: var(--font-mono); font-size: 12px; color: var(--text-muted); white-space: nowrap; flex-shrink: 0; }
+  .btn-verify {
+    padding: 10px 14px; background: var(--both); color: #fff; border: none; border-radius: 8px;
+    font-family: var(--font-body); font-size: 13px; font-weight: 600; cursor: pointer; flex-shrink: 0;
+    -webkit-tap-highlight-color: transparent; transition: opacity 0.2s, transform 0.1s;
+  }
+  .btn-verify:active { transform: scale(0.96); opacity: 0.9; }
+  .feedback { margin-top: 9px; font-size: 13px; font-weight: 500; min-height: 20px; line-height: 1.5; }
+  .feedback.ok  { color: var(--a1); }
+  .feedback.err { color: var(--danger); }
+
+  /* ── RESET BUTTONS ── */
+  .btn-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .btn-reset {
+    padding: 11px 8px; background: transparent; border: 1px solid var(--border); border-radius: 10px;
+    color: var(--text-muted); font-family: var(--font-body); font-size: 12px; cursor: pointer;
+    -webkit-tap-highlight-color: transparent; transition: border-color 0.2s, color 0.2s; text-align: center;
+  }
+  .btn-reset:active { border-color: var(--text-muted); color: var(--text); }
+  .btn-reset .btn-sub { display: block; font-size: 9px; color: var(--text-dim); margin-top: 2px; letter-spacing: 0.04em; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Simulador — Dos Válvulas</h1>
+  <p>Experimenta con las válvulas y determina cuánto tardan juntas en llenar el estanque</p>
+</header>
+
+<div class="main">
+
+  <!-- METRICS -->
+  <div class="metrics">
+    <div class="metric c-a">
+      <div class="m-label">Válvula A</div>
+      <div class="m-value"><span id="ta">0,0</span><span class="m-unit">s</span></div>
+    </div>
+    <div class="metric c-b">
+      <div class="m-label">Válvula B</div>
+      <div class="m-value"><span id="tb">0,0</span><span class="m-unit">s</span></div>
+    </div>
+    <div class="metric c-vol">
+      <div class="m-label">Volumen</div>
+      <div class="m-value"><span id="vol">0,0</span><span class="m-unit">L</span></div>
+    </div>
+  </div>
+
+  <!-- SIM AREA -->
+  <div class="sim-area">
+
+    <!-- VALVES -->
+    <div class="valves-row">
+      <!-- Válvula A -->
+      <div class="valve-col">
+        <span class="valve-tag a">VÁLVULA A</span>
+        <button class="valve-btn" id="btn-a" onclick="toggleA()">
+          <svg id="handle-a-wrap" width="26" height="26" viewBox="0 0 28 28" style="overflow:visible">
+            <rect x="5" y="12" width="18" height="8" rx="2.5" fill="#1a6b52"/>
+            <rect x="12" y="3" width="4" height="9" rx="2" fill="#2e5a49"/>
+            <g id="handle-a" style="transform-origin:14px 12px; transition:transform 0.35s cubic-bezier(.4,0,.2,1);">
+              <rect x="4" y="9.5" width="20" height="5" rx="2.5" fill="var(--a1)"/>
+              <circle cx="14" cy="12" r="3" fill="#1a6b52"/>
+            </g>
+          </svg>
+          <span class="vb-lbl" id="lbl-a">CERRADA</span>
+        </button>
+      </div>
+
+      <!-- Válvula B -->
+      <div class="valve-col">
+        <span class="valve-tag b">VÁLVULA B</span>
+        <button class="valve-btn" id="btn-b" onclick="toggleB()">
+          <svg width="26" height="26" viewBox="0 0 28 28" style="overflow:visible">
+            <rect x="5" y="12" width="18" height="8" rx="2.5" fill="var(--a2d)"/>
+            <rect x="12" y="3" width="4" height="9" rx="2" fill="#5a3a10"/>
+            <g id="handle-b" style="transform-origin:14px 12px; transition:transform 0.35s cubic-bezier(.4,0,.2,1);">
+              <rect x="4" y="9.5" width="20" height="5" rx="2.5" fill="var(--a2)"/>
+              <circle cx="14" cy="12" r="3" fill="var(--a2d)"/>
+            </g>
+          </svg>
+          <span class="vb-lbl" id="lbl-b">CERRADA</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- UNIFIED SVG: pipes + tank perfectly connected -->
+    <svg width="100%" viewBox="0 0 220 290" xmlns="http://www.w3.org/2000/svg" style="display:block;max-width:340px;overflow:visible;">
+      <defs>
+        <clipPath id="tc2"><rect x="10" y="50" width="200" height="230" rx="12"/></clipPath>
+        <style>
+          @keyframes sa-anim { to { stroke-dashoffset:-18; } }
+          @keyframes sb-anim { to { stroke-dashoffset:-18; } }
+          #sa { stroke:#4a9eff; stroke-width:7; stroke-linecap:round; stroke-dasharray:9 7; fill:none; opacity:0; transition:opacity 0.2s; animation:sa-anim 0.3s linear infinite; }
+          #sb { stroke:#4a9eff; stroke-width:7; stroke-linecap:round; stroke-dasharray:9 7; fill:none; opacity:0; transition:opacity 0.2s; animation:sb-anim 0.3s linear infinite; }
+          #sa.flowing { opacity:0.9; }
+          #sb.flowing { opacity:0.9; }
+        </style>
+      </defs>
+
+      <!-- PIPE A: centered under btn-a, aligned to tank left-third -->
+      <!-- pipe shaft -->
+      <rect x="68" y="0" width="14" height="54" rx="3" fill="#1e3040"/>
+      <!-- pipe fill (water inside pipe) -->
+      <rect id="pf-a" x="69" y="0" width="12" height="0" rx="2" fill="#4a9eff" opacity="0.85"/>
+
+      <!-- PIPE B: centered under btn-b, aligned to tank right-third -->
+      <rect x="138" y="0" width="14" height="54" rx="3" fill="#1e3040"/>
+      <rect id="pf-b" x="139" y="0" width="12" height="0" rx="2" fill="#4a9eff" opacity="0.85"/>
+
+      <!-- WATER in tank -->
+      <rect id="wf-main" x="10" y="280" width="200" height="0" fill="#4a9eff" opacity="0.82" clip-path="url(#tc2)"/>
+      <!-- wave top -->
+      <rect id="wave2" x="10" y="280" width="200" height="6" fill="#7bb8ff" opacity="0.5" clip-path="url(#tc2)"/>
+
+      <!-- streams (dashed animated, pipe bottom → water surface) -->
+      <line id="sa" x1="75" y1="54" x2="75" y2="60"/>
+      <line id="sb" x1="145" y1="54" x2="145" y2="60"/>
+
+      <!-- TANK shell (drawn last so it's on top) -->
+      <rect x="10" y="50" width="200" height="230" rx="12" fill="none" stroke="#2e3350" stroke-width="2"/>
+
+      <!-- scale ticks -->
+      <line x1="10" y1="107" x2="26" y2="107" stroke="#2e3350" stroke-width="1.5"/>
+      <line x1="10" y1="165" x2="26" y2="165" stroke="#2e3350" stroke-width="1.5"/>
+      <line x1="10" y1="222" x2="26" y2="222" stroke="#2e3350" stroke-width="1.5"/>
+      <text x="30" y="111" fill="#3a3f5a" font-family="'Space Mono',monospace" font-size="10">75%</text>
+      <text x="30" y="169" fill="#3a3f5a" font-family="'Space Mono',monospace" font-size="10">50%</text>
+      <text x="30" y="226" fill="#3a3f5a" font-family="'Space Mono',monospace" font-size="10">25%</text>
+      <text x="110" y="46" text-anchor="middle" fill="#3a3f5a" font-family="'Space Mono',monospace" font-size="9">100 L</text>
+    </svg>
+
+    <div class="drops-wrap" id="drops"></div>
+
+    <div class="overflow-banner" id="overflow-msg"></div>
+
+    <!-- status dots -->
+    <div class="status-row">
+      <div class="sdot" id="dot-a"></div>
+      <div class="sdot" id="dot-b"></div>
+      <span class="status-txt" id="status-txt">Ambas válvulas cerradas</span>
+    </div>
+
+  </div>
+
+  <!-- BOTH BUTTON -->
+  <button class="btn-both" id="btn-both" onclick="toggleBoth()">
+    ⚡ Abrir ambas válvulas al mismo tiempo
+  </button>
+
+  <!-- VACIAR -->
+  <button class="btn-reset" style="width:100%" onclick="vaciar()">
+    ⬇ Vaciar recipiente
+  </button>
+
+  <!-- HINT -->
+  <div class="hint">
+    <strong>Desafío:</strong> Experimenta abriendo cada válvula por separado para medir su caudal individual.
+    Luego predice cuántos segundos tardarán <strong>juntas</strong> en llenar el estanque de 100 L.
+    Puedes responder antes o esperar a que se llene solo.
+  </div>
+
+  <!-- ANSWER ZONE -->
+  <div class="answer-zone">
+    <div class="az-heading">¿Cuántos segundos tardan juntas?</div>
+    <div class="az-sub">Con <strong>ambas válvulas abiertas simultáneamente</strong>, ¿cuántos segundos demoran en llenar el estanque de 100 L? (máximo 1 decimal, usa coma):</div>
+    <div class="input-row">
+      <input type="text" id="answer" inputmode="decimal" placeholder="ej. 120"/>
+      <span class="unit-tag">seg</span>
+      <button class="btn-verify" onclick="checkAnswer()">OK</button>
+    </div>
+    <div class="feedback" id="feedback"></div>
+  </div>
+
+
+
+</div>
+
+<script>
+  const CAPACITY = 100;
+  const TICK_MS  = 100;
+
+  // ─── Configuración fija ───
+  // La respuesta siempre es 300 s en tiempo real.
+  // QA = 0,2 L/s → sola llena en 500 s
+  // QB ≈ 0,133 L/s → sola llena en 750 s
+  // Juntas: 0,2 + 0,133 = 0,333 L/s → 100 / 0,333 = 300 s ✓
+  const QA = 0.2;
+  const QB = 1/3 - 0.2;  // ≈ 0,133 L/s
+
+  function pickTwo() { return [QA, QB]; }
+
+  let volume   = 0;
+  let timeA    = 0; // segundos con A abierta
+  let timeB    = 0; // segundos con B abierta
+  let openA    = false;
+  let openB    = false;
+  let overflowed = false;
+  let interval = null;
+
+  const el = id => document.getElementById(id);
+  const handleA  = el('handle-a');
+  const handleB  = el('handle-b');
+  const btnA     = el('btn-a');
+  const btnB     = el('btn-b');
+  const btnBoth  = el('btn-both');
+  const lblA     = el('lbl-a');
+  const lblB     = el('lbl-b');
+  const pfA      = el('pf-a');
+  const pfB      = el('pf-b');
+  const wfMain   = el('wf-main');
+  const wave2    = el('wave2');
+  const sa       = el('sa');
+  const sb       = el('sb');
+  const dotA     = el('dot-a');
+  const dotB     = el('dot-b');
+  const statusTxt = el('status-txt');
+  const overflowMsg = el('overflow-msg');
+  const drops    = el('drops');
+  const feedback = el('feedback');
+
+  // Expected answer: time for both together to fill 100L
+  function expectedTime() { return CAPACITY / (QA + QB); } // siempre 300
+
+  function fmt(n) { return String(parseFloat(n.toFixed(1))).replace('.', ','); }
+
+  function updateDisplay() {
+    const pct   = Math.min(volume / CAPACITY * 100, 100);
+    const tankH = 230; // interior height in SVG viewBox (y=50 to y=280)
+    const h     = (pct / 100) * tankH;
+    const y     = 280 - h;
+
+    wfMain.setAttribute('y', y);
+    wfMain.setAttribute('height', h);
+    wave2.setAttribute('y', y - 4);
+
+    // Pipe fills: grow downward from top (y=0, height=54)
+    const pipeH = 54;
+    pfA.setAttribute('height', openA ? pipeH : 0);
+    pfB.setAttribute('height', openB ? pipeH : 0);
+
+    // stream lines: from pipe bottom (y=54) down to water surface
+    const sEnd = Math.max(y - 2, 56);
+    sa.setAttribute('y2', String(sEnd));
+    sb.setAttribute('y2', String(sEnd));
+
+    el('vol').textContent = fmt(volume);
+    el('ta').textContent  = fmt(timeA);
+    el('tb').textContent  = fmt(timeB);
+  }
+
+  function updateStatus() {
+    dotA.className = 'sdot' + (openA ? ' on-a' : '');
+    dotB.className = 'sdot' + (openB ? ' on-b' : '');
+    if (openA && openB)       statusTxt.textContent = 'Ambas válvulas abiertas';
+    else if (openA)           statusTxt.textContent = 'Solo válvula A abierta';
+    else if (openB)           statusTxt.textContent = 'Solo válvula B abierta';
+    else                      statusTxt.textContent = 'Ambas válvulas cerradas';
+  }
+
+  function tick() {
+    if (overflowed) return;
+    if (!openA && !openB) return;
+    const flow = (openA ? QA : 0) + (openB ? QB : 0);
+    const delta = flow * (TICK_MS / 1000);
+    volume = Math.min(volume + delta, CAPACITY);
+    if (openA) timeA += TICK_MS / 1000;
+    if (openB) timeB += TICK_MS / 1000;
+    updateDisplay();
+    if (volume >= CAPACITY) triggerOverflow();
+  }
+
+  function setValveA(state) {
+    openA = state;
+    handleA.style.transform = openA ? 'rotate(90deg)' : 'rotate(0deg)';
+    lblA.textContent        = openA ? 'ABIERTA' : 'CERRADA';
+    btnA.className          = 'valve-btn' + (openA ? ' open-a' : '');
+    pfA.setAttribute('height', openA ? 54 : 0);
+    sa.classList.toggle('flowing', openA);
+  }
+
+  function setValveB(state) {
+    openB = state;
+    handleB.style.transform = openB ? 'rotate(90deg)' : 'rotate(0deg)';
+    lblB.textContent        = openB ? 'ABIERTA' : 'CERRADA';
+    btnB.className          = 'valve-btn' + (openB ? ' open-b' : '');
+    pfB.setAttribute('height', openB ? 54 : 0);
+    sb.classList.toggle('flowing', openB);
+  }
+
+  function toggleA() {
+    if (overflowed) return;
+    setValveA(!openA);
+    updateStatus();
+    btnBoth.classList.toggle('active', openA && openB);
+  }
+
+  function toggleB() {
+    if (overflowed) return;
+    setValveB(!openB);
+    updateStatus();
+    btnBoth.classList.toggle('active', openA && openB);
+  }
+
+  function toggleBoth() {
+    if (overflowed) return;
+    // if both open → close both; otherwise open both
+    const target = !(openA && openB);
+    setValveA(target);
+    setValveB(target);
+    updateStatus();
+    btnBoth.classList.toggle('active', target);
+  }
+
+  function triggerOverflow() {
+    overflowed = true;
+    setValveA(false);
+    setValveB(false);
+    btnBoth.classList.remove('active');
+    updateStatus();
+    overflowMsg.textContent = '¡DESBORDE! El estanque se llenó.';
+    spawnDrops();
+  }
+
+  function spawnDrops() {
+    for (let i = 0; i < 24; i++) {
+      setTimeout(() => {
+        const d = document.createElement('div');
+        d.className = 'drop';
+        d.style.cssText = `left:${6 + Math.random()*88}%;top:2px;background:${Math.random()<0.5?'var(--a1)':'var(--a2)'};animation-duration:${0.55+Math.random()*0.45}s`;
+        drops.appendChild(d);
+        setTimeout(() => d.remove(), 1100);
+      }, i * 60);
+    }
+    setTimeout(() => { if (overflowed) spawnDrops2(); }, 1300);
+  }
+  function spawnDrops2() {
+    for (let i = 0; i < 14; i++) {
+      setTimeout(() => {
+        const d = document.createElement('div');
+        d.className = 'drop';
+        d.style.cssText = `left:${4+Math.random()*92}%;top:2px;opacity:0.6;background:var(--water);animation-duration:${0.5+Math.random()*0.35}s`;
+        drops.appendChild(d);
+        setTimeout(() => d.remove(), 1000);
+      }, i * 80);
+    }
+  }
+
+  function checkAnswer() {
+    const raw = el('answer').value.trim().replace(',', '.');
+    if (!raw) return;
+    if (/\./.test(raw) && raw.split('.')[1].length > 1) {
+      feedback.textContent = 'Usa como máximo 1 decimal (ej. 12,5).';
+      feedback.className = 'feedback err';
+      return;
+    }
+    const guess = parseFloat(raw);
+    if (isNaN(guess) || guess <= 0) {
+      feedback.textContent = 'Ingresa un número válido (ej. 12,5).';
+      feedback.className = 'feedback err';
+      return;
+    }
+    const expected = expectedTime();
+    if (guess === 300) {
+      feedback.textContent = '✓ ¡Exacto! El tiempo es 300 s.';
+      feedback.className = 'feedback ok';
+    } else if (guess >= 299 && guess <= 301) {
+      feedback.textContent = '✓ Buena aproximación, la respuesta correcta es 300 s.';
+      feedback.className = 'feedback ok';
+    } else {
+      feedback.textContent = `Incorrecto. Recuerda: t = 100 L ÷ (QA + QB). Sigue experimentando.`;
+      feedback.className = 'feedback err';
+    }
+  }
+
+  function vaciar() {
+    volume = 0; timeA = 0; timeB = 0; overflowed = false;
+    setValveA(false); setValveB(false);
+    btnBoth.classList.remove('active');
+    updateStatus();
+    overflowMsg.textContent = '';
+    feedback.textContent = ''; feedback.className = 'feedback';
+    el('answer').value = '';
+    drops.innerHTML = '';
+    updateDisplay();
+  }
+
+  function reiniciar() {
+    vaciar();
+  }
+
+  el('answer').addEventListener('keydown', e => { if (e.key === 'Enter') checkAnswer(); });
+
+  interval = setInterval(tick, TICK_MS);
+  updateDisplay();
+  updateStatus();
+</script>
+</body>
+</html>
