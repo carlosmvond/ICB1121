@@ -1,0 +1,617 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
+<title>Dos Estanques</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@400;500;600&display=swap');
+
+  :root {
+    --bg: #0f1117;
+    --surface: #1a1d27;
+    --surface2: #22263a;
+    --border: #2e3350;
+    --ca: #38d9a9;   /* Caudal A — verde */
+    --cb: #4a9eff;   /* Caudal B — azul */
+    --danger: #ff6b6b;
+    --warn: #f7a94a;
+    --ok: #38d9a9;
+    --text: #e8ecf4;
+    --text-muted: #7a8099;
+    --text-dim: #3a3f5a;
+    --font-mono: 'Space Mono', monospace;
+    --font-body: 'DM Sans', sans-serif;
+    --cap1: 75;
+    --cap2: 120;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-body);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  header {
+    width: 100%;
+    padding: 0.9rem 1.2rem 0.7rem;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+  }
+  header h1 { font-family: var(--font-mono); font-size: 12px; color: var(--ca); letter-spacing: 0.08em; text-transform: uppercase; }
+  header p  { font-size: 11px; color: var(--text-muted); margin-top: 2px; line-height: 1.5; }
+
+  .main {
+    width: 100%; max-width: 480px;
+    padding: 1rem 1rem 2.5rem;
+    display: flex; flex-direction: column; gap: 0.9rem;
+  }
+
+  /* ── PROBLEMA ── */
+  .problema {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 0.9rem 1rem;
+    font-size: 12px;
+    color: var(--text-muted);
+    line-height: 1.7;
+  }
+  .problema strong { color: var(--text); font-weight: 500; }
+  .problema .ca { color: var(--ca); font-weight: 600; }
+  .problema .cb { color: var(--cb); font-weight: 600; }
+  .problema .dr { color: var(--danger); font-weight: 600; }
+  .problema ul { margin: 0.5rem 0 0 1rem; }
+  .problema li { margin-bottom: 2px; }
+  .problema .eq {
+    background: var(--surface2);
+    border-left: 2px solid var(--border);
+    border-radius: 4px;
+    padding: 6px 10px;
+    margin-top: 8px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text);
+    line-height: 1.8;
+  }
+
+  /* ── SLIDERS ── */
+  .sliders {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1rem;
+    display: flex; flex-direction: column; gap: 1rem;
+  }
+  .slider-row { display: flex; flex-direction: column; gap: 6px; }
+  .slider-header { display: flex; justify-content: space-between; align-items: baseline; }
+  .slider-label { font-size: 13px; font-weight: 500; color: var(--text); }
+  .slider-val { font-family: var(--font-mono); font-size: 15px; font-weight: 700; color: var(--text); }
+  .slider-val span { font-size: 11px; color: var(--text-muted); margin-left: 2px; }
+  input[type=range] { width: 100%; accent-color: var(--ca); }
+  .slider-row.t2 input[type=range] { accent-color: var(--cb); }
+
+  /* ── TANKS ── */
+  .tanks-wrap {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1rem 0.8rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .tanks-svg { display: block; width: 100%; max-width: 340px; }
+
+  /* ── LEGEND ── */
+  .legend {
+    display: flex; gap: 16px; justify-content: center; flex-wrap: wrap;
+    font-size: 11px; color: var(--text-muted);
+  }
+  .leg-item { display: flex; align-items: center; gap: 5px; }
+  .leg-dot { width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0; }
+
+  /* ── METRICS ── */
+  .metrics { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .metric {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 8px 12px;
+  }
+  .metric .m-label { font-size: 10px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 3px; }
+  .metric .m-value { font-family: var(--font-mono); font-size: 20px; font-weight: 700; line-height: 1; }
+  .metric .m-unit  { font-size: 10px; color: var(--text-muted); margin-left: 2px; }
+  .metric.e1 .m-value { color: var(--ca); }
+  .metric.e2 .m-value { color: var(--cb); }
+
+  /* ── FEEDBACK ── */
+  .feedback-box {
+    border-radius: 10px;
+    padding: 10px 14px;
+    font-size: 13px;
+    font-weight: 500;
+    min-height: 42px;
+    display: flex; align-items: center;
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    background: var(--surface);
+    transition: all 0.3s;
+  }
+  .feedback-box.ok     { background: rgba(56,217,169,0.1); border-color: var(--ok);     color: var(--ok); }
+  .feedback-box.warn   { background: rgba(247,169,74,0.1);  border-color: var(--warn);   color: var(--warn); }
+  .feedback-box.danger { background: rgba(255,107,107,0.1); border-color: var(--danger); color: var(--danger); }
+
+  /* ── PLAY BUTTON ── */
+  .btn-play {
+    width: 100%;
+    padding: 13px;
+    background: rgba(56,217,169,0.12);
+    border: 1px solid var(--ca);
+    border-radius: 10px;
+    color: var(--ca);
+    font-family: var(--font-body);
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    letter-spacing: 0.02em;
+    -webkit-tap-highlight-color: transparent;
+    transition: background 0.2s;
+  }
+  .btn-play:active { background: rgba(56,217,169,0.22); }
+
+  /* ── EXPLOSIÓN ── */
+  @keyframes boom-scale { 0%{transform:scale(0);opacity:1} 60%{transform:scale(1.1);opacity:1} 100%{transform:scale(1.4);opacity:0} }
+  @keyframes boom-ray   { 0%{transform:scaleX(0);opacity:1} 100%{transform:scaleX(1);opacity:0} }
+  @keyframes shrapnel   { 0%{transform:translate(0,0) scale(1);opacity:1} 100%{transform:translate(var(--dx),var(--dy)) scale(0);opacity:0} }
+  @keyframes shake      { 0%,100%{transform:translateX(0)} 20%{transform:translateX(-6px)} 40%{transform:translateX(6px)} 60%{transform:translateX(-4px)} 80%{transform:translateX(4px)} }
+  .boom-overlay {
+    position: fixed; inset: 0; z-index: 999;
+    display: flex; align-items: center; justify-content: center;
+    background: rgba(255,80,40,0.18);
+    animation: boom-scale 0.7s ease-out forwards;
+    pointer-events: none;
+  }
+  .boom-ring {
+    width: 180px; height: 180px; border-radius: 50%;
+    border: 8px solid #ff6b2b;
+    animation: boom-scale 0.6s ease-out forwards;
+  }
+  .boom-inner {
+    position: absolute; width: 90px; height: 90px; border-radius: 50%;
+    background: radial-gradient(circle, #fff8 0%, #ffb74d 40%, #ff5722 100%);
+    animation: boom-scale 0.5s ease-out forwards;
+  }
+  .tanks-wrap { position: relative; }
+  .explosion-layer {
+    position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+    pointer-events: none; overflow: visible;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Simulador — Dos Estanques</h1>
+  <p>Intercambio de caudales en dos períodos de tiempo</p>
+</header>
+
+<div class="main">
+
+  <!-- PROBLEMA -->
+  <div class="problema">
+    <strong>Problema:</strong> Dos caudales llenan dos estanques en dos períodos.
+    Durante <strong>t₁</strong>, el <span class="ca">Caudal A (10 L/min)</span> llena el Estanque 1 y el <span class="cb">Caudal B (5 L/min)</span> llena el Estanque 2.
+    Durante <strong>t₂</strong>, se intercambian.
+    <ul>
+      <li><span class="dr">Estanque 1: máx 75 L</span></li>
+      <li><span class="dr">Estanque 2: máx 120 L</span></li>
+    </ul>
+    <div class="eq" style="display:none"></div>
+  </div>
+
+  <!-- SLIDERS -->
+  <div class="sliders">
+    <div class="slider-row t1">
+      <div class="slider-header">
+        <span class="slider-label">Tiempo t₁</span>
+        <span class="slider-val"><span id="v-t1">5</span><span>min</span></span>
+      </div>
+      <input type="range" id="sl-t1" min="0" max="15" step="0.5" value="5" oninput="onSlider()"/>
+    </div>
+    <div class="slider-row t2">
+      <div class="slider-header">
+        <span class="slider-label">Tiempo t₂</span>
+        <span class="slider-val"><span id="v-t2">5</span><span>min</span></span>
+      </div>
+      <input type="range" id="sl-t2" min="0" max="15" step="0.5" value="5" oninput="onSlider()"/>
+    </div>
+  </div>
+
+  <!-- TANKS SVG — con válvulas animadas -->
+  <div class="tanks-wrap">
+    <svg class="tanks-svg" viewBox="0 0 300 310" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <clipPath id="clip1"><rect x="20"  y="178" width="110" height="112" rx="10"/></clipPath>
+        <clipPath id="clip2"><rect x="170" y="110" width="110" height="180" rx="10"/></clipPath>
+        <style>
+          @keyframes drip-a { to { stroke-dashoffset: -20; } }
+          @keyframes drip-b { to { stroke-dashoffset: -20; } }
+          .drip { stroke-linecap: round; stroke-dasharray: 7 8; fill: none; opacity: 0; transition: opacity 0.3s; }
+          .drip.on { opacity: 0.9; animation: drip-a 0.35s linear infinite; }
+          /* valve handle transition */
+          .vhandle { transition: transform 0.6s cubic-bezier(.4,0,.2,1); }
+        </style>
+      </defs>
+
+      <!-- ══════════════════════════════════════════
+           FUENTES: A (izq, verde) y B (der, azul)
+           ══════════════════════════════════════════ -->
+      <!-- Caudal A source label -->
+      <rect x="48" y="4" width="54" height="16" rx="4" fill="#1a3d30"/>
+      <text x="75" y="15" text-anchor="middle" font-family="'Space Mono',monospace" font-size="9" fill="#38d9a9" font-weight="700">CAUDAL A</text>
+      <!-- Caudal B source label -->
+      <rect x="198" y="4" width="54" height="16" rx="4" fill="#0d2640"/>
+      <text x="225" y="15" text-anchor="middle" font-family="'Space Mono',monospace" font-size="9" fill="#4a9eff" font-weight="700">CAUDAL B</text>
+
+      <!-- ── VÁLVULA A ── (centro x=75, y=28) -->
+      <!-- cuerpo válvula A -->
+      <rect x="60" y="28" width="30" height="12" rx="3" fill="#1a3d30" stroke="#38d9a9" stroke-width="0.8"/>
+      <!-- manubrio A — rota 90° al cambiar fase -->
+      <g id="vha" class="vhandle" style="transform-origin:75px 34px;">
+        <rect x="55" y="31" width="40" height="6" rx="3" fill="#38d9a9"/>
+        <circle cx="75" cy="34" r="3.5" fill="#1a3d30"/>
+      </g>
+      <!-- stem A -->
+      <rect x="73" y="18" width="4" height="11" rx="2" fill="#2a5040"/>
+
+      <!-- ── VÁLVULA B ── (centro x=225, y=28) -->
+      <rect x="210" y="28" width="30" height="12" rx="3" fill="#0d2640" stroke="#4a9eff" stroke-width="0.8"/>
+      <g id="vhb" class="vhandle" style="transform-origin:225px 34px;">
+        <rect x="205" y="31" width="40" height="6" rx="3" fill="#4a9eff"/>
+        <circle cx="225" cy="34" r="3.5" fill="#0d2640"/>
+      </g>
+      <rect x="223" y="18" width="4" height="11" rx="2" fill="#1a3060"/>
+
+      <!-- ══════════════════════════════════════════
+           TUBERÍAS — coordenadas precisas
+           Válvulas: A en x=75 y=40, B en x=225 y=40
+           E1 top: y=178  (tubo izq x=72..78 debe llegar hasta y=178)
+           E2 top: y=110  (tubo der x=222..228 debe llegar hasta y=110)
+           Cruces horizontales: y=52 (A→E2) y y=65 (B→E1)
+           ══════════════════════════════════════════ -->
+
+      <!-- Tubo vertical izq (x=72): desde válvula (y=40) hasta E1 (y=178) -->
+      <rect x="72" y="40" width="6" height="138" rx="2" fill="#1e3040"/>
+
+      <!-- Tubo vertical der (x=222): desde válvula (y=40) hasta E2 (y=110) -->
+      <rect x="222" y="40" width="6" height="70" rx="2" fill="#1e3040"/>
+
+      <!-- Cruce horizontal A→E2: de x=72 a x=228 en y=50 -->
+      <rect x="72" y="50" width="156" height="6" rx="2" fill="#1e3040"/>
+
+      <!-- Cruce horizontal B→E1: de x=72 a x=228 en y=63 -->
+      <rect x="72" y="63" width="156" height="6" rx="2" fill="#1e3040"/>
+
+      <!-- ══ CHORROS ANIMADOS ══ -->
+      <!-- Fase 1: A→E1 directo (izquierda, y=40→178) -->
+      <line id="drip-a1" class="drip" x1="75" y1="40" x2="75" y2="178" stroke="#38d9a9" stroke-width="5"/>
+      <!-- Fase 1: B→E2 directo (derecha, y=40→110) -->
+      <line id="drip-b2" class="drip" x1="225" y1="40" x2="225" y2="110" stroke="#4a9eff" stroke-width="5"/>
+      <!-- Fase 2: A→E2 cruzado: baja izq → cruza → baja der hasta y=110 -->
+      <polyline id="drip-a2" class="drip" points="75,40 75,53 225,53 225,110" stroke="#38d9a9" stroke-width="5"/>
+      <!-- Fase 2: B→E1 cruzado: baja der → cruza → baja izq hasta y=178 -->
+      <polyline id="drip-b1" class="drip" points="225,40 225,66 75,66 75,178" stroke="#4a9eff" stroke-width="5"/>
+
+      <!-- ══════════════════════════════════════════
+           ESTANQUES
+           ══════════════════════════════════════════ -->
+      <!-- ESTANQUE 1 (75 L → 112px, fondo compartido y=290) -->
+      <rect id="e1a" x="20" y="290" width="110" height="0" fill="#38d9a9" opacity="0.85" clip-path="url(#clip1)"/>
+      <rect id="e1b" x="20" y="290" width="110" height="0" fill="#4a9eff" opacity="0.85" clip-path="url(#clip1)"/>
+      <rect id="e1w" x="20" y="290" width="110" height="5" fill="#fff" opacity="0.12" clip-path="url(#clip1)"/>
+      <rect x="20" y="178" width="110" height="112" rx="10" fill="none" stroke="#2e3350" stroke-width="2"/>
+      <text x="75" y="174" text-anchor="middle" font-family="'Space Mono',monospace" font-size="9" fill="#7a8099">E1 — 75 L</text>
+      <text id="lbl1" x="75" y="240" text-anchor="middle" font-family="'Space Mono',monospace" font-size="11" fill="#e8ecf4" opacity="0.7">0 L</text>
+
+      <!-- ESTANQUE 2 (120 L → 180px, y=110→290) -->
+      <rect id="e2a" x="170" y="290" width="110" height="0" fill="#4a9eff" opacity="0.85" clip-path="url(#clip2)"/>
+      <rect id="e2b" x="170" y="290" width="110" height="0" fill="#38d9a9" opacity="0.85" clip-path="url(#clip2)"/>
+      <rect id="e2w" x="170" y="290" width="110" height="5" fill="#fff" opacity="0.12" clip-path="url(#clip2)"/>
+      <rect x="170" y="110" width="110" height="180" rx="10" fill="none" stroke="#2e3350" stroke-width="2"/>
+      <text x="225" y="106" text-anchor="middle" font-family="'Space Mono',monospace" font-size="9" fill="#7a8099">E2 — 120 L</text>
+      <text id="lbl2" x="225" y="205" text-anchor="middle" font-family="'Space Mono',monospace" font-size="11" fill="#e8ecf4" opacity="0.7">0 L</text>
+
+      <!-- fase indicator -->
+      <text id="fase-txt" x="150" y="303" text-anchor="middle" font-family="'Space Mono',monospace" font-size="9" fill="#4a5070"></text>
+    </svg>
+
+    <!-- legend -->
+    <div class="legend">
+      <div class="leg-item"><div class="leg-dot" style="background:#38d9a9"></div><span>Caudal A (10 L/min)</span></div>
+      <div class="leg-item"><div class="leg-dot" style="background:#4a9eff"></div><span>Caudal B (5 L/min)</span></div>
+    </div>
+    <!-- explosion layer -->
+    <svg id="explosion-layer" viewBox="0 0 300 310" xmlns="http://www.w3.org/2000/svg" style="position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;"></svg>
+  </div>
+  <div class="metrics">
+    <div class="metric e1">
+      <div class="m-label">Estanque 1 final</div>
+      <div class="m-value"><span id="m-e1">0,0</span><span class="m-unit">L</span></div>
+    </div>
+    <div class="metric e2">
+      <div class="m-label">Estanque 2 final</div>
+      <div class="m-value"><span id="m-e2">0,0</span><span class="m-unit">L</span></div>
+    </div>
+  </div>
+
+  <!-- FEEDBACK -->
+  <div class="feedback-box" id="feedback">Ajusta t₁ y t₂ y presiona Simular.</div>
+
+  <!-- PLAY -->
+  <button class="btn-play" id="btn-play" onclick="simular()">▶ Simular llenado</button>
+
+</div>
+
+<script>
+  const CAUDAL_A = 10;
+  const CAUDAL_B = 5;
+  const CAP1 = 75;
+  const CAP2 = 120;
+  // E2: y=110→290, 180px. E1: y=178→290, 112px. Same scale: 1L = 1.5px
+  const TANK_BOT = 290;
+  const PPL = 1.5; // px per litre (same scale for both)
+  const E1_TOP = 178;
+  const E2_TOP = 110;
+
+  const e1a = document.getElementById('e1a');
+  const e1b = document.getElementById('e1b');
+  const e1w = document.getElementById('e1w');
+  const e2a = document.getElementById('e2a');
+  const e2b = document.getElementById('e2b');
+  const e2w = document.getElementById('e2w');
+  const lbl1 = document.getElementById('lbl1');
+  const lbl2 = document.getElementById('lbl2');
+  const faseTxt = document.getElementById('fase-txt');
+  const feedback = document.getElementById('feedback');
+  const btnPlay = document.getElementById('btn-play');
+  const slT1 = document.getElementById('sl-t1');
+  const slT2 = document.getElementById('sl-t2');
+  const vT1 = document.getElementById('v-t1');
+  const vT2 = document.getElementById('v-t2');
+  const mE1 = document.getElementById('m-e1');
+  const mE2 = document.getElementById('m-e2');
+  const vha    = document.getElementById('vha');
+  const vhb    = document.getElementById('vhb');
+  const dripA1 = document.getElementById('drip-a1');
+  const dripB2 = document.getElementById('drip-b2');
+  const dripA2 = document.getElementById('drip-a2');
+  const dripB1 = document.getElementById('drip-b1');
+
+  let animId = null;
+  let running = false;
+  let currentPhase = 0;
+
+  function fmt(n) { return n.toFixed(1).replace('.', ','); }
+
+  function setTank1(volA, volB) {
+    const total = volA + volB;
+    const maxH  = TANK_BOT - E1_TOP; // 112px
+    const hTot  = Math.min(total * PPL, maxH);
+    const hA    = Math.min(volA * PPL, hTot);
+    const hB    = hTot - hA;
+    const yTop  = TANK_BOT - hTot;
+    e1a.setAttribute('y', yTop);      e1a.setAttribute('height', hA);
+    e1b.setAttribute('y', yTop + hA); e1b.setAttribute('height', hB);
+    e1w.setAttribute('y', yTop - 3);
+    lbl1.setAttribute('y', Math.max(yTop + 14, 240));
+    lbl1.textContent = fmt(total) + ' L';
+  }
+
+  function setTank2(volA, volB) {
+    const total = volA + volB;
+    const maxH  = TANK_BOT - E2_TOP; // 180px
+    const hTot  = Math.min(total * PPL, maxH);
+    const hA    = Math.min(volA * PPL, hTot);
+    const hB    = hTot - hA;
+    const yTop  = TANK_BOT - hTot;
+    e2a.setAttribute('y', yTop);      e2a.setAttribute('height', hA);
+    e2b.setAttribute('y', yTop + hA); e2b.setAttribute('height', hB);
+    e2w.setAttribute('y', yTop - 3);
+    lbl2.setAttribute('y', Math.max(yTop + 14, 205));
+    lbl2.textContent = fmt(total) + ' L';
+  }
+
+  function setPhaseVisuals(phase) {
+    if (phase === currentPhase) return;
+    currentPhase = phase;
+    if (phase === 1) {
+      vha.style.transform = 'rotate(0deg)';
+      vhb.style.transform = 'rotate(0deg)';
+      dripA1.classList.add('on'); dripB2.classList.add('on');
+      dripA2.classList.remove('on'); dripB1.classList.remove('on');
+    } else if (phase === 2) {
+      vha.style.transform = 'rotate(90deg)';
+      vhb.style.transform = 'rotate(90deg)';
+      dripA2.classList.add('on'); dripB1.classList.add('on');
+      dripA1.classList.remove('on'); dripB2.classList.remove('on');
+    } else {
+      vha.style.transform = 'rotate(0deg)';
+      vhb.style.transform = 'rotate(0deg)';
+      dripA1.classList.remove('on'); dripB2.classList.remove('on');
+      dripA2.classList.remove('on'); dripB1.classList.remove('on');
+    }
+  }
+
+  function resetTanks() {
+    setTank1(0, 0); setTank2(0, 0);
+    setPhaseVisuals(0);
+    faseTxt.textContent = '';
+    mE1.textContent = '0,0'; mE2.textContent = '0,0';
+    currentPhase = 0;
+  }
+
+  function onSlider() {
+    vT1.textContent = slT1.value;
+    vT2.textContent = slT2.value;
+    if (!running) resetTanks();
+    feedback.textContent = 'Ajusta t₁ y t₂ y presiona Simular.';
+    feedback.className = 'feedback-box';
+  }
+
+  function simular() {
+    if (running) return;
+    const t1 = parseFloat(slT1.value);
+    const t2 = parseFloat(slT2.value);
+    if (t1 <= 0 && t2 <= 0) return;
+
+    running = true;
+    btnPlay.disabled = true;
+    btnPlay.textContent = '⏳ Simulando…';
+    feedback.textContent = '';
+    feedback.className = 'feedback-box';
+
+    const tTotal = t1 + t2;
+    const STEPS = 120;
+    const INTERVAL = 30;
+    let step = 0;
+
+    resetTanks();
+
+    animId = setInterval(() => {
+      const t = (step / STEPS) * tTotal;
+      step++;
+
+      let e1A, e1B, e2A, e2B;
+
+      if (t <= t1) {
+        setPhaseVisuals(1);
+        e1A = CAUDAL_A * t;
+        e1B = 0;
+        e2A = 0;
+        e2B = CAUDAL_B * t;
+        faseTxt.textContent = t1 > 0 ? `Fase 1 — t = ${fmt(t)} min` : '';
+      } else {
+        setPhaseVisuals(2);
+        e1A = CAUDAL_A * t1;
+        e1B = CAUDAL_B * (t - t1);
+        e2A = CAUDAL_A * (t - t1);
+        e2B = CAUDAL_B * t1;
+        faseTxt.textContent = `Fase 2 — t = ${fmt(t)} min`;
+      }
+
+      setTank1(e1A, e1B);
+      setTank2(e2B, e2A);
+
+      if (step > STEPS) {
+        clearInterval(animId);
+        running = false;
+        btnPlay.disabled = false;
+        btnPlay.textContent = '▶ Simular llenado';
+        setPhaseVisuals(0);
+        faseTxt.textContent = '';
+
+        const total1 = e1A + e1B;
+        const total2 = e2A + e2B;
+        mE1.textContent = fmt(total1);
+        mE2.textContent = fmt(total2);
+
+        if (total1 > CAP1 + 0.1 || total2 > CAP2 + 0.1) {
+          if (total1 > CAP1 + 0.1) explode(75, 178);
+          if (total2 > CAP2 + 0.1) explode(225, 110);
+          setTimeout(() => {
+            feedback.textContent = '💥 ¡Desborde! Algún estanque superó su capacidad máxima.';
+            feedback.className = 'feedback-box danger';
+          }, 300);
+        } else if (Math.abs(total1 - CAP1) < 0.5 && Math.abs(total2 - CAP2) < 0.5) {
+          feedback.textContent = '✓ ¡Perfecto! Ambos estanques llenados exactamente hasta su máximo.';
+          feedback.className = 'feedback-box ok';
+        } else {
+          feedback.textContent = `Falta agua. E1: ${fmt(total1)}/75 L  ·  E2: ${fmt(total2)}/120 L. Ajusta t₁ y t₂.`;
+          feedback.className = 'feedback-box warn';
+        }
+      }
+    }, INTERVAL);
+  }
+
+  const explLayer = document.getElementById('explosion-layer');
+
+  function explode(cx, cy) {
+    explLayer.innerHTML = '';
+    const colors = ['#ff5722','#ff9800','#ffeb3b','#fff','#ff3d00','#ff6b2b'];
+    // shockwave ring
+    for (let r = 0; r < 3; r++) {
+      const c = document.createElementNS('http://www.w3.org/2000/svg','circle');
+      c.setAttribute('cx', cx); c.setAttribute('cy', cy);
+      c.setAttribute('r', 8 + r * 14);
+      c.setAttribute('fill', 'none');
+      c.setAttribute('stroke', colors[r % colors.length]);
+      c.setAttribute('stroke-width', 3 - r * 0.5);
+      c.style.transformOrigin = `${cx}px ${cy}px`;
+      c.style.animation = `boom-scale ${0.45 + r * 0.12}s ease-out ${r * 0.06}s forwards`;
+      explLayer.appendChild(c);
+    }
+    // fireball
+    const ball = document.createElementNS('http://www.w3.org/2000/svg','circle');
+    ball.setAttribute('cx', cx); ball.setAttribute('cy', cy); ball.setAttribute('r', 22);
+    ball.setAttribute('fill', '#ff9800'); ball.setAttribute('opacity', '0.9');
+    ball.style.transformOrigin = `${cx}px ${cy}px`;
+    ball.style.animation = 'boom-scale 0.5s ease-out forwards';
+    explLayer.appendChild(ball);
+    // shrapnel pieces
+    for (let i = 0; i < 18; i++) {
+      const angle = (i / 18) * Math.PI * 2;
+      const dist = 40 + Math.random() * 55;
+      const dx = Math.cos(angle) * dist;
+      const dy = Math.sin(angle) * dist;
+      const sh = document.createElementNS('http://www.w3.org/2000/svg', Math.random() > 0.5 ? 'rect' : 'circle');
+      const size = 3 + Math.random() * 5;
+      if (sh.tagName === 'rect') {
+        sh.setAttribute('x', cx - size/2); sh.setAttribute('y', cy - size/2);
+        sh.setAttribute('width', size); sh.setAttribute('height', size);
+        sh.setAttribute('rx', 1);
+      } else {
+        sh.setAttribute('cx', cx); sh.setAttribute('cy', cy); sh.setAttribute('r', size/2);
+      }
+      sh.setAttribute('fill', colors[Math.floor(Math.random() * colors.length)]);
+      sh.style.setProperty('--dx', dx + 'px');
+      sh.style.setProperty('--dy', dy + 'px');
+      sh.style.animation = `shrapnel ${0.5 + Math.random() * 0.4}s ease-out ${Math.random() * 0.1}s forwards`;
+      explLayer.appendChild(sh);
+    }
+    // sparks (lines radiating out)
+    for (let i = 0; i < 12; i++) {
+      const angle = (i / 12) * Math.PI * 2;
+      const len = 25 + Math.random() * 30;
+      const line = document.createElementNS('http://www.w3.org/2000/svg','line');
+      line.setAttribute('x1', cx); line.setAttribute('y1', cy);
+      line.setAttribute('x2', cx + Math.cos(angle) * len);
+      line.setAttribute('y2', cy + Math.sin(angle) * len);
+      line.setAttribute('stroke', colors[i % colors.length]);
+      line.setAttribute('stroke-width', 1.5);
+      line.setAttribute('stroke-linecap', 'round');
+      line.style.transformOrigin = `${cx}px ${cy}px`;
+      line.style.animation = `boom-scale 0.4s ease-out ${i * 0.02}s forwards`;
+      explLayer.appendChild(line);
+    }
+    // flash overlay rect
+    const flash = document.createElementNS('http://www.w3.org/2000/svg','rect');
+    flash.setAttribute('x',0); flash.setAttribute('y',0);
+    flash.setAttribute('width',300); flash.setAttribute('height',310);
+    flash.setAttribute('fill','#ff9800'); flash.setAttribute('opacity','0.25');
+    flash.style.animation = 'boom-scale 0.3s ease-out forwards';
+    explLayer.appendChild(flash);
+    // clear after animation
+    setTimeout(() => { explLayer.innerHTML = ''; }, 1200);
+  }
+</script>
+</body>
+</html>
