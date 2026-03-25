@@ -1,0 +1,659 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
+<title>Simulador de Caudal</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@400;500;600&display=swap');
+
+  :root {
+    --bg: #0f1117;
+    --surface: #1a1d27;
+    --surface2: #22263a;
+    --border: #2e3350;
+    --accent: #4a9eff;
+    --accent2: #38d9a9;
+    --water: #4a9eff;
+    --water-light: #7bb8ff;
+    --danger: #ff6b6b;
+    --text: #e8ecf4;
+    --text-muted: #7a8099;
+    --text-dim: #4a5070;
+    --font-mono: 'Space Mono', monospace;
+    --font-body: 'DM Sans', sans-serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-body);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 0;
+  }
+
+  header {
+    width: 100%;
+    padding: 1rem 1.2rem 0.8rem;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+  }
+  header h1 {
+    font-family: var(--font-mono);
+    font-size: 13px;
+    color: var(--accent);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+  header p {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-top: 2px;
+    letter-spacing: 0.03em;
+  }
+
+  .main {
+    width: 100%;
+    max-width: 480px;
+    padding: 1rem 1rem 2rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  /* METRICS ROW */
+  .metrics {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  .metric {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 10px 12px;
+  }
+  .metric .m-label {
+    font-size: 10px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 3px;
+  }
+  .metric .m-value {
+    font-family: var(--font-mono);
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--text);
+    line-height: 1;
+  }
+  .metric .m-unit {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-left: 2px;
+  }
+  .metric.highlight .m-value { color: var(--accent); }
+  .metric.highlight2 .m-value { color: var(--accent2); }
+
+  /* SIMULATION AREA */
+  .sim-area {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 1.2rem 1rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0;
+    position: relative;
+  }
+
+  /* Valve button */
+  .valve-btn {
+    width: 72px;
+    height: 72px;
+    border-radius: 50%;
+    border: 2px solid var(--border);
+    background: var(--surface2);
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    transition: all 0.2s;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+    position: relative;
+  }
+  .valve-btn:active { transform: scale(0.93); }
+  .valve-btn.open {
+    border-color: var(--accent);
+    background: rgba(74,158,255,0.12);
+    box-shadow: 0 0 16px rgba(74,158,255,0.25);
+  }
+  .valve-btn svg { display: block; }
+  .valve-btn .vb-label {
+    font-family: var(--font-mono);
+    font-size: 9px;
+    letter-spacing: 0.06em;
+    color: var(--text-muted);
+    text-transform: uppercase;
+  }
+  .valve-btn.open .vb-label { color: var(--accent); }
+
+  /* pipe */
+  .pipe {
+    width: 14px;
+    height: 36px;
+    background: var(--border);
+    border-radius: 0 0 3px 3px;
+    overflow: hidden;
+    position: relative;
+  }
+  .pipe-fill {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 0%;
+    background: var(--water);
+    transition: height 0.25s;
+  }
+
+  /* TANK */
+  .tank-outer {
+    position: relative;
+    width: 160px;
+  }
+  .tank-svg { display: block; width: 160px; }
+
+  /* overflow drops */
+  .drops-container {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    pointer-events: none;
+    overflow: hidden;
+  }
+  @keyframes stream-flow {
+    0%   { stroke-dashoffset: 0; }
+    100% { stroke-dashoffset: -20; }
+  }
+  .water-stream {
+    stroke: #4a9eff;
+    stroke-width: 7;
+    stroke-linecap: round;
+    stroke-dasharray: 9 7;
+    fill: none;
+    opacity: 0;
+    transition: opacity 0.2s;
+    animation: stream-flow 0.3s linear infinite;
+  }
+  .water-stream.flowing { opacity: 0.9; }
+
+  @keyframes fall {
+    0%   { transform: translateY(0px); opacity: 1; }
+    100% { transform: translateY(70px); opacity: 0; }
+  }
+  .drop {
+    position: absolute;
+    width: 7px; height: 10px;
+    border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
+    background: var(--water);
+    animation: fall 0.8s ease-in forwards;
+  }
+
+  .overflow-banner {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--danger);
+    letter-spacing: 0.05em;
+    min-height: 18px;
+    margin-top: 8px;
+    text-align: center;
+  }
+
+  /* Status row */
+  .status-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 10px;
+  }
+  .status-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--danger);
+    transition: background 0.3s;
+    flex-shrink: 0;
+  }
+  .status-dot.on { background: var(--accent2); }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+  .status-dot.on { animation: pulse 1.4s ease-in-out infinite; }
+  .status-text {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text-muted);
+    letter-spacing: 0.05em;
+  }
+
+  /* ANSWER ZONE */
+  .answer-zone {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 1rem 1rem;
+  }
+  .az-heading {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 4px;
+  }
+  .az-sub {
+    font-size: 11px;
+    color: var(--text-muted);
+    line-height: 1.5;
+    margin-bottom: 12px;
+  }
+  .az-sub strong { color: var(--accent); font-weight: 500; }
+  .input-row {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+  .input-row input {
+    flex: 1;
+    padding: 10px 12px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    font-family: var(--font-mono);
+    font-size: 16px;
+    -webkit-appearance: none;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .input-row input:focus { border-color: var(--accent); }
+  .input-row .unit-tag {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--text-muted);
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .btn-verify {
+    padding: 10px 16px;
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    font-family: var(--font-body);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    transition: opacity 0.2s, transform 0.1s;
+    flex-shrink: 0;
+  }
+  .btn-verify:active { transform: scale(0.96); opacity: 0.9; }
+  .feedback {
+    margin-top: 10px;
+    font-size: 13px;
+    font-weight: 500;
+    min-height: 20px;
+    line-height: 1.5;
+  }
+  .feedback.ok  { color: var(--accent2); }
+  .feedback.err { color: var(--danger); }
+
+  /* Reset */
+  /* Buttons row */
+  .btn-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  .btn-reset {
+    padding: 12px;
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    color: var(--text-muted);
+    font-family: var(--font-body);
+    font-size: 13px;
+    cursor: pointer;
+    letter-spacing: 0.03em;
+    -webkit-tap-highlight-color: transparent;
+    transition: border-color 0.2s, color 0.2s;
+    text-align: center;
+  }
+  .btn-reset:active { border-color: var(--text-muted); color: var(--text); }
+  .btn-reset .btn-sub {
+    display: block;
+    font-size: 9px;
+    color: var(--text-dim);
+    margin-top: 3px;
+    letter-spacing: 0.04em;
+  }
+
+  /* Hint pill */
+  .hint {
+    background: rgba(74,158,255,0.08);
+    border: 1px solid rgba(74,158,255,0.2);
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-size: 11px;
+    color: var(--accent);
+    line-height: 1.5;
+  }
+  .hint strong { font-weight: 600; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Simulador de Caudal</h1>
+  <p>Abre la llave y adivina cuánta agua fluye por segundo</p>
+</header>
+
+<div class="main">
+
+  <!-- METRICS -->
+  <div class="metrics">
+    <div class="metric highlight">
+      <div class="m-label">Volumen</div>
+      <div class="m-value"><span id="vol">0.0</span><span class="m-unit">L</span></div>
+    </div>
+    <div class="metric">
+      <div class="m-label">Nivel</div>
+      <div class="m-value"><span id="pct">0</span><span class="m-unit">%</span></div>
+    </div>
+    <div class="metric highlight2">
+      <div class="m-label">Tiempo abierta</div>
+      <div class="m-value"><span id="timer">0.0</span><span class="m-unit">s</span></div>
+    </div>
+    <div class="metric">
+      <div class="m-label">Capacidad</div>
+      <div class="m-value">100<span class="m-unit">L</span></div>
+    </div>
+  </div>
+
+  <!-- SIM AREA -->
+  <div class="sim-area">
+
+    <!-- VALVE BUTTON -->
+    <button class="valve-btn" id="valve-btn" onclick="toggleValve()">
+      <svg id="valve-icon" width="28" height="28" viewBox="0 0 28 28" fill="none">
+        <!-- body -->
+        <rect x="5" y="12" width="18" height="8" rx="2.5" fill="#2e3350"/>
+        <!-- stem -->
+        <rect x="12" y="3" width="4" height="9" rx="2" fill="#4a5070"/>
+        <!-- handle (rotates via JS transform) -->
+        <g id="handle-g" style="transform-origin:14px 12px; transition:transform 0.35s cubic-bezier(.4,0,.2,1);">
+          <rect x="4" y="9.5" width="20" height="5" rx="2.5" fill="#4a9eff"/>
+          <circle cx="14" cy="12" r="3" fill="#185fa5"/>
+        </g>
+      </svg>
+      <span class="vb-label" id="vb-label">CERRADA</span>
+    </button>
+
+    <!-- PIPE -->
+    <div class="pipe">
+      <div class="pipe-fill" id="pipe-fill"></div>
+    </div>
+
+    <!-- TANK -->
+    <div class="tank-outer">
+      <svg class="tank-svg" viewBox="0 0 160 220" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <clipPath id="tc"><rect x="12" y="12" width="136" height="192" rx="12"/></clipPath>
+        </defs>
+        <!-- water -->
+        <rect id="water-fill" x="12" y="204" width="136" height="0" fill="#4a9eff" opacity="0.85" clip-path="url(#tc)"/>
+        <!-- wave top -->
+        <rect id="wave-top" x="12" y="204" width="136" height="6" fill="#7bb8ff" opacity="0.6" clip-path="url(#tc)"/>
+        <!-- water stream from pipe (animated dashes falling into tank) -->
+        <line id="water-stream" class="water-stream" x1="80" y1="12" x2="80" y2="30" clip-path="url(#tc)"/>
+        <!-- tank shell -->
+        <rect x="12" y="12" width="136" height="192" rx="12" fill="none" stroke="#2e3350" stroke-width="2"/>
+        <!-- scale ticks & labels -->
+        <line x1="12" y1="60"  x2="28" y2="60"  stroke="#2e3350" stroke-width="1.5"/>
+        <line x1="12" y1="108" x2="28" y2="108" stroke="#2e3350" stroke-width="1.5"/>
+        <line x1="12" y1="156" x2="28" y2="156" stroke="#2e3350" stroke-width="1.5"/>
+        <text x="32" y="64"  fill="#4a5070" font-family="'Space Mono',monospace" font-size="10">75%</text>
+        <text x="32" y="112" fill="#4a5070" font-family="'Space Mono',monospace" font-size="10">50%</text>
+        <text x="32" y="160" fill="#4a5070" font-family="'Space Mono',monospace" font-size="10">25%</text>
+        <!-- top label -->
+        <text x="80" y="9" text-anchor="middle" fill="#4a5070" font-family="'Space Mono',monospace" font-size="9">100 L</text>
+      </svg>
+      <div class="drops-container" id="drops"></div>
+    </div>
+
+    <div class="overflow-banner" id="overflow-msg"></div>
+
+    <div class="status-row">
+      <div class="status-dot" id="status-dot"></div>
+      <span class="status-text" id="status-text">Llave cerrada</span>
+    </div>
+
+  </div>
+
+  <!-- HINT -->
+  <div class="hint">
+    <strong>Pista:</strong> Caudal (L/s) = Volumen (L) ÷ Tiempo (s)<br>
+    Si llenó 10 L en 5 s → Q = 10 ÷ 5 = <strong>2 L/s</strong> — o si llenó 5 L en 10 s → Q = <strong>0,5 L/s</strong>
+  </div>
+
+  <!-- ANSWER ZONE -->
+  <div class="answer-zone">
+    <div class="az-heading">¿Cuál es el caudal?</div>
+    <div class="az-sub">Observa el volumen y el tiempo, calcula y escribe tu respuesta en <strong>L/s</strong> (máximo 1 decimal, usa coma: ej. 2,5):</div>
+    <div class="input-row">
+      <input type="text" id="answer" inputmode="decimal" placeholder="ej. 2,5" />
+      <span class="unit-tag">L/s</span>
+      <button class="btn-verify" onclick="checkAnswer()">OK</button>
+    </div>
+    <div class="feedback" id="feedback"></div>
+  </div>
+
+  <!-- BUTTONS -->
+  <div class="btn-row">
+    <button class="btn-reset" onclick="vaciarSim()">
+      ⬇ Vaciar recipiente
+      <span class="btn-sub">Mismo caudal</span>
+    </button>
+    <button class="btn-reset" onclick="resetSim()">
+      ↺ Reiniciar
+      <span class="btn-sub">Cambia el caudal</span>
+    </button>
+  </div>
+
+</div>
+
+<script>
+  // --- Config ---
+  const CAPACITY = 100; // litros
+  const TICK_MS  = 100; // ms
+
+  const FLOW_OPTIONS = [0.5, 1, 1.5, 2.5, 3, 4, 5, 6, 8, 10];
+  let SECRET_FLOW = FLOW_OPTIONS[Math.floor(Math.random() * FLOW_OPTIONS.length)];
+
+  let volume    = 0;
+  let timeOpen  = 0; // seconds
+  let isOpen    = false;
+  let overflowed = false;
+  let interval  = null;
+
+  // --- DOM refs ---
+  const el = id => document.getElementById(id);
+  const valveBtn  = el('valve-btn');
+  const handleG   = el('handle-g');
+  const vbLabel   = el('vb-label');
+  const pipeFill  = el('pipe-fill');
+  const waterFill = el('water-fill');
+  const waveTop   = el('wave-top');
+  const waterStream = el('water-stream');
+  const statusDot = el('status-dot');
+  const statusTxt = el('status-text');
+  const overflowMsg = el('overflow-msg');
+  const drops     = el('drops');
+  const feedback  = el('feedback');
+
+  function updateDisplay() {
+    const pct = Math.min(volume / CAPACITY * 100, 100);
+    const tankH = 192; // viewBox interior height
+    const h = (pct / 100) * tankH;
+    const y = 204 - h;
+    waterFill.setAttribute('y', y);
+    waterFill.setAttribute('height', h);
+    waveTop.setAttribute('y', y - 4);
+    // stream: from top of tank down to water surface (or fixed short if tank empty)
+    const streamEnd = Math.max(y - 2, 16);
+    waterStream.setAttribute('y1', '12');
+    waterStream.setAttribute('y2', String(streamEnd));
+    el('vol').textContent   = volume.toFixed(1);
+    el('pct').textContent   = Math.round(pct);
+    el('timer').textContent = timeOpen.toFixed(1);
+  }
+
+  function tick() {
+    if (!isOpen || overflowed) return;
+    const delta = SECRET_FLOW * (TICK_MS / 1000);
+    volume = Math.min(volume + delta, CAPACITY);
+    timeOpen += TICK_MS / 1000;
+    updateDisplay();
+    if (volume >= CAPACITY) triggerOverflow();
+  }
+
+  function toggleValve() {
+    if (overflowed) return;
+    isOpen = !isOpen;
+    handleG.style.transform   = isOpen ? 'rotate(90deg)' : 'rotate(0deg)';
+    vbLabel.textContent        = isOpen ? 'ABIERTA' : 'CERRADA';
+    valveBtn.classList.toggle('open', isOpen);
+    pipeFill.style.height      = isOpen ? '100%' : '0%';
+    waterStream.classList.toggle('flowing', isOpen);
+    statusDot.classList.toggle('on', isOpen);
+    statusTxt.textContent      = isOpen ? 'Llave abierta — fluyendo' : 'Llave cerrada';
+  }
+
+  function triggerOverflow() {
+    overflowed = true;
+    isOpen = false;
+    handleG.style.transform = 'rotate(0deg)';
+    vbLabel.textContent     = 'CERRADA';
+    valveBtn.classList.remove('open');
+    pipeFill.style.height   = '0%';
+    waterStream.classList.remove('flowing');
+    statusDot.classList.remove('on');
+    statusTxt.textContent   = 'Llave cerrada';
+    overflowMsg.textContent = '¡DESBORDE! El recipiente se llenó.';
+    spawnDrops();
+  }
+
+  function spawnDrops() {
+    for (let i = 0; i < 22; i++) {
+      setTimeout(() => {
+        const d = document.createElement('div');
+        d.className = 'drop';
+        d.style.left = (8 + Math.random() * 84) + '%';
+        d.style.top  = '2px';
+        d.style.animationDuration = (0.55 + Math.random() * 0.4) + 's';
+        drops.appendChild(d);
+        setTimeout(() => d.remove(), 1100);
+      }, i * 70);
+    }
+    setTimeout(() => { if (overflowed) spawnDrops2(); }, 1200);
+  }
+
+  function spawnDrops2() {
+    for (let i = 0; i < 12; i++) {
+      setTimeout(() => {
+        const d = document.createElement('div');
+        d.className = 'drop';
+        d.style.left = (5 + Math.random() * 90) + '%';
+        d.style.top  = '2px';
+        d.style.opacity = '0.7';
+        d.style.animationDuration = (0.5 + Math.random() * 0.35) + 's';
+        drops.appendChild(d);
+        setTimeout(() => d.remove(), 1000);
+      }, i * 90);
+    }
+  }
+
+  function checkAnswer() {
+    const raw = el('answer').value.trim().replace(',', '.');
+    if (!raw) return;
+    // Validar máximo 1 decimal
+    if (/\./.test(raw) && raw.split('.')[1].length > 1) {
+      feedback.textContent = 'Usa como máximo 1 decimal (ej. 2,5).';
+      feedback.className = 'feedback err';
+      return;
+    }
+    const guess = parseFloat(raw);
+    const fmt = n => String(n).replace('.', ',');
+    if (isNaN(guess) || guess <= 0) {
+      feedback.textContent = 'Ingresa un número válido (ej. 2,5).';
+      feedback.className = 'feedback err';
+      return;
+    }
+    const diff = Math.abs(guess - SECRET_FLOW);
+    const pct  = diff / SECRET_FLOW;
+    if (diff === 0) {
+      feedback.textContent = `✓ ¡Exacto! El caudal es ${fmt(SECRET_FLOW)} L/s.`;
+      feedback.className = 'feedback ok';
+    } else if (pct <= 0.05) {
+      feedback.textContent = `✓ ¡Muy cerca! El caudal real es ${fmt(SECRET_FLOW)} L/s. Diferencia: ${fmt(diff.toFixed(1))} L/s.`;
+      feedback.className = 'feedback ok';
+    } else if (pct <= 0.15) {
+      feedback.textContent = `Casi. El caudal real es ${fmt(SECRET_FLOW)} L/s. Calcula con más precisión.`;
+      feedback.className = 'feedback err';
+    } else {
+      feedback.textContent = `Incorrecto. Usa: Q = Volumen ÷ Tiempo (en segundos). Inténtalo de nuevo.`;
+      feedback.className = 'feedback err';
+    }
+  }
+
+  function vaciarSim() {
+    volume = 0;
+    timeOpen = 0;
+    overflowed = false;
+    isOpen = false;
+    handleG.style.transform = 'rotate(0deg)';
+    vbLabel.textContent     = 'CERRADA';
+    valveBtn.classList.remove('open');
+    pipeFill.style.height   = '0%';
+    statusDot.classList.remove('on');
+    statusTxt.textContent   = 'Llave cerrada';
+    waterStream.classList.remove('flowing');
+    overflowMsg.textContent = '';
+    feedback.textContent    = '';
+    feedback.className      = 'feedback';
+    el('answer').value      = '';
+    drops.innerHTML         = '';
+    updateDisplay();
+  }
+
+  function resetSim() {
+    SECRET_FLOW = FLOW_OPTIONS[Math.floor(Math.random() * FLOW_OPTIONS.length)];
+    vaciarSim();
+  }
+
+  el('answer').addEventListener('keydown', e => {
+    if (e.key === 'Enter') checkAnswer();
+  });
+
+  interval = setInterval(tick, TICK_MS);
+  updateDisplay();
+</script>
+</body>
+</html>
