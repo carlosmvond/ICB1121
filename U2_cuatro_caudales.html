@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
+<title>Simulador 4 Válvulas</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@400;500;600&display=swap');
+  :root{
+    --bg:#0f1117;--surface:#1a1d27;--surface2:#22263a;--border:#2e3350;
+    --q1:#4a9eff;--q2:#38d9a9;--q3:#f7a94a;--q4:#ff6b6b;
+    --ok:#38d9a9;--warn:#f7a94a;--danger:#ff6b6b;
+    --text:#e8ecf4;--muted:#7a8099;--dim:#3a3f5a;
+    --mono:'Space Mono',monospace;--body:'DM Sans',sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:var(--bg);color:var(--text);font-family:var(--body);min-height:100vh;display:flex;flex-direction:column;align-items:center;}
+  header{width:100%;padding:.9rem 1.2rem .7rem;border-bottom:1px solid var(--border);background:var(--surface);}
+  header h1{font-family:var(--mono);font-size:12px;color:var(--q1);letter-spacing:.08em;text-transform:uppercase;}
+  header p{font-size:11px;color:var(--muted);margin-top:2px;}
+  .main{width:100%;max-width:480px;padding:1rem 1rem 2.5rem;display:flex;flex-direction:column;gap:.9rem;}
+
+  .problema{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:.9rem 1rem;font-size:12px;color:var(--muted);line-height:1.7;}
+  .problema strong{color:var(--text);font-weight:500;}
+  .problema ul{margin:.4rem 0 0 1rem;}
+  .problema li{margin-bottom:2px;}
+  .tag{font-weight:700;font-size:11px;padding:1px 6px;border-radius:4px;}
+  .tq1{background:rgba(74,158,255,.15);color:var(--q1);}
+  .tq2{background:rgba(56,217,169,.15);color:var(--q2);}
+  .tq3{background:rgba(247,169,74,.15);color:var(--q3);}
+  .tq4{background:rgba(255,107,107,.15);color:var(--q4);}
+
+  .metrics{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+  .metric{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:8px 12px;}
+  .metric .ml{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px;}
+  .metric .mv{font-family:var(--mono);font-size:20px;font-weight:700;line-height:1;color:var(--text);}
+  .metric .mu{font-size:10px;color:var(--muted);margin-left:2px;}
+
+  .sim-area{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:1rem .8rem .8rem;display:flex;flex-direction:column;align-items:center;gap:.5rem;position:relative;}
+  .sim-svg{display:block;width:100%;max-width:320px;}
+
+  .status-row{display:flex;align-items:center;gap:8px;}
+  .sdot{width:7px;height:7px;border-radius:50%;background:var(--dim);flex-shrink:0;transition:background .3s;}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+  .status-txt{font-family:var(--mono);font-size:10px;color:var(--muted);letter-spacing:.04em;}
+  .ovf{font-family:var(--mono);font-size:12px;color:var(--danger);min-height:16px;text-align:center;}
+
+  .controls{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:1rem;display:flex;flex-direction:column;gap:.8rem;}
+  .ctitle{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;}
+  .pills{display:flex;flex-wrap:wrap;gap:8px;}
+  .pill{display:flex;align-items:center;gap:5px;padding:5px 12px;border-radius:20px;border:1px solid var(--border);background:var(--surface2);cursor:pointer;-webkit-tap-highlight-color:transparent;font-size:12px;font-weight:600;color:var(--muted);transition:all .2s;user-select:none;}
+  .pill .dot{width:8px;height:8px;border-radius:50%;border:1.5px solid currentColor;flex-shrink:0;transition:background .2s;}
+  .pill.on .dot{background:currentColor;}
+  .pill.pq1{border-color:var(--q1);background:rgba(74,158,255,.12);color:var(--q1);}
+  .pill.pq2{border-color:var(--q2);background:rgba(56,217,169,.12);color:var(--q2);}
+  .pill.pq3{border-color:var(--q3);background:rgba(247,169,74,.12);color:var(--q3);}
+  .pill.pq4{border-color:var(--q4);background:rgba(255,107,107,.12);color:var(--q4);}
+  .btn-apply{width:100%;padding:10px;background:rgba(74,158,255,.1);border:1px solid var(--q1);border-radius:8px;color:var(--q1);font-family:var(--body);font-size:13px;font-weight:600;cursor:pointer;-webkit-tap-highlight-color:transparent;transition:background .2s;}
+  .btn-apply:active{background:rgba(74,158,255,.22);}
+
+  .answer-zone{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:1rem;}
+  .az-h{font-size:13px;font-weight:600;color:var(--text);margin-bottom:4px;}
+  .az-s{font-size:11px;color:var(--muted);line-height:1.5;margin-bottom:10px;}
+  .irow{display:flex;gap:8px;align-items:center;}
+  .irow input{flex:1;padding:10px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:var(--mono);font-size:16px;-webkit-appearance:none;outline:none;transition:border-color .2s;}
+  .irow input:focus{border-color:var(--q1);}
+  .utag{font-family:var(--mono);font-size:12px;color:var(--muted);white-space:nowrap;flex-shrink:0;}
+  .btn-ok{padding:10px 14px;background:var(--q1);color:#fff;border:none;border-radius:8px;font-family:var(--body);font-size:13px;font-weight:600;cursor:pointer;flex-shrink:0;transition:opacity .2s,transform .1s;}
+  .btn-ok:active{transform:scale(.96);opacity:.9;}
+  .feedback{margin-top:9px;font-size:13px;font-weight:500;min-height:20px;line-height:1.5;}
+  .feedback.ok{color:var(--ok);}
+  .feedback.err{color:var(--danger);}
+  .btn-reset{width:100%;padding:11px;background:transparent;border:1px solid var(--border);border-radius:10px;color:var(--muted);font-family:var(--body);font-size:12px;cursor:pointer;-webkit-tap-highlight-color:transparent;}
+  .btn-reset:active{border-color:var(--muted);color:var(--text);}
+</style>
+</head>
+<body>
+<header>
+  <h1>Simulador — 4 Válvulas</h1>
+  <p>Dos válvulas de llenado · Dos válvulas de vaciado</p>
+</header>
+<div class="main">
+
+  <div class="problema">
+    <strong>Problema:</strong> Un estanque tiene 4 válvulas.
+    <ul>
+      <li><span class="tag tq1">Q1</span> llenado — sola llena en <strong>20 h</strong></li>
+      <li><span class="tag tq2">Q2</span> llenado — Q2 + Q3 juntas: neto llena en <strong>90 h</strong></li>
+      <li><span class="tag tq3">Q3</span> vaciado — ver dato Q2</li>
+      <li><span class="tag tq4">Q4</span> vaciado — <strong>10 L/h</strong></li>
+    </ul>
+    <br>¿En cuántas horas se llena si se abren las <strong>4 válvulas a la vez</strong>?
+  </div>
+
+  <div class="metrics">
+    <div class="metric"><div class="ml">Volumen</div><div class="mv" style="color:var(--q1)"><span id="m-vol">0</span><span class="mu">L</span></div></div>
+    <div class="metric"><div class="ml">Tiempo sim.</div><div class="mv" style="color:var(--q2)"><span id="m-time">0,0</span><span class="mu">h</span></div></div>
+    <div class="metric"><div class="ml">Caudal neto</div><div class="mv"><span id="m-net" style="color:var(--muted)">0</span><span class="mu">L/h</span></div></div>
+    <div class="metric"><div class="ml">Nivel</div><div class="mv"><span id="m-pct">0</span><span class="mu">%</span></div></div>
+  </div>
+
+  <div class="sim-area">
+    <svg class="sim-svg" viewBox="0 0 260 365" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <clipPath id="tc"><rect x="55" y="100" width="150" height="215" rx="12"/></clipPath>
+        <style>
+          @keyframes fd{to{stroke-dashoffset:-18}}
+          .jin{stroke-linecap:round;stroke-dasharray:7 8;fill:none;opacity:0;transition:opacity .25s;animation:fd .32s linear infinite;}
+          .jout{stroke-linecap:round;stroke-dasharray:7 8;fill:none;opacity:0;transition:opacity .25s;animation:fd .32s linear infinite;}
+          .jin.on,.jout.on{opacity:.9;}
+          .vh{transition:transform .4s cubic-bezier(.4,0,.2,1);}
+          .vtap{cursor:pointer;}
+        </style>
+      </defs>
+
+      <!-- ── Q1 entrada izq (x=95) ── -->
+      <rect x="85" y="3" width="20" height="14" rx="3" fill="#081828"/>
+      <text x="95" y="13" text-anchor="middle" font-family="'Space Mono',monospace" font-size="8" font-weight="700" fill="#4a9eff">Q1</text>
+      <g class="vtap" onclick="toggleValve('q1')">
+        <rect x="70" y="15" width="50" height="20" rx="3" fill="transparent"/>
+        <rect x="83" y="20" width="24" height="10" rx="3" fill="#081828" stroke="#4a9eff" stroke-width="1.2"/>
+        <rect x="93" y="13" width="4" height="8" rx="2" fill="#1a3a5c"/>
+        <g id="vh-q1" class="vh" style="transform-origin:95px 25px;">
+          <rect x="77" y="22" width="36" height="6" rx="3" fill="#4a9eff"/>
+          <circle cx="95" cy="25" r="3.5" fill="#081828"/>
+        </g>
+      </g>
+      <rect x="93" y="30" width="4" height="70" rx="2" fill="#162030"/>
+      <line id="j-q1" class="jin" x1="95" y1="30" x2="95" y2="100" stroke="#4a9eff" stroke-width="6"/>
+
+      <!-- ── Q2 entrada der (x=165) ── -->
+      <rect x="155" y="3" width="20" height="14" rx="3" fill="#081f14"/>
+      <text x="165" y="13" text-anchor="middle" font-family="'Space Mono',monospace" font-size="8" font-weight="700" fill="#38d9a9">Q2</text>
+      <g class="vtap" onclick="toggleValve('q2')">
+        <rect x="140" y="15" width="50" height="20" rx="3" fill="transparent"/>
+        <rect x="153" y="20" width="24" height="10" rx="3" fill="#081f14" stroke="#38d9a9" stroke-width="1.2"/>
+        <rect x="163" y="13" width="4" height="8" rx="2" fill="#1a4030"/>
+        <g id="vh-q2" class="vh" style="transform-origin:165px 25px;">
+          <rect x="147" y="22" width="36" height="6" rx="3" fill="#38d9a9"/>
+          <circle cx="165" cy="25" r="3.5" fill="#081f14"/>
+        </g>
+      </g>
+      <rect x="163" y="30" width="4" height="70" rx="2" fill="#162030"/>
+      <line id="j-q2" class="jin" x1="165" y1="30" x2="165" y2="100" stroke="#4a9eff" stroke-width="6"/>
+
+      <!-- ── ESTANQUE ── -->
+      <rect id="wf" x="55" y="315" width="150" height="0" fill="#4a9eff" opacity=".82" clip-path="url(#tc)"/>
+      <rect id="ww" x="55" y="315" width="150" height="6"  fill="#7bb8ff" opacity=".45" clip-path="url(#tc)"/>
+      <rect x="55" y="100" width="150" height="215" rx="12" fill="none" stroke="#2e3350" stroke-width="2"/>
+      <line x1="55" y1="154" x2="70" y2="154" stroke="#2e3350" stroke-width="1.2"/>
+      <line x1="55" y1="207" x2="70" y2="207" stroke="#2e3350" stroke-width="1.2"/>
+      <line x1="55" y1="261" x2="70" y2="261" stroke="#2e3350" stroke-width="1.2"/>
+      <text x="74" y="158" fill="#3a3f5a" font-family="'Space Mono',monospace" font-size="9">75%</text>
+      <text x="74" y="211" fill="#3a3f5a" font-family="'Space Mono',monospace" font-size="9">50%</text>
+      <text x="74" y="265" fill="#3a3f5a" font-family="'Space Mono',monospace" font-size="9">25%</text>
+      <text id="tlbl" x="130" y="222" text-anchor="middle" font-family="'Space Mono',monospace" font-size="12" fill="#e8ecf4" opacity=".6">0 L</text>
+
+      <!-- ── Q3 salida izq (x=95) ── -->
+      <rect x="93" y="315" width="4" height="14" rx="2" fill="#162030"/>
+      <g class="vtap" onclick="toggleValve('q3')">
+        <rect x="70" y="322" width="50" height="20" rx="3" fill="transparent"/>
+        <rect x="83" y="324" width="24" height="10" rx="3" fill="#251000" stroke="#f7a94a" stroke-width="1.2"/>
+        <rect x="93" y="334" width="4" height="8" rx="2" fill="#5a3a10"/>
+        <g id="vh-q3" class="vh" style="transform-origin:95px 329px;">
+          <rect x="77" y="326" width="36" height="6" rx="3" fill="#f7a94a"/>
+          <circle cx="95" cy="329" r="3.5" fill="#251000"/>
+        </g>
+      </g>
+      <rect x="85" y="342" width="20" height="15" rx="3" fill="#251000"/>
+      <text x="95" y="353" text-anchor="middle" font-family="'Space Mono',monospace" font-size="8" font-weight="700" fill="#f7a94a">Q3</text>
+      <line id="j-q3" class="jout" x1="95" y1="315" x2="95" y2="357" stroke="#4a9eff" stroke-width="6"/>
+
+      <!-- ── Q4 salida der (x=165) ── -->
+      <rect x="163" y="315" width="4" height="14" rx="2" fill="#162030"/>
+      <g class="vtap" onclick="toggleValve('q4')">
+        <rect x="140" y="322" width="50" height="20" rx="3" fill="transparent"/>
+        <rect x="153" y="324" width="24" height="10" rx="3" fill="#300a0a" stroke="#ff6b6b" stroke-width="1.2"/>
+        <rect x="163" y="334" width="4" height="8" rx="2" fill="#7a2020"/>
+        <g id="vh-q4" class="vh" style="transform-origin:165px 329px;">
+          <rect x="147" y="326" width="36" height="6" rx="3" fill="#ff6b6b"/>
+          <circle cx="165" cy="329" r="3.5" fill="#300a0a"/>
+        </g>
+      </g>
+      <rect x="155" y="342" width="20" height="15" rx="3" fill="#300a0a"/>
+      <text x="165" y="353" text-anchor="middle" font-family="'Space Mono',monospace" font-size="8" font-weight="700" fill="#ff6b6b">Q4</text>
+      <line id="j-q4" class="jout" x1="165" y1="315" x2="165" y2="357" stroke="#4a9eff" stroke-width="6"/>
+
+    </svg>
+
+    <div class="ovf" id="ovf-msg"></div>
+    <div class="status-row">
+      <div class="sdot" id="dot-q1"></div>
+      <div class="sdot" id="dot-q2"></div>
+      <div class="sdot" id="dot-q3"></div>
+      <div class="sdot" id="dot-q4"></div>
+      <span class="status-txt" id="stxt">Todas las válvulas cerradas</span>
+    </div>
+  </div>
+
+  <div class="controls">
+    <div class="ctitle">Abrir varias válvulas a la vez</div>
+    <div class="pills">
+      <div class="pill" id="pill-q1" onclick="togglePill('q1')"><div class="dot"></div>Q1</div>
+      <div class="pill" id="pill-q2" onclick="togglePill('q2')"><div class="dot"></div>Q2</div>
+      <div class="pill" id="pill-q3" onclick="togglePill('q3')"><div class="dot"></div>Q3</div>
+      <div class="pill" id="pill-q4" onclick="togglePill('q4')"><div class="dot"></div>Q4</div>
+    </div>
+    <button class="btn-apply" onclick="applyMulti()">⚡ Abrir seleccionadas</button>
+  </div>
+
+  <div class="answer-zone">
+    <div class="az-h">¿Cuántas horas tarda en llenarse con las 4 válvulas?</div>
+    <div class="az-s">Abre las 4 válvulas, observa el caudal neto y calcula. Usa coma para decimales.</div>
+    <div class="irow">
+      <input type="text" id="ans" inputmode="decimal" placeholder="ej. 24"/>
+      <span class="utag">horas</span>
+      <button class="btn-ok" onclick="checkAnswer()">OK</button>
+    </div>
+    <div class="feedback" id="fb"></div>
+  </div>
+
+  <button class="btn-reset" onclick="resetSim()">⬇ Vaciar y cerrar todo</button>
+</div>
+
+<script>
+  // Datos: CAP=1800L, Q1=90, Q2=30, Q3=10, Q4=10 L/h
+  // Neto 4 válvulas: 90+30-10-10=100 L/h → 1800/100=18h
+  const CAP=1800, QV={q1:90,q2:30,q3:10,q4:10};
+  const SIGN={q1:1,q2:1,q3:-1,q4:-1};
+  // SIM_SPEED: h simuladas por segundo real. 3 → 18h dura 6s reales
+  const SIM_SPEED=3600, TICK=100;
+  const TANK_BOT=315, TANK_H=215;
+
+  const state={q1:false,q2:false,q3:false,q4:false};
+  const pillSel={q1:false,q2:false,q3:false,q4:false};
+  let vol=0, timeH=0, ticker=null;
+
+  const g=id=>document.getElementById(id);
+  const wf=g('wf'), ww=g('ww'), tlbl=g('tlbl');
+
+  const VCFG={
+    q1:{h:g('vh-q1'),j:g('j-q1'),dot:g('dot-q1'),col:'#4a9eff'},
+    q2:{h:g('vh-q2'),j:g('j-q2'),dot:g('dot-q2'),col:'#38d9a9'},
+    q3:{h:g('vh-q3'),j:g('j-q3'),dot:g('dot-q3'),col:'#f7a94a'},
+    q4:{h:g('vh-q4'),j:g('j-q4'),dot:g('dot-q4'),col:'#ff6b6b'},
+  };
+  const PILL_CLS={q1:'pq1',q2:'pq2',q3:'pq3',q4:'pq4'};
+
+  function netFlow(){
+    return Object.keys(QV).reduce((s,k)=>s+(state[k]?SIGN[k]*QV[k]:0),0);
+  }
+
+  function fmt(n,d=1){return n.toFixed(d).replace('.',',');}
+
+  function updateDisplay(){
+    const pct=Math.min(Math.max(vol/CAP*100,0),100);
+    const h=(pct/100)*TANK_H;
+    const y=TANK_BOT-h; // water surface y in SVG
+    wf.setAttribute('y',y); wf.setAttribute('height',h);
+    ww.setAttribute('y',y-3);
+    tlbl.setAttribute('y',Math.max(y+16,222));
+    tlbl.textContent=Math.round(vol)+' L';
+    // inlet streams reach water surface (or tank top if empty)
+    const streamEnd=Math.max(y,100);
+    g('j-q1').setAttribute('y2',streamEnd);
+    g('j-q2').setAttribute('y2',streamEnd);
+    g('m-vol').textContent=Math.round(vol);
+    g('m-pct').textContent=Math.round(pct);
+    g('m-time').textContent=fmt(timeH);
+    const net=netFlow();
+    const mn=g('m-net');
+    mn.textContent=(net>0?'+':'')+net;
+    mn.style.color=net>0?'var(--q1)':net<0?'var(--danger)':'var(--muted)';
+  }
+
+  function setValveVisual(k,open){
+    const c=VCFG[k];
+    c.h.style.transform=open?'rotate(90deg)':'rotate(0deg)';
+    c.j.classList.toggle('on',open);
+    c.dot.style.background=open?c.col:'var(--dim)';
+    c.dot.style.animation=open?'pulse 1.4s ease-in-out infinite':'none';
+  }
+
+  function updateStatus(){
+    const open=Object.keys(state).filter(k=>state[k]).map(k=>k.toUpperCase());
+    g('stxt').textContent=open.length?'Abiertas: '+open.join(', '):'Todas las válvulas cerradas';
+  }
+
+  function setValve(k,open){
+    state[k]=open;
+    setValveVisual(k,open);
+    updateStatus();
+    updateDisplay();
+    manageTicker();
+  }
+
+  function toggleValve(k){
+    // When full: only drain valves (q3,q4) can be toggled
+    if(vol>=CAP && SIGN[k]>0) return;
+    // When empty: only inlet valves (q1,q2) can be toggled
+    if(vol<=0 && SIGN[k]<0) return;
+    setValve(k,!state[k]);
+  }
+
+  function manageTicker(){
+    const any=Object.values(state).some(Boolean);
+    if(any&&!ticker){
+      ticker=setInterval(tick,TICK);
+    } else if(!any&&ticker){
+      clearInterval(ticker);ticker=null;
+    }
+  }
+
+  function tick(){
+    const net=netFlow();
+    const dt=SIM_SPEED*TICK/1000/3600;
+    vol=Math.max(0,Math.min(vol+net*dt,CAP));
+    timeH+=dt;
+    updateDisplay();
+    if(vol>=CAP) triggerFull();
+    else if(vol<=0 && net<0) triggerEmpty();
+    else g('ovf-msg').textContent=''; // clear message as soon as level moves away
+  }
+
+  function closeAll(){
+    clearInterval(ticker);ticker=null;
+    Object.keys(state).forEach(k=>{state[k]=false;setValveVisual(k,false);});
+    updateStatus();
+  }
+
+  function triggerFull(){
+    // Close all, show message, only drain valves can open now
+    closeAll();
+    g('ovf-msg').textContent='✓ Estanque lleno. Solo se pueden abrir Q3 y Q4.';
+  }
+
+  function triggerEmpty(){
+    // Close drain valves, inlet valves remain usable
+    ['q3','q4'].forEach(k=>setValve(k,false));
+    g('ovf-msg').textContent='Estanque vacío. Abre Q1 o Q2 para llenarlo.';
+  }
+
+  function togglePill(k){
+    pillSel[k]=!pillSel[k];
+    const p=g('pill-'+k);
+    p.classList.toggle('on',pillSel[k]);
+    p.classList.toggle(PILL_CLS[k],pillSel[k]);
+  }
+
+  function applyMulti(){
+    Object.keys(pillSel).forEach(k=>{
+      if(!pillSel[k])return;
+      if(vol>=CAP && SIGN[k]>0) return;
+      if(vol<=0   && SIGN[k]<0) return;
+      setValve(k,true);
+    });
+  }
+
+  function checkAnswer(){
+    const raw=g('ans').value.trim().replace(',','.');
+    if(!raw)return;
+    if(/\./.test(raw)&&raw.split('.')[1].length>1){
+      g('fb').textContent='Máximo 1 decimal.';g('fb').className='feedback err';return;
+    }
+    const guess=parseFloat(raw);
+    if(isNaN(guess)||guess<=0){g('fb').textContent='Ingresa un número válido.';g('fb').className='feedback err';return;}
+    if(guess===18){
+      g('fb').textContent='✓ ¡Exacto! Con las 4 válvulas el estanque se llena en 18 h.';
+      g('fb').className='feedback ok';
+    } else if(Math.abs(guess-18)<=0.5){
+      g('fb').textContent='✓ Muy cerca. La respuesta exacta es 18 h.';
+      g('fb').className='feedback ok';
+    } else {
+      g('fb').textContent='Incorrecto. Pista: caudal neto = Q1 + Q2 − Q3 − Q4.';
+      g('fb').className='feedback err';
+    }
+  }
+
+  function resetSim(){
+    vol=0;timeH=0;
+    closeAll();
+    Object.keys(pillSel).forEach(k=>{
+      pillSel[k]=false;
+      g('pill-'+k).classList.remove('on',PILL_CLS[k]);
+    });
+    g('ovf-msg').textContent='';
+    g('fb').textContent='';g('fb').className='feedback';
+    g('ans').value='';
+    updateDisplay();
+  }
+
+
+  g('ans').addEventListener('keydown',e=>{if(e.key==='Enter')checkAnswer();});
+  updateDisplay();
+</script>
+</body>
+</html>
