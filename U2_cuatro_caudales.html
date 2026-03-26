@@ -72,6 +72,22 @@
   .feedback.err{color:var(--danger);}
   .btn-reset{width:100%;padding:11px;background:transparent;border:1px solid var(--border);border-radius:10px;color:var(--muted);font-family:var(--body);font-size:12px;cursor:pointer;-webkit-tap-highlight-color:transparent;}
   .btn-reset:active{border-color:var(--muted);color:var(--text);}
+
+  /* fish */
+  @keyframes flop  { 0%{transform:rotate(0deg) translateX(0)}  15%{transform:rotate(25deg) translateX(4px)}  30%{transform:rotate(-20deg) translateX(-3px)}  45%{transform:rotate(18deg) translateX(3px)}  60%{transform:rotate(-15deg) translateX(-2px)}  75%{transform:rotate(10deg) translateX(2px)}  90%{transform:rotate(-5deg) translateX(-1px)} 100%{transform:rotate(0deg) translateX(0)} }
+  @keyframes flop-bounce { 0%,100%{transform:translateY(0)} 20%{transform:translateY(-6px)} 40%{transform:translateY(-2px)} 60%{transform:translateY(-4px)} 80%{transform:translateY(-1px)} }
+  @keyframes swim  { 0%{transform:translate(0px,0px) scaleX(1)} 25%{transform:translate(40px,-12px) scaleX(1)} 50%{transform:translate(35px,8px) scaleX(-1)} 75%{transform:translate(-5px,-6px) scaleX(-1)} 100%{transform:translate(0px,0px) scaleX(1)} }
+  @keyframes wag-slow { 0%,100%{transform:rotate(0deg)} 50%{transform:rotate(10deg)} }
+  @keyframes wag-fast { 0%,100%{transform:rotate(0deg)} 50%{transform:rotate(22deg)} }
+  @keyframes fin-flap { 0%,100%{transform:rotate(0deg)} 50%{transform:rotate(-30deg)} }
+  #fish           { transform-origin:130px 295px; animation: flop-bounce 0.6s ease-in-out infinite; }
+  #fish .fish-body{ transform-origin:130px 295px; animation: flop 0.7s ease-in-out infinite; }
+  #fish.swimming  { animation: swim 5s ease-in-out infinite; }
+  #fish.swimming .fish-body { animation: none; }
+  #fish polygon   { transform-origin:144px 295px; animation: wag-slow 0.35s ease-in-out infinite; }
+  #fish.swimming polygon { animation: wag-fast 0.2s ease-in-out infinite; }
+  #fish-fin-path  { transform-origin:124px 298px; animation: fin-flap 0.35s ease-in-out infinite; }
+  #fish.swimming #fish-fin-path { animation: none; }
 </style>
 </head>
 <body>
@@ -154,6 +170,21 @@
       <text x="74" y="211" fill="#3a3f5a" font-family="'Space Mono',monospace" font-size="9">50%</text>
       <text x="74" y="265" fill="#3a3f5a" font-family="'Space Mono',monospace" font-size="9">25%</text>
       <text id="tlbl" x="130" y="222" text-anchor="middle" font-family="'Space Mono',monospace" font-size="12" fill="#e8ecf4" opacity=".6">0 L</text>
+
+      <!-- ── PEZ ── cx=130 cy=295 en el fondo del tanque -->
+      <g id="fish">
+        <!-- todo el cuerpo rota para el aleteo -->
+        <g class="fish-body">
+          <ellipse cx="130" cy="295" rx="14" ry="7" fill="#f7a94a"/>
+          <polygon points="144,295 153,288 153,302" fill="#e8903a"/>
+          <circle cx="120" cy="293" r="2" fill="#0f1117"/>
+          <circle cx="119.5" cy="292.5" r="0.7" fill="#fff"/>
+          <path d="M126,288 Q130,282 134,288" fill="none" stroke="#e8903a" stroke-width="1.5" stroke-linecap="round"/>
+          <path d="M116,296 Q114,298 116,299" fill="none" stroke="#c0702a" stroke-width="1" stroke-linecap="round"/>
+          <!-- aleta pectoral — aletea siempre, visible en tierra y en agua -->
+          <path id="fish-fin-path" d="M124,295 Q118,302 126,303" fill="#e8903a" stroke="none"/>
+        </g>
+      </g>
 
       <!-- ── Q3 salida izq (x=95) ── -->
       <rect x="93" y="315" width="4" height="14" rx="2" fill="#162030"/>
@@ -271,6 +302,10 @@
     const mn=g('m-net');
     mn.textContent=(net>0?'+':'')+net;
     mn.style.color=net>0?'var(--q1)':net<0?'var(--danger)':'var(--muted)';
+    // fish: swims when water covers it (fish center y=295, top ~y=288)
+    const fish = g('fish');
+    if(y < 288){ fish.classList.add('swimming'); }
+    else        { fish.classList.remove('swimming'); }
   }
 
   function setValveVisual(k,open){
