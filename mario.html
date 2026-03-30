@@ -40,16 +40,6 @@ canvas { display: block; width: 100%; image-rendering: pixelated; }
     <canvas id="c"></canvas>
     <div id="overlay">
       <h2>Nivel 1 — El Oso y el Pez</h2>
-      <p>
-        Eres el personaje <b style="color:#5ef">verde</b>.<br>
-        El <b style="color:#c84">OSO</b> está atrapado en la plataforma izquierda.<br>
-        El <b style="color:#f44">PEZ</b> nada en el fondo y te puede comer.<br><br>
-        Abre la válvula el tiempo justo para que<br>
-        el agua suba hasta el oso — él atrapa al pez.<br>
-        Luego llega a la bandera verde.<br><br>
-        <span style="color:#fc0">Poca agua</span> → caes al agua → el pez te come.<br>
-        <span style="color:#f84">Mucha agua</span> → el oso se ahoga → el pez te come.
-      </p>
       <button id="startBtn">JUGAR</button>
     </div>
   </div>
@@ -126,7 +116,7 @@ function updateUI()   { document.getElementById('livesEl').textContent = lives; 
 
 const LADDER_X   = PIT_R - 18;
 const LADDER_TOP = PLAT_R_Y;
-const LADDER_BOT = PLAT_L_Y;
+const LADDER_BOT = PLAT_L_Y + 22;
 const LADDER_W   = 14;
 
 function onLadder(p) {
@@ -193,32 +183,60 @@ function update(dt) {
   const playerMidSubmerged = waterDepthOnPlat >= p.h / 2;
   const canUseSpear = waterDepthOnPlat > 0 && waterDepthOnPlat < p.h / 2;
 
+  // Spear thrust: animate extension and retraction
   if (s.spear) {
     s.spear.timer -= dt;
-    if (s.spear.timer <= 0) s.spear = null;
+    const progress = 1 - s.spear.timer / s.spear.duration;
+    // Extend for first half, retract for second half
+    s.spear.reach = Math.sin(progress * Math.PI) * s.spear.maxReach;
+
+    // Hit detection: tip position
+    const tipX = p.x + p.w/2 + Math.cos(s.spear.angle) * s.spear.reach;
+    const tipY = p.y + p.h/2 + Math.sin(s.spear.angle) * s.spear.reach;
+    if (s.fishAlive) {
+      const fd = {x:s.fishX-14, y:s.fishY-10, w:28, h:20};
+      const tip = {x:tipX-4, y:tipY-4, w:8, h:8};
+      if (overlap(tip, fd)) {
+        s.fishAlive = false; s.fishCaught = true;
+        setStatus('¡Pescado! Sube por la escalera y llega a la puerta.');
+        for (let i=0;i<14;i++) s.particles.push({
+          x:s.fishX, y:s.fishY,
+          vx:(Math.random()-0.5)*5, vy:-Math.random()*4-1, life:0.9
+        });
+        s.spear = null;
+      }
+    }
+    if (s.spear && s.spear.timer <= 0) s.spear = null;
   }
 
-  if (keys.attack && !attackPressed && canUseSpear && s.fishAlive && !s.spear) {
+  // Start spear thrust: only when walking (not swimming, not climbing)
+  if (keys.attack && !attackPressed && !p.swimming && !p.climbing && s.fishAlive && !s.spear) {
     attackPressed = true;
-    const fishY = PLAT_L_Y - waterDepthOnPlat * 0.4;
-    const nearEdgeAttack = p.x+p.w >= PIT_L - 6;
-    if (nearEdgeAttack && Math.abs(s.fishX - PIT_L) < 44 && Math.abs(s.fishY - (p.y + p.h)) < 28) {
-      s.fishAlive = false; s.fishCaught = true;
-      setStatus('¡Pescado! Sube por la escalera y llega a la puerta.');
-      for (let i=0;i<14;i++) s.particles.push({
-        x:s.fishX, y:fishY,
-        vx:(Math.random()-0.5)*5, vy:-Math.random()*4-1, life:0.9
-      });
-    } else {
-      s.spear = { timer: 0.3 };
-    }
+    // Angle: diagonal downward in facing direction
+    const angle = p.facing === 1 ? Math.PI * 0.2 : Math.PI * 0.8;
+    const duration = 0.35;
+    s.spear = {
+      angle,
+      reach: 0,
+      maxReach: 38,
+      timer: duration,
+      duration
+    };
   }
   if (!keys.attack) attackPressed = false;
 
   if (s.fishAlive) {
     const waterOver = wY < PLAT_L_Y;
     const waterBot  = PIT_BOT;
-    const waterMid  = wY + (waterBot - wY) * 0.55;
+    // Fish target Y: near surface when water is contained in pit, mid-depth when flooded
+    const waterMid  = waterOver ? wY + (waterBot - wY) * 0.55 : wY + 10;
+
+    // Fish X limits: the left platform (café wall) is solid up to PLAT_L_Y.
+    // The fish can only cross left of PIT_L if it is swimming ABOVE the platform surface,
+    // i.e. its Y position is above PLAT_L_Y (water has flooded over the top of the wall).
+    const fishCanCrossLeft = s.fishY < PLAT_L_Y;
+    const fishMinX = fishCanCrossLeft ? WALL_W+4 : PIT_L+12;
+    const fishMaxX = PIT_R-18;
 
     if (p.swimming) {
       const dxFish = (p.x + p.w/2) - s.fishX;
@@ -228,13 +246,13 @@ function update(dt) {
       s.fishDir = dxFish > 0 ? 1 : -1;
       s.fishX += (dxFish/dist) * speed * dt;
       s.fishY += (dyFish/dist) * speed * dt;
-      s.fishX = Math.max(WALL_W+4, Math.min(PIT_R-18, s.fishX));
+      s.fishX = Math.max(fishMinX, Math.min(fishMaxX, s.fishX));
       s.fishY = Math.max(wY+4, Math.min(waterBot-8, s.fishY));
     } else if (waterOver) {
       const dxFish = p.x - s.fishX;
       if (Math.abs(dxFish) < 60) s.fishDir = dxFish < 0 ? 1 : -1;
       s.fishX += s.fishDir * 50 * dt;
-      s.fishX = Math.max(WALL_W+4, Math.min(PIT_R-18, s.fishX));
+      s.fishX = Math.max(fishMinX, Math.min(fishMaxX, s.fishX));
       s.fishY += (waterMid - s.fishY) * 3 * dt;
     } else {
       s.fishX += s.fishDir * 50 * dt;
@@ -254,10 +272,8 @@ function update(dt) {
   }
 
   if (!s.valveActive && s.valveUsed && !s.fishCaught) {
-    if (playerMidSubmerged)  setStatus('Nadando — ¡cuidado con el pez!');
-    else if (canUseSpear && p.x+p.w >= PIT_L-8) setStatus('¡Usa el botón de ataque!');
-    else if (canUseSpear)    setStatus('Acércate al borde y usa ATAQUE (⚔)');
-    else                     setStatus('Nivel: ' + Math.round((PIT_BOT - wY) / PIT_VOLUME * 100) + '%');
+    if (playerMidSubmerged) setStatus('Nadando — ¡cuidado con el pez!');
+    else setStatus('Volumen: ' + Math.round((PIT_BOT - wY) / PIT_VOLUME * 100) + '%  |  Usa ⚔ para lanzar');
   }
 
   s.particles = s.particles.filter(sp => {
@@ -281,15 +297,17 @@ function update(dt) {
   const inPitX = p.x+p.w>PIT_L && p.x<PIT_R;
   const inWaterPit = inPitX && p.y+p.h > wY;
   const onLeftPlat = !inPitX && p.x < PIT_L;
-  const floodOnLeft = wY < PLAT_L_Y;
-  const inFloodLeft = onLeftPlat && floodOnLeft && p.y+p.h > wY;
+  // Only flood-swim when water is at least 6px above the platform surface (avoid flickering at threshold)
+  const floodOnLeft = wY < PLAT_L_Y - 6;
+  const inFloodLeft = onLeftPlat && floodOnLeft;
   const swimming = inWaterPit || inFloodLeft;
   const climbing = onLadder(p) && !swimming;
   p.swimming = swimming;
   p.climbing = climbing;
 
   if (swimming) {
-    p.vy += 0.12; if (p.vy>1.5) p.vy=1.5;
+    // Same physics everywhere in water: sink slowly, jump to swim up
+    p.vy += 0.12; if (p.vy > 1.5) p.vy = 1.5;
     if (keys.jump) p.vy = -1.5;
   } else if (climbing) {
     p.vy = 0; p.vx = 0;
@@ -307,6 +325,8 @@ function update(dt) {
 
   p.x += p.vx; p.onGround=false;
   for (const pl of platforms()) {
+    const isLeftPlatFloor = pl.x === 0 && pl.y === PLAT_L_Y;
+    if (isLeftPlatFloor && wY < PLAT_L_Y - 6) continue;
     if (overlap({x:p.x,y:p.y,w:p.w,h:p.h},pl)) {
       if (p.vx>0) p.x=pl.x-p.w; else if (p.vx<0) p.x=pl.x+pl.w;
       p.vx=0;
@@ -314,12 +334,19 @@ function update(dt) {
   }
   p.y += p.vy;
   for (const pl of platforms()) {
+    // Skip vertical collision with left platform floor when flooded — player swims over it
+    const isLeftPlatFloor = pl.x === 0 && pl.y === PLAT_L_Y;
+    if (isLeftPlatFloor && wY < PLAT_L_Y - 6) continue;
     if (overlap({x:p.x,y:p.y,w:p.w,h:p.h},pl)) {
       if (p.vy>0) { p.y=pl.y-p.h; p.onGround=true; }
       else p.y=pl.y+pl.h;
       p.vy=0;
     }
   }
+  // Enforce left wall always
+  if (p.x < WALL_W) { p.x = WALL_W; p.vx = 0; }
+  // Cannot surface above water level while swimming
+  if (swimming && p.y < wY) { p.y = wY; p.vy = 0; }
   if (p.x<0) p.x=0;
   if (p.y>H+30) { p.dead=true; p.deathTimer=0.8; }
 }
@@ -442,28 +469,40 @@ function draw() {
   }
 
   if (s.spear) {
-    const sx = p.x + p.w + 2;
-    const sy = p.y + p.h - 4;
-    ctx.strokeStyle='#8B4513'; ctx.lineWidth=3; ctx.lineCap='round';
+    const ox = p.x + p.w/2;
+    const oy = p.y + p.h/2;
+    const reach = s.spear.reach;
+    const angle = s.spear.angle;
+    const shaftLen = 14; // handle behind hand
+    const tipX = ox + Math.cos(angle) * reach;
+    const tipY = oy + Math.sin(angle) * reach;
+    const baseX = ox - Math.cos(angle) * shaftLen;
+    const baseY = oy - Math.sin(angle) * shaftLen;
+
+    ctx.save();
+    // Shaft
+    ctx.strokeStyle = '#8B4513'; ctx.lineWidth = 3; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(baseX, baseY); ctx.lineTo(tipX, tipY); ctx.stroke();
+    // Tip / blade
+    ctx.translate(tipX, tipY);
+    ctx.rotate(angle);
+    ctx.fillStyle = '#ddd';
     ctx.beginPath();
-    ctx.moveTo(sx, sy - 16);
-    ctx.lineTo(sx, sy + 16);
-    ctx.stroke();
-    ctx.fillStyle='#bbb';
-    ctx.beginPath();
-    ctx.moveTo(sx - 5, sy + 12);
-    ctx.lineTo(sx + 5, sy + 12);
-    ctx.lineTo(sx,     sy + 24);
+    ctx.moveTo(0, 0);
+    ctx.lineTo(-7, -4);
+    ctx.lineTo(10, 0);
+    ctx.lineTo(-7, 4);
     ctx.closePath(); ctx.fill();
+    ctx.strokeStyle = '#999'; ctx.lineWidth = 1; ctx.stroke();
+    ctx.restore();
   }
 
-  const wDepth = wY < PLAT_L_Y ? (PLAT_L_Y - wY) : 0;
-  const canAttackDraw = wDepth > 2 && wDepth < player.h / 2 && player.x+player.w >= PIT_L-12;
-  if (canAttackDraw && s.fishAlive && !s.spear) {
+  // Hint: show attack prompt when player is near the pit edge and fish is alive
+  if (s.fishAlive && !s.spear && !player.swimming && !player.climbing) {
     const pulse = 0.6+0.4*Math.sin(Date.now()*0.007);
     ctx.globalAlpha = pulse;
     ctx.fillStyle='#fc0'; ctx.font='bold 9px monospace'; ctx.textAlign='center';
-    ctx.fillText('¡ATAQUE! (⚔)', player.x + player.w/2, PLAT_L_Y - wDepth - 8);
+    ctx.fillText('⚔ LANZA', player.x + player.w/2, player.y - 6);
     ctx.globalAlpha=1;
   }
 
