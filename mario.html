@@ -7,36 +7,57 @@
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; -webkit-user-select: none; }
 body { background: #111; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; font-family: monospace; }
-#wrapper { width: 100%; max-width: 480px; }
-#gameWrap { background: #5c94fc; width: 100%; position: relative; overflow: hidden; }
+#wrapper { width: 100%; max-width: 520px; }
+#ui { display: flex; justify-content: space-between; align-items: center; padding: 6px 12px; background: #000; color: #fff; font-size: 12px; gap: 4px; }
+#ui span { flex: 1; text-align: center; }
+#gameWrap { position: relative; width: 100%; overflow: hidden; background: #c8e8c8; }
 canvas { display: block; width: 100%; image-rendering: pixelated; }
-#ui { display: flex; justify-content: space-between; align-items: center; padding: 6px 12px; background: #000; color: #fff; font-family: monospace; font-size: 14px; }
-#controls { display: flex; justify-content: space-between; align-items: center; padding: 10px 16px; background: #111; gap: 8px; }
+#valve-panel { background: #1a1a1a; padding: 8px 14px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+#valve-panel label { color: #aaa; font-size: 11px; white-space: nowrap; }
+#valve-panel input[type=range] { flex: 1; min-width: 80px; }
+#valve-panel span { color: #fff; font-size: 12px; min-width: 32px; text-align: right; }
+#valveBtn { background: #c44; border: none; color: #fff; font-family: monospace; font-size: 12px; padding: 7px 12px; border-radius: 5px; cursor: pointer; white-space: nowrap; }
+#valveBtn:disabled { background: #555; cursor: not-allowed; }
+#controls { display: flex; justify-content: space-between; align-items: center; padding: 10px 16px; background: #111; }
 .btn { background: rgba(255,255,255,0.15); border: 2px solid rgba(255,255,255,0.3); border-radius: 50%; color: #fff; font-size: 20px; width: 56px; height: 56px; display: flex; align-items: center; justify-content: center; cursor: pointer; -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
 .btn:active { background: rgba(255,255,255,0.35); }
 #dpad { display: flex; gap: 4px; }
-#jumpBtn { background: rgba(255,80,80,0.4); border-color: rgba(255,80,80,0.6); font-size: 24px; width: 64px; height: 64px; }
-#overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.65); display: flex; flex-direction: column; align-items: center; justify-content: center; color: #fff; font-family: monospace; text-align: center; padding: 20px; }
-#overlay h2 { font-size: 22px; margin-bottom: 8px; }
-#overlay p { font-size: 13px; color: #ccc; margin-bottom: 16px; line-height: 1.6; }
-#startBtn { background: #e52; border: none; color: #fff; font-family: monospace; font-size: 16px; padding: 10px 28px; border-radius: 6px; cursor: pointer; }
-#startBtn:active { opacity: 0.8; }
+#jumpBtn { background: rgba(255,80,80,0.35); border-color: rgba(255,80,80,0.6); font-size: 24px; width: 64px; height: 64px; }
+#overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.72); display: flex; flex-direction: column; align-items: center; justify-content: center; color: #fff; font-family: monospace; text-align: center; padding: 20px; }
+#overlay h2 { font-size: 18px; margin-bottom: 8px; }
+#overlay p { font-size: 12px; color: #ccc; margin-bottom: 14px; line-height: 1.8; }
+#overlay button { background: #2a8; border: none; color: #fff; font-family: monospace; font-size: 14px; padding: 9px 24px; border-radius: 6px; cursor: pointer; }
 </style>
 </head>
 <body>
 <div id="wrapper">
   <div id="ui">
-    <span>VIDAS: <span id="lives">3</span></span>
-    <span>PUNTOS: <span id="score">0</span></span>
-    <span>NIVEL: <span id="level">1</span></span>
+    <span>VIDAS: <span id="livesEl">3</span></span>
+    <span id="statusEl">Abre la válvula</span>
+    <span>NIVEL 1</span>
   </div>
   <div id="gameWrap">
     <canvas id="c"></canvas>
     <div id="overlay">
-      <h2>Super Claude Bros</h2>
-      <p>Evita los enemigos, recoge monedas<br>y llega a la bandera verde.<br><br>&#8592; &#8594; mover &nbsp;|&nbsp; &#8679; saltar</p>
+      <h2>Nivel 1 — El Oso y el Pez</h2>
+      <p>
+        Eres el personaje <b style="color:#5ef">verde</b>.<br>
+        El <b style="color:#c84">OSO</b> está atrapado en la plataforma izquierda.<br>
+        El <b style="color:#f44">PEZ</b> nada en el fondo y te puede comer.<br><br>
+        Abre la válvula el tiempo justo para que<br>
+        el agua suba hasta el oso — él atrapa al pez.<br>
+        Luego llega a la bandera verde.<br><br>
+        <span style="color:#fc0">Poca agua</span> → caes al agua → el pez te come.<br>
+        <span style="color:#f84">Mucha agua</span> → el oso se ahoga → el pez te come.
+      </p>
       <button id="startBtn">JUGAR</button>
     </div>
+  </div>
+  <div id="valve-panel">
+    <label>Válvula — tiempo:</label>
+    <input type="range" id="valveSlider" min="1" max="20" value="8" step="1">
+    <span id="valveTimeLabel">8s</span>
+    <button id="valveBtn">Abrir válvula</button>
   </div>
   <div id="controls">
     <div id="dpad">
@@ -44,336 +65,521 @@ canvas { display: block; width: 100%; image-rendering: pixelated; }
       <div class="btn" id="rightBtn">&#8594;</div>
     </div>
     <div class="btn" id="jumpBtn">&#8679;</div>
+    <div class="btn" id="attackBtn" style="background:rgba(255,180,0,0.35);border-color:rgba(255,180,0,0.7);font-size:18px;">&#9876;</div>
   </div>
 </div>
 
 <script>
 const canvas = document.getElementById('c');
 const ctx = canvas.getContext('2d');
-const W = 400, H = 240;
+const W = 460, H = 280;
 canvas.width = W; canvas.height = H;
 
-let score = 0, lives = 3, levelNum = 1;
-let keys = { left: false, right: false, jump: false };
-let jumpPressed = false;
-let gameRunning = false;
+const PLAT_L_Y  = 160;
+const PLAT_R_Y  = 40;
+const PIT_L     = 130;
+const PIT_R     = 310;
+const PIT_BOT   = 260;
+const WALL_W    = 12;
+const FLOW_RATE = 14;
 
-function updateUI() {
-  document.getElementById('score').textContent = score;
-  document.getElementById('lives').textContent = lives;
-  document.getElementById('level').textContent = levelNum;
-}
+const BEAR_X   = 68;
+const DOOR_W   = 22;
+const DOOR_H   = 36;
+const FLAG_X   = W - WALL_W - DOOR_W - 10;
+const FLAG_Y   = PLAT_R_Y - DOOR_H;
 
-function buildLevel(n) {
-  const levels = [
-    {
-      platforms: [
-        {x:0,   y:224, w:400, h:16},
-        {x:80,  y:192, w:48,  h:8},
-        {x:160, y:176, w:48,  h:8},
-        {x:240, y:160, w:64,  h:8},
-        {x:320, y:144, w:80,  h:8},
-      ],
-      coins: [
-        {x:88,y:180},{x:168,y:164},
-        {x:252,y:148},{x:268,y:148},{x:284,y:148}
-      ],
-      enemies: [
-        {x:200,y:208,dir:1,dead:false},
-        {x:300,y:208,dir:-1,dead:false}
-      ],
-      flag: {x:370, y:144},
-      spawnX: 20, spawnY: 200
-    },
-    {
-      platforms: [
-        {x:0,   y:224, w:80,  h:16},
-        {x:100, y:224, w:60,  h:16},
-        {x:180, y:224, w:40,  h:16},
-        {x:240, y:224, w:160, h:16},
-        {x:60,  y:192, w:64,  h:8},
-        {x:160, y:170, w:48,  h:8},
-        {x:250, y:180, w:40,  h:8},
-        {x:310, y:160, w:80,  h:8},
-        {x:50,  y:148, w:80,  h:8},
-        {x:200, y:136, w:64,  h:8},
-      ],
-      coins: [
-        {x:68,y:180},{x:220,y:156},
-        {x:316,y:148},{x:332,y:148},
-        {x:58,y:136},{x:74,y:136}
-      ],
-      enemies: [
-        {x:110,y:208,dir:1,dead:false},
-        {x:260,y:208,dir:-1,dead:false},
-        {x:170,y:154,dir:1,dead:false}
-      ],
-      flag: {x:372, y:144},
-      spawnX: 10, spawnY: 205
-    }
-  ];
-  return JSON.parse(JSON.stringify(levels[(n - 1) % levels.length]));
-}
+const PIT_VOLUME = PIT_BOT - 55;
+const WATER_START = PIT_BOT - 40;
 
-let lvl, player, cam;
+let lives = 3, gameRunning = false;
+let keys = { left:false, right:false, jump:false, attack:false };
+let jumpPressed = false, attackPressed = false;
+let player, state;
 
-function initLevel() {
-  lvl = buildLevel(levelNum);
+function initGame() {
   player = {
-    x: lvl.spawnX, y: lvl.spawnY,
-    w: 14, h: 16,
-    vx: 0, vy: 0,
-    onGround: false,
-    dead: false,
-    deathTimer: 0,
-    invincible: 0,
-    facing: 1
+    x: WALL_W + 8, y:PLAT_L_Y-20,
+    w:14, h:18,
+    vx:0, vy:0,
+    onGround:false,
+    dead:false, deathTimer:0,
+    invincible:0,
+    facing:1, swimming:false
   };
-  cam = { x: 0 };
+  state = {
+    waterLevel: WATER_START,
+    valveUsed:false, valveActive:false, valveTimer:0,
+    fishAlive:true, fishCaught:false,
+    fishX:210, fishY:0, fishDir:1, fishAnim:0,
+    spear:null,
+    particles:[],
+    outcome:null, outcomeTimer:0
+  };
+  document.getElementById('valveBtn').disabled = false;
+  document.getElementById('valveSlider').disabled = false;
+  setStatus('Abre la válvula para subir el agua');
 }
 
-function rectOverlap(a, b) {
-  return a.x < b.x+b.w && a.x+a.w > b.x && a.y < b.y+b.h && a.y+a.h > b.y;
+function setStatus(t) { document.getElementById('statusEl').textContent = t; }
+function updateUI()   { document.getElementById('livesEl').textContent = lives; }
+
+const LADDER_X   = PIT_R - 18;
+const LADDER_TOP = PLAT_R_Y;
+const LADDER_BOT = PLAT_L_Y;
+const LADDER_W   = 14;
+
+function onLadder(p) {
+  return p.x+p.w > LADDER_X && p.x < LADDER_X+LADDER_W &&
+         p.y+p.h > LADDER_TOP && p.y < LADDER_BOT;
 }
 
-function update() {
+function platforms() {
+  return [
+    {x:0,      y:PLAT_L_Y, w:PIT_L,       h:H-PLAT_L_Y},
+    {x:PIT_R,  y:PLAT_R_Y, w:W-PIT_R,     h:H-PLAT_R_Y},
+    {x:PIT_L,  y:PIT_BOT,  w:PIT_R-PIT_L, h:H-PIT_BOT },
+    {x:0,      y:0,        w:WALL_W,       h:H          },
+    {x:W-WALL_W, y:0,      w:WALL_W,       h:H          },
+  ];
+}
+
+function overlap(a,b) {
+  return a.x<b.x+b.w && a.x+a.w>b.x && a.y<b.y+b.h && a.y+a.h>b.y;
+}
+
+function update(dt) {
   if (!gameRunning) return;
-  const p = player;
+  const p = player, s = state;
 
   if (p.dead) {
-    p.deathTimer--;
+    p.deathTimer -= dt;
     if (p.deathTimer <= 0) {
-      lives--;
-      updateUI();
-      if (lives <= 0) {
-        showOverlay('GAME OVER', 'Perdiste todas las vidas.', 'REINICIAR', true);
-        gameRunning = false;
-        return;
-      }
-      initLevel();
+      lives--; updateUI();
+      if (lives <= 0) { showOverlay('GAME OVER','Sin más vidas.','REINICIAR',true); gameRunning=false; return; }
+      initGame();
     }
     return;
   }
 
-  if (p.invincible > 0) p.invincible--;
-
-  const speed = 2;
-  if (keys.left)       { p.vx = -speed; p.facing = -1; }
-  else if (keys.right) { p.vx =  speed; p.facing =  1; }
-  else p.vx *= 0.7;
-
-  if (keys.jump && p.onGround) { p.vy = -5.5; p.onGround = false; jumpPressed = false; }
-
-  p.vy += 0.3;
-  if (p.vy > 8) p.vy = 8;
-
-  p.x += p.vx;
-  p.onGround = false;
-  for (const pl of lvl.platforms) {
-    if (rectOverlap({x:p.x,y:p.y,w:p.w,h:p.h}, pl)) {
-      if (p.vx > 0) p.x = pl.x - p.w;
-      else if (p.vx < 0) p.x = pl.x + pl.w;
-      p.vx = 0;
+  if (s.outcome) {
+    s.outcomeTimer -= dt;
+    if (s.outcomeTimer <= 0) {
+      if (s.outcome==='win') {
+        showOverlay('¡NIVEL COMPLETADO!','El oso atrapó al pez.\n¡Bien calculado!','JUGAR DE NUEVO',true);
+        gameRunning=false;
+      } else {
+        p.dead=true; p.deathTimer=1.0;
+      }
+      s.outcome=null;
     }
+    return;
   }
 
-  p.y += p.vy;
-  for (const pl of lvl.platforms) {
-    if (rectOverlap({x:p.x,y:p.y,w:p.w,h:p.h}, pl)) {
-      if (p.vy > 0) { p.y = pl.y - p.h; p.onGround = true; }
-      else if (p.vy < 0) p.y = pl.y + pl.h;
-      p.vy = 0;
-    }
+  if (s.valveActive) {
+    s.valveTimer -= dt;
+    s.waterLevel = Math.max(s.waterLevel - FLOW_RATE*dt, 55);
+    if (s.valveTimer<=0 || s.waterLevel<=55) { s.valveActive=false; }
+    const pct = Math.round((PIT_BOT - s.waterLevel) / PIT_VOLUME * 100);
+    setStatus('Llenando... ' + Math.max(0,s.valveTimer).toFixed(1)+'s  |  ' + pct + '%');
+  } else if (s.valveUsed && !s.fishCaught && !s.fishEscaped) {
+    const pct = Math.round((PIT_BOT - s.waterLevel) / PIT_VOLUME * 100);
+    setStatus('Volumen: ' + pct + '%');
   }
 
-  if (p.x < 0) p.x = 0;
-  if (p.y > H + 40) { p.dead = true; p.deathTimer = 60; return; }
+  const wY = s.waterLevel;
 
-  for (let i = lvl.coins.length - 1; i >= 0; i--) {
-    const c = lvl.coins[i];
-    if (rectOverlap({x:p.x,y:p.y,w:p.w,h:p.h},{x:c.x,y:c.y,w:8,h:8})) {
-      lvl.coins.splice(i, 1);
-      score += 100;
-      updateUI();
-    }
+  const waterDepthOnPlat = wY < PLAT_L_Y ? (PLAT_L_Y - wY) : 0;
+  const playerMidSubmerged = waterDepthOnPlat >= p.h / 2;
+  const canUseSpear = waterDepthOnPlat > 0 && waterDepthOnPlat < p.h / 2;
+
+  if (s.spear) {
+    s.spear.timer -= dt;
+    if (s.spear.timer <= 0) s.spear = null;
   }
 
-  for (const e of lvl.enemies) {
-    if (e.dead) continue;
-    e.x += e.dir * 1.2;
-    if (e.x <= 0 || e.x + 14 >= 400) e.dir *= -1;
-    for (const pl of lvl.platforms) {
-      if (rectOverlap({x:e.x,y:e.y,w:14,h:12}, pl)) {
-        if (e.dir > 0) e.x = pl.x - 14;
-        else e.x = pl.x + pl.w;
-        e.dir *= -1;
+  if (keys.attack && !attackPressed && canUseSpear && s.fishAlive && !s.spear) {
+    attackPressed = true;
+    const fishY = PLAT_L_Y - waterDepthOnPlat * 0.4;
+    const nearEdgeAttack = p.x+p.w >= PIT_L - 6;
+    if (nearEdgeAttack && Math.abs(s.fishX - PIT_L) < 44 && Math.abs(s.fishY - (p.y + p.h)) < 28) {
+      s.fishAlive = false; s.fishCaught = true;
+      setStatus('¡Pescado! Sube por la escalera y llega a la puerta.');
+      for (let i=0;i<14;i++) s.particles.push({
+        x:s.fishX, y:fishY,
+        vx:(Math.random()-0.5)*5, vy:-Math.random()*4-1, life:0.9
+      });
+    } else {
+      s.spear = { timer: 0.3 };
+    }
+  }
+  if (!keys.attack) attackPressed = false;
+
+  if (s.fishAlive) {
+    const waterOver = wY < PLAT_L_Y;
+    const waterBot  = PIT_BOT;
+    const waterMid  = wY + (waterBot - wY) * 0.55;
+
+    if (p.swimming) {
+      const dxFish = (p.x + p.w/2) - s.fishX;
+      const dyFish = (p.y + p.h/2) - s.fishY;
+      const dist = Math.sqrt(dxFish*dxFish + dyFish*dyFish) || 1;
+      const speed = 75;
+      s.fishDir = dxFish > 0 ? 1 : -1;
+      s.fishX += (dxFish/dist) * speed * dt;
+      s.fishY += (dyFish/dist) * speed * dt;
+      s.fishX = Math.max(WALL_W+4, Math.min(PIT_R-18, s.fishX));
+      s.fishY = Math.max(wY+4, Math.min(waterBot-8, s.fishY));
+    } else if (waterOver) {
+      const dxFish = p.x - s.fishX;
+      if (Math.abs(dxFish) < 60) s.fishDir = dxFish < 0 ? 1 : -1;
+      s.fishX += s.fishDir * 50 * dt;
+      s.fishX = Math.max(WALL_W+4, Math.min(PIT_R-18, s.fishX));
+      s.fishY += (waterMid - s.fishY) * 3 * dt;
+    } else {
+      s.fishX += s.fishDir * 50 * dt;
+      if (s.fishX < PIT_L+12) { s.fishX=PIT_L+12; s.fishDir=1; }
+      if (s.fishX > PIT_R-22) { s.fishX=PIT_R-22; s.fishDir=-1; }
+      s.fishY += (waterMid - s.fishY) * 3 * dt;
+    }
+    s.fishY = Math.max(wY+4, Math.min(waterBot-8, s.fishY));
+    s.fishAnim += dt*6;
+
+    if (p.invincible<=0) {
+      const fd = {x:s.fishX-12, y:s.fishY-8, w:24, h:16};
+      if (overlap({x:p.x,y:p.y,w:p.w,h:p.h}, fd)) {
+        if (!s.outcome) { s.outcome='die'; s.outcomeTimer=0.5; setStatus('¡El pez te comió!'); }
       }
     }
-    if (p.invincible === 0 && rectOverlap({x:p.x,y:p.y,w:p.w,h:p.h},{x:e.x,y:e.y,w:14,h:12})) {
-      if (p.vy > 0 && p.y + p.h < e.y + 8) {
-        e.dead = true;
-        score += 200;
-        updateUI();
-        p.vy = -3.5;
-      } else if (p.invincible === 0) {
-        p.dead = true;
-        p.deathTimer = 60;
-      }
-    }
   }
 
-  const fl = lvl.flag;
-  if (rectOverlap({x:p.x,y:p.y,w:p.w,h:p.h},{x:fl.x,y:fl.y,w:12,h:32})) {
-    score += 500;
-    levelNum++;
-    updateUI();
-    if (levelNum > 2) {
-      showOverlay('GANASTE!', 'Completaste todos los niveles.\nPuntos: ' + score, 'JUGAR DE NUEVO', true);
-      gameRunning = false;
+  if (!s.valveActive && s.valveUsed && !s.fishCaught) {
+    if (playerMidSubmerged)  setStatus('Nadando — ¡cuidado con el pez!');
+    else if (canUseSpear && p.x+p.w >= PIT_L-8) setStatus('¡Usa el botón de ataque!');
+    else if (canUseSpear)    setStatus('Acércate al borde y usa ATAQUE (⚔)');
+    else                     setStatus('Nivel: ' + Math.round((PIT_BOT - wY) / PIT_VOLUME * 100) + '%');
+  }
+
+  s.particles = s.particles.filter(sp => {
+    sp.x+=sp.vx; sp.y+=sp.vy; sp.vy+=0.18; sp.life-=dt;
+    return sp.life>0;
+  });
+
+  if (s.fishCaught) {
+    if (p.x+p.w > FLAG_X && p.x < FLAG_X+DOOR_W && p.y+p.h > FLAG_Y && p.y < FLAG_Y+DOOR_H) {
+      if (!s.outcome) { s.outcome='win'; s.outcomeTimer=0.4; }
       return;
     }
-    initLevel();
   }
 
-  cam.x = Math.max(0, Math.min(p.x - W / 3, 400 - W));
-}
+  if (p.invincible>0) p.invincible-=dt;
+  const spd=1.9;
+  if (keys.left)       { p.vx=-spd; p.facing=-1; }
+  else if (keys.right) { p.vx= spd; p.facing= 1; }
+  else p.vx*=0.72;
 
-function drawRect(x, y, w, h, color) {
-  ctx.fillStyle = color;
-  ctx.fillRect(x - cam.x, y, w, h);
-}
+  const inPitX = p.x+p.w>PIT_L && p.x<PIT_R;
+  const inWaterPit = inPitX && p.y+p.h > wY;
+  const onLeftPlat = !inPitX && p.x < PIT_L;
+  const floodOnLeft = wY < PLAT_L_Y;
+  const inFloodLeft = onLeftPlat && floodOnLeft && p.y+p.h > wY;
+  const swimming = inWaterPit || inFloodLeft;
+  const climbing = onLadder(p) && !swimming;
+  p.swimming = swimming;
+  p.climbing = climbing;
 
-function drawPlayer(p) {
-  const px = p.x - cam.x;
-  if (p.invincible > 0 && Math.floor(p.invincible / 4) % 2 === 0) return;
-  ctx.save();
-  ctx.translate(px + p.w / 2, p.y + p.h / 2);
-  if (p.facing === -1) ctx.scale(-1, 1);
-  ctx.fillStyle = '#e52'; ctx.fillRect(-7, -8, 14, 9);
-  ctx.fillStyle = '#f84'; ctx.fillRect(-5, -14, 10, 7);
-  ctx.fillStyle = '#fdd'; ctx.fillRect(-4, -7, 8, 6);
-  ctx.fillStyle = '#743'; ctx.fillRect(-6, 1, 6, 7); ctx.fillRect(1, 1, 6, 7);
-  ctx.fillStyle = '#954'; ctx.fillRect(-6, 7, 5, 3); ctx.fillRect(2, 7, 5, 3);
-  ctx.restore();
-}
+  if (swimming) {
+    p.vy += 0.12; if (p.vy>1.5) p.vy=1.5;
+    if (keys.jump) p.vy = -1.5;
+  } else if (climbing) {
+    p.vy = 0; p.vx = 0;
+    if (keys.jump && !jumpPressed) { p.vy=-2.0; jumpPressed=true; }
+    if (keys.left)  { p.vx=-1.9; p.facing=-1; }
+    if (keys.right) { p.vx= 1.9; p.facing= 1; }
+    p.onGround = false;
+  } else {
+    p.vy += 0.32; if (p.vy>9) p.vy=9;
+    if (keys.jump && p.onGround && !jumpPressed) {
+      p.vy=-6.2; p.onGround=false; jumpPressed=true;
+    }
+  }
+  if (!keys.jump) jumpPressed=false;
 
-function drawEnemy(e) {
-  if (e.dead) return;
-  const ex = e.x - cam.x;
-  ctx.fillStyle = '#c20'; ctx.fillRect(ex, e.y, 14, 12);
-  ctx.fillStyle = '#faa'; ctx.fillRect(ex+2, e.y+2, 4, 4); ctx.fillRect(ex+8, e.y+2, 4, 4);
-  ctx.fillStyle = '#fff'; ctx.fillRect(ex+3, e.y+3, 2, 2); ctx.fillRect(ex+9, e.y+3, 2, 2);
-  ctx.fillStyle = '#c20'; ctx.fillRect(ex, e.y+10, 4, 4); ctx.fillRect(ex+10, e.y+10, 4, 4);
-}
-
-function drawCoin(c) {
-  const t = Date.now() / 400;
-  ctx.fillStyle = '#fc0';
-  ctx.beginPath();
-  ctx.arc(c.x + 4 - cam.x, c.y + 4, 4 + Math.sin(t) * 0.5, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.fillStyle = '#fe8';
-  ctx.beginPath();
-  ctx.arc(c.x + 3 - cam.x, c.y + 3, 2, 0, Math.PI * 2);
-  ctx.fill();
-}
-
-function drawFlag(fl) {
-  const fx = fl.x - cam.x;
-  ctx.fillStyle = '#888'; ctx.fillRect(fx + 5, fl.y - 4, 2, 36);
-  ctx.fillStyle = '#0c0'; ctx.fillRect(fx + 7, fl.y - 4, 12, 10);
-  ctx.fillStyle = '#0f0'; ctx.fillRect(fx + 8, fl.y - 3, 8, 6);
-}
-
-function drawBackground() {
-  ctx.fillStyle = '#5c94fc'; ctx.fillRect(0, 0, W, H);
-  ctx.fillStyle = '#fff';
-  [[40,40,60,18],[150,30,80,20],[280,50,50,16]].forEach(([x,y,w,h]) => {
-    const cx = (x - cam.x * 0.3 + 400) % 430 - 15;
-    ctx.fillRect(cx, y, w, h);
-    ctx.fillRect(cx + 10, y - 8, w - 20, 10);
-  });
-  ctx.fillStyle = '#3a7'; ctx.fillRect(0, 220, W, H - 220);
+  p.x += p.vx; p.onGround=false;
+  for (const pl of platforms()) {
+    if (overlap({x:p.x,y:p.y,w:p.w,h:p.h},pl)) {
+      if (p.vx>0) p.x=pl.x-p.w; else if (p.vx<0) p.x=pl.x+pl.w;
+      p.vx=0;
+    }
+  }
+  p.y += p.vy;
+  for (const pl of platforms()) {
+    if (overlap({x:p.x,y:p.y,w:p.w,h:p.h},pl)) {
+      if (p.vy>0) { p.y=pl.y-p.h; p.onGround=true; }
+      else p.y=pl.y+pl.h;
+      p.vy=0;
+    }
+  }
+  if (p.x<0) p.x=0;
+  if (p.y>H+30) { p.dead=true; p.deathTimer=0.8; }
 }
 
 function draw() {
-  ctx.clearRect(0, 0, W, H);
-  drawBackground();
-  for (const pl of lvl.platforms) {
-    drawRect(pl.x, pl.y, pl.w, 4, '#7c4');
-    drawRect(pl.x, pl.y + 4, pl.w, pl.h - 4, '#a63');
-    ctx.strokeStyle = '#8b5'; ctx.lineWidth = 0.5;
-    for (let bx = pl.x; bx < pl.x + pl.w; bx += 16) {
-      ctx.strokeRect(bx - cam.x, pl.y, 16, 4);
+  const p=player, s=state, wY=s.waterLevel;
+  ctx.clearRect(0,0,W,H);
+
+  ctx.fillStyle='#d4ecd4'; ctx.fillRect(0,0,W,H);
+  ctx.fillStyle='#b8d8b8';
+  for (let i=0;i<W;i+=40) ctx.fillRect(i,0,20,H);
+
+  ctx.fillStyle='#7a5c2e';
+  ctx.fillRect(WALL_W, PLAT_L_Y, PIT_L-WALL_W, H-PLAT_L_Y);
+  ctx.fillRect(PIT_R,  PLAT_R_Y, W-WALL_W-PIT_R, H-PLAT_R_Y);
+  ctx.fillStyle='#9a7a3e';
+  ctx.fillRect(WALL_W, PLAT_L_Y, PIT_L-WALL_W, 7);
+  ctx.fillRect(PIT_R,  PLAT_R_Y, W-WALL_W-PIT_R, 7);
+
+  ctx.fillStyle='#444'; ctx.fillRect(PIT_L,PIT_BOT,PIT_R-PIT_L,H-PIT_BOT);
+  ctx.fillStyle='#383838';
+  for (let bx=PIT_L;bx<PIT_R;bx+=18) ctx.fillRect(bx,PIT_BOT,17,5);
+
+  ctx.fillStyle='#5a3a1a';
+  ctx.fillRect(0,  0, WALL_W, H);
+  ctx.fillRect(W-WALL_W, 0, WALL_W, H);
+  ctx.fillStyle='#3a2a0a';
+  ctx.fillRect(WALL_W-2,   0, 2, H);
+  ctx.fillRect(W-WALL_W,   0, 2, H);
+  for (let wy=0; wy<H; wy+=20) {
+    ctx.fillStyle='rgba(0,0,0,0.15)';
+    ctx.fillRect(0,wy,WALL_W,10);
+    ctx.fillRect(W-WALL_W,wy,WALL_W,10);
+  }
+
+  ctx.fillStyle='rgba(70,150,220,0.7)';
+  ctx.fillRect(PIT_L, wY, PIT_R-PIT_L, PIT_BOT-wY);
+
+  if (wY < PLAT_L_Y) {
+    ctx.fillStyle='rgba(70,150,220,0.65)';
+    ctx.fillRect(WALL_W, wY, PIT_L-WALL_W, PLAT_L_Y-wY);
+  }
+  if (wY < PLAT_R_Y) {
+    ctx.fillStyle='rgba(70,150,220,0.65)';
+    ctx.fillRect(PIT_R, wY, W-WALL_W-PIT_R, PLAT_R_Y-wY);
+  }
+
+  const surfaceY = wY;
+  ctx.strokeStyle='rgba(140,210,255,0.9)'; ctx.lineWidth=1.5;
+  ctx.beginPath();
+  const leftEdge  = wY < PLAT_L_Y ? WALL_W : PIT_L;
+  const rightEdge = wY < PLAT_R_Y ? W-WALL_W : PIT_R;
+  for (let wx=leftEdge; wx<=rightEdge; wx+=5) {
+    if (wx > PIT_L && wx < PIT_R) {
+      const wo=Math.sin(wx*0.18+Date.now()*0.003)*1.8;
+      wx===leftEdge ? ctx.moveTo(wx,surfaceY+wo) : ctx.lineTo(wx,surfaceY+wo);
+    } else {
+      const wo=Math.sin(wx*0.2+Date.now()*0.004)*1.2;
+      wx===leftEdge ? ctx.moveTo(wx,surfaceY+wo) : ctx.lineTo(wx,surfaceY+wo);
     }
   }
-  drawFlag(lvl.flag);
-  lvl.coins.forEach(drawCoin);
-  lvl.enemies.forEach(drawEnemy);
-  if (!player.dead) drawPlayer(player);
-  if (player.dead) {
-    ctx.fillStyle = 'rgba(0,0,0,0.4)'; ctx.fillRect(0, 0, W, H);
-    ctx.fillStyle = '#fff'; ctx.font = 'bold 18px monospace';
-    ctx.textAlign = 'center'; ctx.fillText('OOOPS!', W/2, H/2);
+  ctx.stroke();
+
+  ctx.strokeStyle='#2a2a2a'; ctx.lineWidth=1.5;
+  ctx.beginPath();
+  ctx.moveTo(WALL_W,PLAT_L_Y); ctx.lineTo(PIT_L,PLAT_L_Y);
+  ctx.lineTo(PIT_L,PIT_BOT); ctx.lineTo(PIT_R,PIT_BOT);
+  ctx.lineTo(PIT_R,PLAT_R_Y); ctx.lineTo(W-WALL_W,PLAT_R_Y);
+  ctx.stroke();
+
+  ctx.strokeStyle='#7a5c2e'; ctx.lineWidth=2.5;
+  ctx.beginPath(); ctx.moveTo(LADDER_X+2,LADDER_TOP); ctx.lineTo(LADDER_X+2,LADDER_BOT); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(LADDER_X+LADDER_W-2,LADDER_TOP); ctx.lineTo(LADDER_X+LADDER_W-2,LADDER_BOT); ctx.stroke();
+  ctx.strokeStyle='#9a7a3e'; ctx.lineWidth=2;
+  for (let ry=LADDER_TOP+8; ry<LADDER_BOT; ry+=12) {
+    ctx.beginPath(); ctx.moveTo(LADDER_X+2,ry); ctx.lineTo(LADDER_X+LADDER_W-2,ry); ctx.stroke();
+  }
+
+  const dX = FLAG_X, dY = FLAG_Y;
+  const dW = DOOR_W, dH = DOOR_H;
+  ctx.fillStyle='#5a3010'; ctx.fillRect(dX,dY,dW,dH);
+  ctx.fillStyle='#7a4820'; ctx.fillRect(dX+2,dY+2,dW-4,dH-4);
+  ctx.fillStyle='#3a1a08'; ctx.fillRect(dX+dW/2-1,dY,2,dH);
+  ctx.fillStyle='#2a0e04'; ctx.fillRect(dX,dY+dH/2-1,dW,2);
+  ctx.fillStyle='#c8a060';
+  ctx.beginPath(); ctx.arc(dX+dW/2,dY+dH/2,4,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle='#f0c840';
+  ctx.beginPath(); ctx.arc(dX+dW/2,dY+dH/2,2.5,0,Math.PI*2); ctx.fill();
+  if (!s.fishCaught) {
+    ctx.fillStyle='rgba(0,0,0,0.6)'; ctx.font='bold 8px monospace'; ctx.textAlign='center';
+    ctx.fillText('SALIDA',dX+dW/2,dY-4);
+    ctx.fillStyle='rgba(200,0,0,0.8)';
+    ctx.fillText('(¡atrapa el pez!)',dX+dW/2,dY-14);
+  } else {
+    const pulse=0.7+0.3*Math.sin(Date.now()*0.006);
+    ctx.globalAlpha=pulse;
+    ctx.fillStyle='#0f0'; ctx.font='bold 8px monospace'; ctx.textAlign='center';
+    ctx.fillText('SALIDA',dX+dW/2,dY-4);
+    ctx.fillText('¡ABIERTA!',dX+dW/2,dY-14);
+    ctx.globalAlpha=1;
+    ctx.strokeStyle='#0f0'; ctx.lineWidth=1.5;
+    ctx.strokeRect(dX-1,dY-1,dW+2,dH+2);
+  }
+
+  if (s.fishAlive) {
+    if (s.fishY === 0) s.fishY = s.waterLevel + (PIT_BOT - s.waterLevel) * 0.55;
+    const wb=Math.sin(s.fishAnim)*2;
+    ctx.save(); ctx.translate(s.fishX, s.fishY);
+    if (s.fishDir<0) ctx.scale(-1,1);
+    ctx.fillStyle='#c00';
+    ctx.beginPath(); ctx.ellipse(0,0,11,7,0,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle='#e00';
+    ctx.beginPath();
+    ctx.moveTo(-11,-5+wb); ctx.lineTo(-18,-10+wb); ctx.lineTo(-18,5+wb); ctx.closePath(); ctx.fill();
+    ctx.fillStyle='#ffd'; ctx.beginPath(); ctx.arc(6,-2,2.5,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle='#000'; ctx.beginPath(); ctx.arc(6,-2,1,0,Math.PI*2); ctx.fill();
+    ctx.restore();
+    ctx.fillStyle='rgba(180,0,0,0.75)'; ctx.font='bold 9px monospace'; ctx.textAlign='center';
+    ctx.fillText('PEZ', s.fishX, s.fishY-14);
+  }
+
+  if (s.spear) {
+    const sx = p.x + p.w + 2;
+    const sy = p.y + p.h - 4;
+    ctx.strokeStyle='#8B4513'; ctx.lineWidth=3; ctx.lineCap='round';
+    ctx.beginPath();
+    ctx.moveTo(sx, sy - 16);
+    ctx.lineTo(sx, sy + 16);
+    ctx.stroke();
+    ctx.fillStyle='#bbb';
+    ctx.beginPath();
+    ctx.moveTo(sx - 5, sy + 12);
+    ctx.lineTo(sx + 5, sy + 12);
+    ctx.lineTo(sx,     sy + 24);
+    ctx.closePath(); ctx.fill();
+  }
+
+  const wDepth = wY < PLAT_L_Y ? (PLAT_L_Y - wY) : 0;
+  const canAttackDraw = wDepth > 2 && wDepth < player.h / 2 && player.x+player.w >= PIT_L-12;
+  if (canAttackDraw && s.fishAlive && !s.spear) {
+    const pulse = 0.6+0.4*Math.sin(Date.now()*0.007);
+    ctx.globalAlpha = pulse;
+    ctx.fillStyle='#fc0'; ctx.font='bold 9px monospace'; ctx.textAlign='center';
+    ctx.fillText('¡ATAQUE! (⚔)', player.x + player.w/2, PLAT_L_Y - wDepth - 8);
+    ctx.globalAlpha=1;
+  }
+
+  s.particles.forEach(sp => {
+    ctx.globalAlpha=Math.max(0,sp.life);
+    ctx.fillStyle='#88ccff';
+    ctx.beginPath(); ctx.arc(sp.x,sp.y,2.5,0,Math.PI*2); ctx.fill();
+  });
+  ctx.globalAlpha=1;
+
+  if (!p.dead) {
+    ctx.save();
+    ctx.translate(p.x+p.w/2, p.y+p.h/2);
+    if (p.facing===-1) ctx.scale(-1,1);
+    if (p.swimming) {
+      ctx.fillStyle='#1a8'; ctx.beginPath(); ctx.ellipse(0,3,9,6,0,0,Math.PI*2); ctx.fill();
+      ctx.fillStyle='#4ef'; ctx.beginPath(); ctx.arc(0,-2,6,0,Math.PI*2); ctx.fill();
+      ctx.fillStyle='#fdd'; ctx.beginPath(); ctx.arc(0,-1,4,0,Math.PI*2); ctx.fill();
+      ctx.fillStyle='#000';
+      ctx.beginPath(); ctx.arc(-2,-2,1,0,Math.PI*2); ctx.fill();
+      ctx.beginPath(); ctx.arc(2,-2,1,0,Math.PI*2); ctx.fill();
+    } else {
+      ctx.fillStyle='#1a6'; ctx.fillRect(-7,-7,14,10);
+      ctx.fillStyle='#4ef'; ctx.fillRect(-5,-15,10,9);
+      ctx.fillStyle='#fdd'; ctx.fillRect(-4,-6,8,6);
+      ctx.fillStyle='#000';
+      ctx.beginPath(); ctx.arc(-2,-10,1.5,0,Math.PI*2); ctx.fill();
+      ctx.beginPath(); ctx.arc(2,-10,1.5,0,Math.PI*2); ctx.fill();
+      ctx.fillStyle='#164'; ctx.fillRect(-6,3,5,7); ctx.fillRect(2,3,5,7);
+      ctx.fillStyle='#0a3'; ctx.fillRect(-6,9,4,3); ctx.fillRect(3,9,4,3);
+    }
+    ctx.restore();
+  }
+
+  if (s.fishAlive) {
+    ctx.fillStyle='rgba(180,0,0,0.75)'; ctx.font='bold 9px monospace'; ctx.textAlign='center';
+    const fy=wY+(PIT_BOT-wY)*0.55;
+  }
+
+  const pct = Math.min(100, Math.round((PIT_BOT - wY) / PIT_VOLUME * 100));
+  const meterX = PIT_L+4, meterY = PIT_BOT-60, meterH=50, meterW=10;
+  ctx.fillStyle='rgba(0,0,0,0.4)'; ctx.fillRect(meterX-1,meterY-1,meterW+2,meterH+2);
+  const fillH = Math.round(meterH*pct/100);
+  const col = pct<40?'#44aaff':pct<75?'#22cc66':pct<90?'#ffaa00':'#ff4444';
+  ctx.fillStyle=col; ctx.fillRect(meterX,meterY+meterH-fillH,meterW,fillH);
+  ctx.strokeStyle='rgba(255,255,255,0.6)'; ctx.lineWidth=0.5;
+  ctx.strokeRect(meterX,meterY,meterW,meterH);
+  ctx.fillStyle='#fff'; ctx.font='bold 8px monospace'; ctx.textAlign='center';
+  ctx.fillText(pct+'%',meterX+meterW/2,meterY-3);
+
+  if (!s.valveUsed) {
+    const pulse=0.6+0.4*Math.sin(Date.now()*0.004);
+    ctx.globalAlpha=pulse;
+    ctx.fillStyle='#fc0'; ctx.font='bold 10px monospace'; ctx.textAlign='center';
+    ctx.fillText('↓ configura la válvula abajo', W/2, H-8);
+    ctx.globalAlpha=1;
   }
 }
 
-let last = 0;
+let last=0;
 function loop(ts) {
-  if (ts - last > 16) {
-    if (cam && lvl && player) { update(); draw(); }
-    last = ts;
-  }
+  const dt=Math.min((ts-last)/1000,0.05); last=ts;
+  if (player && state) { update(dt); draw(); }
   requestAnimationFrame(loop);
 }
 
-function showOverlay(title, sub, btnText, reset) {
-  const ov = document.getElementById('overlay');
-  ov.innerHTML = `<h2>${title}</h2><p>${sub}</p><button id="startBtn">${btnText}</button>`;
-  ov.style.display = 'flex';
-  document.getElementById('startBtn').onclick = () => {
-    if (reset) { score = 0; lives = 3; levelNum = 1; updateUI(); }
-    initLevel();
-    ov.style.display = 'none';
-    gameRunning = true;
+function showOverlay(title,msg,btn,reset) {
+  const ov=document.getElementById('overlay');
+  ov.innerHTML=`<h2>${title}</h2><p>${msg.replace(/\n/g,'<br>')}</p><button id="startBtn">${btn}</button>`;
+  ov.style.display='flex';
+  document.getElementById('startBtn').onclick=()=>{
+    if (reset) { lives=3; updateUI(); }
+    initGame(); ov.style.display='none'; gameRunning=true;
   };
 }
 
-document.getElementById('startBtn').onclick = () => {
-  initLevel();
-  document.getElementById('overlay').style.display = 'none';
-  gameRunning = true;
+document.getElementById('valveSlider').oninput=function(){
+  document.getElementById('valveTimeLabel').textContent=this.value+'s';
+};
+document.getElementById('valveBtn').onclick=function(){
+  if (state.valveUsed||!gameRunning) return;
+  const t=parseInt(document.getElementById('valveSlider').value);
+  state.valveUsed=true; state.valveActive=true; state.valveTimer=t;
+  this.disabled=true;
+  document.getElementById('valveSlider').disabled=true;
+  setStatus('Válvula abierta por '+t+'s...');
 };
 
-function bindBtn(id, key) {
-  const el = document.getElementById(id);
-  el.addEventListener('touchstart', e => { e.preventDefault(); keys[key] = true; }, {passive:false});
-  el.addEventListener('touchend',   e => { e.preventDefault(); keys[key] = false; jumpPressed = false; }, {passive:false});
-  el.addEventListener('mousedown', () => keys[key] = true);
-  el.addEventListener('mouseup',   () => { keys[key] = false; jumpPressed = false; });
+function bindBtn(id,key) {
+  const el=document.getElementById(id);
+  el.addEventListener('touchstart',e=>{e.preventDefault();keys[key]=true;},{passive:false});
+  el.addEventListener('touchend',  e=>{e.preventDefault();keys[key]=false;jumpPressed=false;},{passive:false});
+  el.addEventListener('mousedown', ()=>keys[key]=true);
+  el.addEventListener('mouseup',   ()=>{keys[key]=false;jumpPressed=false;});
 }
-bindBtn('leftBtn',  'left');
-bindBtn('rightBtn', 'right');
-bindBtn('jumpBtn',  'jump');
+bindBtn('leftBtn','left'); bindBtn('rightBtn','right'); bindBtn('jumpBtn','jump');
+bindBtn('attackBtn','attack');
 
-document.addEventListener('keydown', e => {
-  if (e.key === 'ArrowLeft'  || e.key === 'a') keys.left  = true;
-  if (e.key === 'ArrowRight' || e.key === 'd') keys.right = true;
-  if ((e.key === ' ' || e.key === 'ArrowUp' || e.key === 'w') && !jumpPressed) {
-    keys.jump = true; jumpPressed = true;
-  }
+document.addEventListener('keydown',e=>{
+  if (e.key==='ArrowLeft' ||e.key==='a') keys.left=true;
+  if (e.key==='ArrowRight'||e.key==='d') keys.right=true;
+  if ((e.key===' '||e.key==='ArrowUp'||e.key==='w')&&!jumpPressed){keys.jump=true;}
+  if (e.key==='z'||e.key==='x'||e.key==='ArrowDown') keys.attack=true;
 });
-document.addEventListener('keyup', e => {
-  if (e.key === 'ArrowLeft'  || e.key === 'a') keys.left  = false;
-  if (e.key === 'ArrowRight' || e.key === 'd') keys.right = false;
-  if (e.key === ' ' || e.key === 'ArrowUp' || e.key === 'w') {
-    keys.jump = false; jumpPressed = false;
-  }
+document.addEventListener('keyup',e=>{
+  if (e.key==='ArrowLeft' ||e.key==='a') keys.left=false;
+  if (e.key==='ArrowRight'||e.key==='d') keys.right=false;
+  if (e.key===' '||e.key==='ArrowUp'||e.key==='w') keys.jump=false;
+  if (e.key==='z'||e.key==='x'||e.key==='ArrowDown') keys.attack=false;
 });
 
-initLevel();
-gameRunning = false;
+document.getElementById('startBtn').onclick=()=>{
+  initGame(); document.getElementById('overlay').style.display='none'; gameRunning=true;
+};
 
+initGame();
 requestAnimationFrame(loop);
 updateUI();
 </script>
