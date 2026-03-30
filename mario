@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Super Claude Bros</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; user-select: none; -webkit-user-select: none; }
+body { background: #111; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; font-family: monospace; }
+#wrapper { width: 100%; max-width: 480px; }
+#gameWrap { background: #5c94fc; width: 100%; position: relative; overflow: hidden; }
+canvas { display: block; width: 100%; image-rendering: pixelated; }
+#ui { display: flex; justify-content: space-between; align-items: center; padding: 6px 12px; background: #000; color: #fff; font-family: monospace; font-size: 14px; }
+#controls { display: flex; justify-content: space-between; align-items: center; padding: 10px 16px; background: #111; gap: 8px; }
+.btn { background: rgba(255,255,255,0.15); border: 2px solid rgba(255,255,255,0.3); border-radius: 50%; color: #fff; font-size: 20px; width: 56px; height: 56px; display: flex; align-items: center; justify-content: center; cursor: pointer; -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
+.btn:active { background: rgba(255,255,255,0.35); }
+#dpad { display: flex; gap: 4px; }
+#jumpBtn { background: rgba(255,80,80,0.4); border-color: rgba(255,80,80,0.6); font-size: 24px; width: 64px; height: 64px; }
+#overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.65); display: flex; flex-direction: column; align-items: center; justify-content: center; color: #fff; font-family: monospace; text-align: center; padding: 20px; }
+#overlay h2 { font-size: 22px; margin-bottom: 8px; }
+#overlay p { font-size: 13px; color: #ccc; margin-bottom: 16px; line-height: 1.6; }
+#startBtn { background: #e52; border: none; color: #fff; font-family: monospace; font-size: 16px; padding: 10px 28px; border-radius: 6px; cursor: pointer; }
+#startBtn:active { opacity: 0.8; }
+</style>
+</head>
+<body>
+<div id="wrapper">
+  <div id="ui">
+    <span>VIDAS: <span id="lives">3</span></span>
+    <span>PUNTOS: <span id="score">0</span></span>
+    <span>NIVEL: <span id="level">1</span></span>
+  </div>
+  <div id="gameWrap">
+    <canvas id="c"></canvas>
+    <div id="overlay">
+      <h2>Super Claude Bros</h2>
+      <p>Evita los enemigos, recoge monedas<br>y llega a la bandera verde.<br><br>&#8592; &#8594; mover &nbsp;|&nbsp; &#8679; saltar</p>
+      <button id="startBtn">JUGAR</button>
+    </div>
+  </div>
+  <div id="controls">
+    <div id="dpad">
+      <div class="btn" id="leftBtn">&#8592;</div>
+      <div class="btn" id="rightBtn">&#8594;</div>
+    </div>
+    <div class="btn" id="jumpBtn">&#8679;</div>
+  </div>
+</div>
+
+<script>
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+const W = 400, H = 240;
+canvas.width = W; canvas.height = H;
+
+let score = 0, lives = 3, levelNum = 1;
+let keys = { left: false, right: false, jump: false };
+let jumpPressed = false;
+let gameRunning = false;
+
+function updateUI() {
+  document.getElementById('score').textContent = score;
+  document.getElementById('lives').textContent = lives;
+  document.getElementById('level').textContent = levelNum;
+}
+
+function buildLevel(n) {
+  const levels = [
+    {
+      platforms: [
+        {x:0,   y:224, w:400, h:16},
+        {x:80,  y:192, w:48,  h:8},
+        {x:160, y:176, w:48,  h:8},
+        {x:240, y:160, w:64,  h:8},
+        {x:320, y:144, w:80,  h:8},
+      ],
+      coins: [
+        {x:88,y:180},{x:168,y:164},
+        {x:252,y:148},{x:268,y:148},{x:284,y:148}
+      ],
+      enemies: [
+        {x:200,y:208,dir:1,dead:false},
+        {x:300,y:208,dir:-1,dead:false}
+      ],
+      flag: {x:370, y:144},
+      spawnX: 20, spawnY: 200
+    },
+    {
+      platforms: [
+        {x:0,   y:224, w:80,  h:16},
+        {x:100, y:224, w:60,  h:16},
+        {x:180, y:224, w:40,  h:16},
+        {x:240, y:224, w:160, h:16},
+        {x:60,  y:192, w:64,  h:8},
+        {x:160, y:170, w:48,  h:8},
+        {x:250, y:180, w:40,  h:8},
+        {x:310, y:160, w:80,  h:8},
+        {x:50,  y:148, w:80,  h:8},
+        {x:200, y:136, w:64,  h:8},
+      ],
+      coins: [
+        {x:68,y:180},{x:220,y:156},
+        {x:316,y:148},{x:332,y:148},
+        {x:58,y:136},{x:74,y:136}
+      ],
+      enemies: [
+        {x:110,y:208,dir:1,dead:false},
+        {x:260,y:208,dir:-1,dead:false},
+        {x:170,y:154,dir:1,dead:false}
+      ],
+      flag: {x:372, y:144},
+      spawnX: 10, spawnY: 205
+    }
+  ];
+  return JSON.parse(JSON.stringify(levels[(n - 1) % levels.length]));
+}
+
+let lvl, player, cam;
+
+function initLevel() {
+  lvl = buildLevel(levelNum);
+  player = {
+    x: lvl.spawnX, y: lvl.spawnY,
+    w: 14, h: 16,
+    vx: 0, vy: 0,
+    onGround: false,
+    dead: false,
+    deathTimer: 0,
+    invincible: 0,
+    facing: 1
+  };
+  cam = { x: 0 };
+}
+
+function rectOverlap(a, b) {
+  return a.x < b.x+b.w && a.x+a.w > b.x && a.y < b.y+b.h && a.y+a.h > b.y;
+}
+
+function update() {
+  if (!gameRunning) return;
+  const p = player;
+
+  if (p.dead) {
+    p.deathTimer--;
+    if (p.deathTimer <= 0) {
+      lives--;
+      updateUI();
+      if (lives <= 0) {
+        showOverlay('GAME OVER', 'Perdiste todas las vidas.', 'REINICIAR', true);
+        gameRunning = false;
+        return;
+      }
+      initLevel();
+    }
+    return;
+  }
+
+  if (p.invincible > 0) p.invincible--;
+
+  const speed = 2;
+  if (keys.left)       { p.vx = -speed; p.facing = -1; }
+  else if (keys.right) { p.vx =  speed; p.facing =  1; }
+  else p.vx *= 0.7;
+
+  if (keys.jump && p.onGround) { p.vy = -5.5; p.onGround = false; jumpPressed = false; }
+
+  p.vy += 0.3;
+  if (p.vy > 8) p.vy = 8;
+
+  p.x += p.vx;
+  p.onGround = false;
+  for (const pl of lvl.platforms) {
+    if (rectOverlap({x:p.x,y:p.y,w:p.w,h:p.h}, pl)) {
+      if (p.vx > 0) p.x = pl.x - p.w;
+      else if (p.vx < 0) p.x = pl.x + pl.w;
+      p.vx = 0;
+    }
+  }
+
+  p.y += p.vy;
+  for (const pl of lvl.platforms) {
+    if (rectOverlap({x:p.x,y:p.y,w:p.w,h:p.h}, pl)) {
+      if (p.vy > 0) { p.y = pl.y - p.h; p.onGround = true; }
+      else if (p.vy < 0) p.y = pl.y + pl.h;
+      p.vy = 0;
+    }
+  }
+
+  if (p.x < 0) p.x = 0;
+  if (p.y > H + 40) { p.dead = true; p.deathTimer = 60; return; }
+
+  for (let i = lvl.coins.length - 1; i >= 0; i--) {
+    const c = lvl.coins[i];
+    if (rectOverlap({x:p.x,y:p.y,w:p.w,h:p.h},{x:c.x,y:c.y,w:8,h:8})) {
+      lvl.coins.splice(i, 1);
+      score += 100;
+      updateUI();
+    }
+  }
+
+  for (const e of lvl.enemies) {
+    if (e.dead) continue;
+    e.x += e.dir * 1.2;
+    if (e.x <= 0 || e.x + 14 >= 400) e.dir *= -1;
+    for (const pl of lvl.platforms) {
+      if (rectOverlap({x:e.x,y:e.y,w:14,h:12}, pl)) {
+        if (e.dir > 0) e.x = pl.x - 14;
+        else e.x = pl.x + pl.w;
+        e.dir *= -1;
+      }
+    }
+    if (p.invincible === 0 && rectOverlap({x:p.x,y:p.y,w:p.w,h:p.h},{x:e.x,y:e.y,w:14,h:12})) {
+      if (p.vy > 0 && p.y + p.h < e.y + 8) {
+        e.dead = true;
+        score += 200;
+        updateUI();
+        p.vy = -3.5;
+      } else if (p.invincible === 0) {
+        p.dead = true;
+        p.deathTimer = 60;
+      }
+    }
+  }
+
+  const fl = lvl.flag;
+  if (rectOverlap({x:p.x,y:p.y,w:p.w,h:p.h},{x:fl.x,y:fl.y,w:12,h:32})) {
+    score += 500;
+    levelNum++;
+    updateUI();
+    if (levelNum > 2) {
+      showOverlay('GANASTE!', 'Completaste todos los niveles.\nPuntos: ' + score, 'JUGAR DE NUEVO', true);
+      gameRunning = false;
+      return;
+    }
+    initLevel();
+  }
+
+  cam.x = Math.max(0, Math.min(p.x - W / 3, 400 - W));
+}
+
+function drawRect(x, y, w, h, color) {
+  ctx.fillStyle = color;
+  ctx.fillRect(x - cam.x, y, w, h);
+}
+
+function drawPlayer(p) {
+  const px = p.x - cam.x;
+  if (p.invincible > 0 && Math.floor(p.invincible / 4) % 2 === 0) return;
+  ctx.save();
+  ctx.translate(px + p.w / 2, p.y + p.h / 2);
+  if (p.facing === -1) ctx.scale(-1, 1);
+  ctx.fillStyle = '#e52'; ctx.fillRect(-7, -8, 14, 9);
+  ctx.fillStyle = '#f84'; ctx.fillRect(-5, -14, 10, 7);
+  ctx.fillStyle = '#fdd'; ctx.fillRect(-4, -7, 8, 6);
+  ctx.fillStyle = '#743'; ctx.fillRect(-6, 1, 6, 7); ctx.fillRect(1, 1, 6, 7);
+  ctx.fillStyle = '#954'; ctx.fillRect(-6, 7, 5, 3); ctx.fillRect(2, 7, 5, 3);
+  ctx.restore();
+}
+
+function drawEnemy(e) {
+  if (e.dead) return;
+  const ex = e.x - cam.x;
+  ctx.fillStyle = '#c20'; ctx.fillRect(ex, e.y, 14, 12);
+  ctx.fillStyle = '#faa'; ctx.fillRect(ex+2, e.y+2, 4, 4); ctx.fillRect(ex+8, e.y+2, 4, 4);
+  ctx.fillStyle = '#fff'; ctx.fillRect(ex+3, e.y+3, 2, 2); ctx.fillRect(ex+9, e.y+3, 2, 2);
+  ctx.fillStyle = '#c20'; ctx.fillRect(ex, e.y+10, 4, 4); ctx.fillRect(ex+10, e.y+10, 4, 4);
+}
+
+function drawCoin(c) {
+  const t = Date.now() / 400;
+  ctx.fillStyle = '#fc0';
+  ctx.beginPath();
+  ctx.arc(c.x + 4 - cam.x, c.y + 4, 4 + Math.sin(t) * 0.5, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = '#fe8';
+  ctx.beginPath();
+  ctx.arc(c.x + 3 - cam.x, c.y + 3, 2, 0, Math.PI * 2);
+  ctx.fill();
+}
+
+function drawFlag(fl) {
+  const fx = fl.x - cam.x;
+  ctx.fillStyle = '#888'; ctx.fillRect(fx + 5, fl.y - 4, 2, 36);
+  ctx.fillStyle = '#0c0'; ctx.fillRect(fx + 7, fl.y - 4, 12, 10);
+  ctx.fillStyle = '#0f0'; ctx.fillRect(fx + 8, fl.y - 3, 8, 6);
+}
+
+function drawBackground() {
+  ctx.fillStyle = '#5c94fc'; ctx.fillRect(0, 0, W, H);
+  ctx.fillStyle = '#fff';
+  [[40,40,60,18],[150,30,80,20],[280,50,50,16]].forEach(([x,y,w,h]) => {
+    const cx = (x - cam.x * 0.3 + 400) % 430 - 15;
+    ctx.fillRect(cx, y, w, h);
+    ctx.fillRect(cx + 10, y - 8, w - 20, 10);
+  });
+  ctx.fillStyle = '#3a7'; ctx.fillRect(0, 220, W, H - 220);
+}
+
+function draw() {
+  ctx.clearRect(0, 0, W, H);
+  drawBackground();
+  for (const pl of lvl.platforms) {
+    drawRect(pl.x, pl.y, pl.w, 4, '#7c4');
+    drawRect(pl.x, pl.y + 4, pl.w, pl.h - 4, '#a63');
+    ctx.strokeStyle = '#8b5'; ctx.lineWidth = 0.5;
+    for (let bx = pl.x; bx < pl.x + pl.w; bx += 16) {
+      ctx.strokeRect(bx - cam.x, pl.y, 16, 4);
+    }
+  }
+  drawFlag(lvl.flag);
+  lvl.coins.forEach(drawCoin);
+  lvl.enemies.forEach(drawEnemy);
+  if (!player.dead) drawPlayer(player);
+  if (player.dead) {
+    ctx.fillStyle = 'rgba(0,0,0,0.4)'; ctx.fillRect(0, 0, W, H);
+    ctx.fillStyle = '#fff'; ctx.font = 'bold 18px monospace';
+    ctx.textAlign = 'center'; ctx.fillText('OOOPS!', W/2, H/2);
+  }
+}
+
+let last = 0;
+function loop(ts) {
+  if (ts - last > 16) {
+    if (cam && lvl && player) { update(); draw(); }
+    last = ts;
+  }
+  requestAnimationFrame(loop);
+}
+
+function showOverlay(title, sub, btnText, reset) {
+  const ov = document.getElementById('overlay');
+  ov.innerHTML = `<h2>${title}</h2><p>${sub}</p><button id="startBtn">${btnText}</button>`;
+  ov.style.display = 'flex';
+  document.getElementById('startBtn').onclick = () => {
+    if (reset) { score = 0; lives = 3; levelNum = 1; updateUI(); }
+    initLevel();
+    ov.style.display = 'none';
+    gameRunning = true;
+  };
+}
+
+document.getElementById('startBtn').onclick = () => {
+  initLevel();
+  document.getElementById('overlay').style.display = 'none';
+  gameRunning = true;
+};
+
+function bindBtn(id, key) {
+  const el = document.getElementById(id);
+  el.addEventListener('touchstart', e => { e.preventDefault(); keys[key] = true; }, {passive:false});
+  el.addEventListener('touchend',   e => { e.preventDefault(); keys[key] = false; jumpPressed = false; }, {passive:false});
+  el.addEventListener('mousedown', () => keys[key] = true);
+  el.addEventListener('mouseup',   () => { keys[key] = false; jumpPressed = false; });
+}
+bindBtn('leftBtn',  'left');
+bindBtn('rightBtn', 'right');
+bindBtn('jumpBtn',  'jump');
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'ArrowLeft'  || e.key === 'a') keys.left  = true;
+  if (e.key === 'ArrowRight' || e.key === 'd') keys.right = true;
+  if ((e.key === ' ' || e.key === 'ArrowUp' || e.key === 'w') && !jumpPressed) {
+    keys.jump = true; jumpPressed = true;
+  }
+});
+document.addEventListener('keyup', e => {
+  if (e.key === 'ArrowLeft'  || e.key === 'a') keys.left  = false;
+  if (e.key === 'ArrowRight' || e.key === 'd') keys.right = false;
+  if (e.key === ' ' || e.key === 'ArrowUp' || e.key === 'w') {
+    keys.jump = false; jumpPressed = false;
+  }
+});
+
+initLevel();
+gameRunning = false;
+
+requestAnimationFrame(loop);
+updateUI();
+</script>
+</body>
+</html>
