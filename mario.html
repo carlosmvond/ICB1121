@@ -34,19 +34,19 @@ canvas { display: block; width: 100%; image-rendering: pixelated; }
   <div id="ui">
     <span>VIDAS: <span id="livesEl">3</span></span>
     <span id="statusEl">Abre la válvula</span>
-    <span>NIVEL 1</span>
+    <span>EL PEZ VENENOSO</span>
   </div>
   <div id="gameWrap">
     <canvas id="c"></canvas>
     <div id="overlay">
-      <h2>Nivel 1 — El Oso y el Pez</h2>
+      <h2>Nivel 1 — El Pez Venenoso</h2>
       <button id="startBtn">JUGAR</button>
     </div>
   </div>
   <div id="valve-panel">
     <label>Válvula — tiempo:</label>
-    <input type="range" id="valveSlider" min="1" max="20" value="8" step="1">
-    <span id="valveTimeLabel">8s</span>
+    <input type="range" id="valveSlider" min="1" max="60" value="20" step="1">
+    <span id="valveTimeLabel">20s</span>
     <button id="valveBtn">Abrir válvula</button>
   </div>
   <div id="controls">
@@ -71,7 +71,7 @@ const PIT_L     = 130;
 const PIT_R     = 310;
 const PIT_BOT   = 260;
 const WALL_W    = 12;
-const FLOW_RATE = 14;
+const FLOW_RATE = 4;
 
 const BEAR_X   = 68;
 const DOOR_W   = 22;
@@ -115,7 +115,7 @@ function setStatus(t) { document.getElementById('statusEl').textContent = t; }
 function updateUI()   { document.getElementById('livesEl').textContent = lives; }
 
 const LADDER_X   = PIT_R - 18;
-const LADDER_TOP = PLAT_R_Y;
+const LADDER_TOP = PLAT_R_Y - 16;
 const LADDER_BOT = PLAT_L_Y + 22;
 const LADDER_W   = 14;
 
@@ -124,13 +124,19 @@ function onLadder(p) {
          p.y+p.h > LADDER_TOP && p.y < LADDER_BOT;
 }
 
+function onLadderEntry(p) {
+  // Can grab ladder from water even if slightly outside normal bounds
+  return p.x+p.w > LADDER_X-2 && p.x < LADDER_X+LADDER_W+2 &&
+         p.y+p.h > LADDER_TOP && p.y < LADDER_BOT + 10;
+}
+
 function platforms() {
   return [
-    {x:0,      y:PLAT_L_Y, w:PIT_L,       h:H-PLAT_L_Y},
-    {x:PIT_R,  y:PLAT_R_Y, w:W-PIT_R,     h:H-PLAT_R_Y},
-    {x:PIT_L,  y:PIT_BOT,  w:PIT_R-PIT_L, h:H-PIT_BOT },
-    {x:0,      y:0,        w:WALL_W,       h:H          },
-    {x:W-WALL_W, y:0,      w:WALL_W,       h:H          },
+    {x:0,        y:PLAT_L_Y, w:PIT_L,        h:H-PLAT_L_Y},
+    {x:PIT_R,    y:PLAT_R_Y, w:W-PIT_R,      h:H-PLAT_R_Y},
+    {x:PIT_L,    y:PIT_BOT,  w:PIT_R-PIT_L,  h:H-PIT_BOT },
+    {x:0,        y:0,        w:WALL_W,        h:H          },
+    {x:W-WALL_W, y:0,        w:WALL_W,        h:H          },
   ];
 }
 
@@ -156,7 +162,7 @@ function update(dt) {
     s.outcomeTimer -= dt;
     if (s.outcomeTimer <= 0) {
       if (s.outcome==='win') {
-        showOverlay('¡NIVEL COMPLETADO!','El oso atrapó al pez.\n¡Bien calculado!','JUGAR DE NUEVO',true);
+        showOverlay('¡NIVEL COMPLETADO!','¡Mataste al pez venenoso!\n¡Bien calculado!','JUGAR DE NUEVO',true);
         gameRunning=false;
       } else {
         p.dead=true; p.deathTimer=1.0;
@@ -210,7 +216,7 @@ function update(dt) {
   }
 
   // Start spear thrust: only when walking (not swimming, not climbing)
-  if (keys.attack && !attackPressed && !p.swimming && !p.climbing && s.fishAlive && !s.spear) {
+  if (keys.attack && !attackPressed && !p.swimming && !p.climbing && !s.spear) {
     attackPressed = true;
     // Angle: diagonal downward in facing direction
     const angle = p.facing === 1 ? Math.PI * 0.2 : Math.PI * 0.8;
@@ -242,20 +248,20 @@ function update(dt) {
       const dxFish = (p.x + p.w/2) - s.fishX;
       const dyFish = (p.y + p.h/2) - s.fishY;
       const dist = Math.sqrt(dxFish*dxFish + dyFish*dyFish) || 1;
-      const speed = 75;
+      const speed = 140;
       s.fishDir = dxFish > 0 ? 1 : -1;
       s.fishX += (dxFish/dist) * speed * dt;
       s.fishY += (dyFish/dist) * speed * dt;
       s.fishX = Math.max(fishMinX, Math.min(fishMaxX, s.fishX));
       s.fishY = Math.max(wY+4, Math.min(waterBot-8, s.fishY));
     } else if (waterOver) {
-      const dxFish = p.x - s.fishX;
-      if (Math.abs(dxFish) < 60) s.fishDir = dxFish < 0 ? 1 : -1;
-      s.fishX += s.fishDir * 50 * dt;
-      s.fishX = Math.max(fishMinX, Math.min(fishMaxX, s.fishX));
+      // Always patrol, flip at walls
+      s.fishX += s.fishDir * 100 * dt;
+      if (s.fishX < fishMinX) { s.fishX = fishMinX; s.fishDir = 1; }
+      if (s.fishX > fishMaxX) { s.fishX = fishMaxX; s.fishDir = -1; }
       s.fishY += (waterMid - s.fishY) * 3 * dt;
     } else {
-      s.fishX += s.fishDir * 50 * dt;
+      s.fishX += s.fishDir * 100 * dt;
       if (s.fishX < PIT_L+12) { s.fishX=PIT_L+12; s.fishDir=1; }
       if (s.fishX > PIT_R-22) { s.fishX=PIT_R-22; s.fishDir=-1; }
       s.fishY += (waterMid - s.fishY) * 3 * dt;
@@ -297,25 +303,26 @@ function update(dt) {
   const inPitX = p.x+p.w>PIT_L && p.x<PIT_R;
   const inWaterPit = inPitX && p.y+p.h > wY;
   const onLeftPlat = !inPitX && p.x < PIT_L;
-  // Only flood-swim when water is at least 6px above the platform surface (avoid flickering at threshold)
-  const floodOnLeft = wY < PLAT_L_Y - 6;
-  const inFloodLeft = onLeftPlat && floodOnLeft;
-  const swimming = inWaterPit || inFloodLeft;
-  const climbing = onLadder(p) && !swimming;
-  p.swimming = swimming;
+  // Flooded left: water covers at least half the player's body
+  const floodOnLeft = wY < PLAT_L_Y && wY < p.y + p.h/2;
+  const climbing = onLadderEntry(p);
+  // Only swimming in the pit — on left platform, player walks normally but shows swim sprite
+  const swimming = inWaterPit && !climbing;
+  p.swimming = swimming || (onLeftPlat && floodOnLeft); // sprite only
   p.climbing = climbing;
 
   if (swimming) {
-    // Same physics everywhere in water: sink slowly, jump to swim up
+    // In the pit: buoyancy physics
     p.vy += 0.12; if (p.vy > 1.5) p.vy = 1.5;
     if (keys.jump) p.vy = -1.5;
   } else if (climbing) {
     p.vy = 0; p.vx = 0;
-    if (keys.jump && !jumpPressed) { p.vy=-2.0; jumpPressed=true; }
+    if (keys.jump) p.vy = -2.0;
     if (keys.left)  { p.vx=-1.9; p.facing=-1; }
     if (keys.right) { p.vx= 1.9; p.facing= 1; }
     p.onGround = false;
   } else {
+    // Normal gravity — works on left platform even if flooded
     p.vy += 0.32; if (p.vy>9) p.vy=9;
     if (keys.jump && p.onGround && !jumpPressed) {
       p.vy=-6.2; p.onGround=false; jumpPressed=true;
@@ -325,18 +332,15 @@ function update(dt) {
 
   p.x += p.vx; p.onGround=false;
   for (const pl of platforms()) {
-    const isLeftPlatFloor = pl.x === 0 && pl.y === PLAT_L_Y;
-    if (isLeftPlatFloor && wY < PLAT_L_Y - 6) continue;
-    if (overlap({x:p.x,y:p.y,w:p.w,h:p.h},pl)) {
-      if (p.vx>0) p.x=pl.x-p.w; else if (p.vx<0) p.x=pl.x+pl.w;
-      p.vx=0;
-    }
+    if (!overlap({x:p.x,y:p.y,w:p.w,h:p.h},pl)) continue;
+    const isLeftPlat = pl.x === 0 && pl.y === PLAT_L_Y;
+    // Skip right-edge X collision with left platform when player is on top (walking off edge)
+    if (isLeftPlat && p.vx > 0 && p.y + p.h <= PLAT_L_Y + 1) continue;
+    if (p.vx>0) p.x=pl.x-p.w; else if (p.vx<0) p.x=pl.x+pl.w;
+    p.vx=0;
   }
   p.y += p.vy;
   for (const pl of platforms()) {
-    // Skip vertical collision with left platform floor when flooded — player swims over it
-    const isLeftPlatFloor = pl.x === 0 && pl.y === PLAT_L_Y;
-    if (isLeftPlatFloor && wY < PLAT_L_Y - 6) continue;
     if (overlap({x:p.x,y:p.y,w:p.w,h:p.h},pl)) {
       if (p.vy>0) { p.y=pl.y-p.h; p.onGround=true; }
       else p.y=pl.y+pl.h;
@@ -345,8 +349,7 @@ function update(dt) {
   }
   // Enforce left wall always
   if (p.x < WALL_W) { p.x = WALL_W; p.vx = 0; }
-  // Cannot surface above water level while swimming
-  if (swimming && p.y < wY) { p.y = wY; p.vy = 0; }
+  if (inWaterPit && !climbing && p.y < wY) { p.y = wY; p.vy = 0; }
   if (p.x<0) p.x=0;
   if (p.y>H+30) { p.dead=true; p.deathTimer=0.8; }
 }
@@ -464,8 +467,7 @@ function draw() {
     ctx.fillStyle='#ffd'; ctx.beginPath(); ctx.arc(6,-2,2.5,0,Math.PI*2); ctx.fill();
     ctx.fillStyle='#000'; ctx.beginPath(); ctx.arc(6,-2,1,0,Math.PI*2); ctx.fill();
     ctx.restore();
-    ctx.fillStyle='rgba(180,0,0,0.75)'; ctx.font='bold 9px monospace'; ctx.textAlign='center';
-    ctx.fillText('PEZ', s.fishX, s.fishY-14);
+    
   }
 
   if (s.spear) {
@@ -542,16 +544,20 @@ function draw() {
     const fy=wY+(PIT_BOT-wY)*0.55;
   }
 
-  const pct = Math.min(100, Math.round((PIT_BOT - wY) / PIT_VOLUME * 100));
-  const meterX = PIT_L+4, meterY = PIT_BOT-60, meterH=50, meterW=10;
+  const METER_TOTAL = PIT_BOT - PLAT_L_Y; // 100px = full range
+  const pct = Math.min(100, Math.max(0, Math.round((PIT_BOT - wY) / METER_TOTAL * 100)));
+  const meterW = 10;
+  const meterX = PIT_L - 18;
+  const meterY = PLAT_L_Y;
+  const meterH = METER_TOTAL;
   ctx.fillStyle='rgba(0,0,0,0.4)'; ctx.fillRect(meterX-1,meterY-1,meterW+2,meterH+2);
   const fillH = Math.round(meterH*pct/100);
   const col = pct<40?'#44aaff':pct<75?'#22cc66':pct<90?'#ffaa00':'#ff4444';
   ctx.fillStyle=col; ctx.fillRect(meterX,meterY+meterH-fillH,meterW,fillH);
   ctx.strokeStyle='rgba(255,255,255,0.6)'; ctx.lineWidth=0.5;
   ctx.strokeRect(meterX,meterY,meterW,meterH);
-  ctx.fillStyle='#fff'; ctx.font='bold 8px monospace'; ctx.textAlign='center';
-  ctx.fillText(pct+'%',meterX+meterW/2,meterY-3);
+  ctx.fillStyle='#fff'; ctx.font='bold 11px monospace'; ctx.textAlign='right';
+  ctx.fillText(pct+'%', meterX-3, meterY+meterH-fillH+4);
 
   if (!s.valveUsed) {
     const pulse=0.6+0.4*Math.sin(Date.now()*0.004);
