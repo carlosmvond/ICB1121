@@ -34,7 +34,7 @@ canvas { display: block; width: 100%; image-rendering: pixelated; }
   <div id="ui">
     <span>VIDAS: <span id="livesEl">3</span></span>
     <span id="statusEl">Abre la válvula</span>
-    <span>EL PEZ VENENOSO</span>
+    <span>EL PEZ VENENOSO<br><span id="fishHpEl" style="font-size:14px;">❤️❤️❤️</span></span>
   </div>
   <div id="gameWrap">
     <canvas id="c"></canvas>
@@ -100,7 +100,7 @@ function initGame() {
   state = {
     waterLevel: WATER_START,
     valveUsed:false, valveActive:false, valveTimer:0,
-    fishAlive:true, fishCaught:false,
+    fishAlive:true, fishCaught:false, fishHp:3,
     fishX:210, fishY:0, fishDir:1, fishAnim:0,
     spear:null,
     particles:[],
@@ -108,11 +108,16 @@ function initGame() {
     outcome:null, outcomeTimer:0
   };
   document.getElementById('valveBtn').disabled = false;
+  setFishHp(3);
   document.getElementById('valveSlider').disabled = false;
   setStatus('Abre la válvula para subir el agua');
 }
 
 function setStatus(t) { document.getElementById('statusEl').textContent = t; }
+function setFishHp(hp) {
+  const el = document.getElementById('fishHpEl');
+  if (el) el.textContent = '❤️'.repeat(Math.max(0,hp)) + '🖤'.repeat(Math.max(0,3-hp));
+}
 function updateUI()   { document.getElementById('livesEl').textContent = lives; }
 
 const LADDER_X   = PIT_R - 18;
@@ -230,13 +235,22 @@ function update(dt) {
       const fd = {x:s.fishX-14, y:s.fishY-10, w:28, h:20};
       const tip = {x:tipX-4, y:tipY-4, w:8, h:8};
       if (overlap(tip, fd)) {
-        s.fishAlive = false; s.fishCaught = true;
-        setStatus('¡Pescado! Sube por la escalera y llega a la puerta.');
-        for (let i=0;i<14;i++) s.particles.push({
+        s.fishHp--; setFishHp(s.fishHp);
+        for (let i=0;i<6;i++) s.particles.push({
           x:s.fishX, y:s.fishY,
-          vx:(Math.random()-0.5)*5, vy:-Math.random()*4-1, life:0.9
+          vx:(Math.random()-0.5)*5, vy:-Math.random()*4-1, life:0.7
         });
         s.spear = null;
+        if (s.fishHp <= 0) {
+          s.fishAlive = false; s.fishCaught = true;
+          setStatus('¡Pescado! Sube por la escalera y llega a la puerta.');
+          for (let i=0;i<14;i++) s.particles.push({
+            x:s.fishX, y:s.fishY,
+            vx:(Math.random()-0.5)*5, vy:-Math.random()*4-1, life:0.9
+          });
+        } else {
+          setStatus('¡Golpe! Le quedan ' + s.fishHp + ' vida' + (s.fishHp>1?'s':'') + ' al pez.');
+        }
       }
     }
     if (s.spear && s.spear.timer <= 0) s.spear = null;
