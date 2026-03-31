@@ -334,8 +334,9 @@ function update(dt) {
   for (const pl of platforms()) {
     if (!overlap({x:p.x,y:p.y,w:p.w,h:p.h},pl)) continue;
     const isLeftPlat = pl.x === 0 && pl.y === PLAT_L_Y;
-    // Skip right-edge X collision with left platform when player is on top (walking off edge)
-    if (isLeftPlat && p.vx > 0 && p.y + p.h <= PLAT_L_Y + 1) continue;
+    // Skip right-edge X collision with left platform when moving right —
+    // player should fall into pit naturally, not get pushed left
+    if (isLeftPlat && p.vx > 0) continue;
     if (p.vx>0) p.x=pl.x-p.w; else if (p.vx<0) p.x=pl.x+pl.w;
     p.vx=0;
   }
