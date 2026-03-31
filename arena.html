@@ -1396,6 +1396,8 @@ document.getElementById('valveBtn').onclick=function(){
 function enterArena() {
   setupHitListener();
   show('arena-screen');
+  // Re-set canvas dimensions in case it was hidden when page loaded
+  arenaCanvas.width = AW; arenaCanvas.height = AH;
   initArenaPlayer();
   arenaRunning = true;
   pushArenaPos();
