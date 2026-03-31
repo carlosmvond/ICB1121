@@ -253,6 +253,8 @@ canvas { display: block; width: 100%; image-rendering: pixelated; }
     <div class="btn" id="a-jumpBtn" style="background:rgba(255,80,80,0.35);border-color:rgba(255,80,80,0.6);font-size:24px;width:64px;height:64px;">&#8679;</div>
     <div class="btn" id="a-attackBtn" style="background:rgba(255,180,0,0.35);border-color:rgba(255,180,0,0.7);font-size:18px;">&#9876;</div>
     <div class="btn" id="a-acidBtn" style="display:none;background:rgba(60,200,40,0.35);border-color:rgba(60,200,40,0.7);font-size:18px;" onclick="playerAcid()">☣️</div>
+    <div class="btn" id="a-questionBtn" style="display:none;background:rgba(40,40,180,0.35);border-color:rgba(80,80,255,0.7);font-size:18px;" onclick="teacherQuestion()">❓</div>
+    <div class="btn" id="a-powerBtn" style="display:none;background:rgba(180,140,0,0.45);border-color:rgba(255,200,0,0.8);font-size:16px;" onclick="usePowerBtn()">⚡</div>
   </div>
 </div>
 
@@ -367,6 +369,7 @@ function joinAsTeacherPlayer() {
   myKey = playersRef.push({ name: 'Profesor', status: 'arena', deaths: 0, isProf: true }).key;
   playersRef.child(myKey).onDisconnect().remove();
   document.getElementById('a-acidBtn').style.display = 'flex';
+  document.getElementById('a-questionBtn').style.display = 'flex';
   enterArena();
 }
 
@@ -1090,7 +1093,10 @@ function updateArena(dt) {
 
   // Movement
   // Power timers
-  if (myPower && myPower.endTime && Date.now() > myPower.endTime) myPower = null;
+  if (myPower && myPower.endTime && Date.now() > myPower.endTime) {
+    myPower = null;
+    document.getElementById('a-powerBtn').style.display = 'none';
+  }
   if (myPower && myPower.id === 'invincible') arenaPlayer.invincible = 999;
   if (powerAnnouncement) {
     powerAnnouncement.timer -= dt;
@@ -1693,18 +1699,33 @@ function enterArena() {
 }
 
 function activatePower(powerId) {
-  myPower = { id: powerId, endTime: Date.now() + 10000 };
   if (powerId === 'acid') {
-    // Activate acid immediately
-    setTimeout(() => playerAcid(), 500);
-    myPower = null; // acid doesn't need ongoing tracking
-  } else if (powerId === 'invincible') {
-    arenaPlayer.invincible = 10;
-  } else if (powerId === 'fly') {
-    myPower.endTime = Date.now() + 10000;
-  } else if (powerId === 'onehit') {
-    myPower.endTime = Date.now() + 10000;
+    // Show acid button — player uses it once manually
+    const btn = document.getElementById('a-powerBtn');
+    btn.textContent = '☣️';
+    btn.style.display = 'flex';
+    btn.style.background = 'rgba(60,200,40,0.5)';
+    btn.style.borderColor = 'rgba(60,200,40,0.9)';
+    myPower = { id: 'acid', single: true };
+  } else {
+    myPower = { id: powerId, endTime: Date.now() + 10000 };
+    if (powerId === 'invincible') arenaPlayer.invincible = 10;
+    // Show power button as indicator
+    const pow = POWERS.find(p => p.id === powerId);
+    const btn = document.getElementById('a-powerBtn');
+    btn.textContent = pow ? pow.label.split(' ')[0] : '⚡';
+    btn.style.display = 'flex';
   }
+}
+
+function usePowerBtn() {
+  if (!myPower) return;
+  if (myPower.id === 'acid') {
+    playerAcid();
+    myPower = null;
+    document.getElementById('a-powerBtn').style.display = 'none';
+  }
+  // other powers activate automatically, button is just indicator
 }
 
 function answerQuestion(optIndex) {
