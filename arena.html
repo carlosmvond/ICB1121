@@ -3,6 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <title>Arena de Caudaleros</title>
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; -webkit-user-select: none; }
@@ -165,6 +168,7 @@ canvas { display: block; width: 100%; image-rendering: pixelated; }
     <div style="display:flex;gap:8px;margin-top:8px">
       <button class="tc-btn" style="background:#744;border-color:#f44;color:#faa;flex:1" onclick="teacherEndGame()">🏁 Terminar juego</button>
       <button class="tc-btn" style="background:#2a4a1a;border-color:#4a0;color:#af8;flex:1" onclick="teacherAcid()">☣️ Inundar ácido</button>
+      <button class="tc-btn" style="background:#1a2a4a;border-color:#44f;color:#aaf;flex:1" onclick="teacherQuestion()">❓ Pregunta</button>
     </div>
     <div style="display:flex;gap:8px;margin-top:8px">
       <button class="tc-btn tc-arena" onclick="teacherClearDeaths()">🗑 Borrar muertes</button>
@@ -272,7 +276,38 @@ const db = firebase.database();
 const playersRef = db.ref('game/players');
 const arenaRef   = db.ref('game/arena');
 const deathsRef  = db.ref('game/deaths');
-const killsRef   = db.ref('game/kills');
+const killsRef     = db.ref('game/kills');
+const questionRef  = db.ref('game/question');
+const powerRef     = db.ref('game/power');
+
+const QUESTIONS = [
+  { q:'¿Cuánto es el 25% de 200?', opts:['50','25','75','100'], ans:0 },
+  { q:'Producto $800 con 15% descuento. ¿Cuánto pagas?', opts:['$680','$700','$660','$720'], ans:0 },
+  { q:'Subes 20% y luego bajas 20%. ¿Cambio neto?', opts:['-4%','0%','+4%','-20%'], ans:0 },
+  { q:'El 20% del 30% de P se escribe como:', opts:['0.06·P','0.5·P','0.20·P','0.06+P'], ans:0 },
+  { q:'¿Cuántos mililitros hay en 2.5 litros?', opts:['2500','250','25000','25'], ans:0 },
+  { q:'¿Cuántos litros hay en 1 metro cúbico?', opts:['1000','100','10000','10'], ans:0 },
+  { q:'¿Cuántos cm³ hay en 1 m³?', opts:['1.000.000','1000','100.000','10.000'], ans:0 },
+  { q:'Estanque 2m×3m×0.5m. ¿Cuántos litros?', opts:['3000','300','30','30000'], ans:0 },
+  { q:'¿Cuántos m² tiene una habitación de 4m×3.5m?', opts:['14','12','7','16'], ans:0 },
+  { q:'¿Cuántos segundos hay en 2.5 horas?', opts:['9000','150','900','15000'], ans:0 },
+  { q:'¿Cuántos cm² hay en 1 m²?', opts:['10.000','1000','100','100.000'], ans:0 },
+  { q:'Si 3x + 7 = 22, ¿cuánto vale x?', opts:['5','7','3','15'], ans:0 },
+  { q:'Si 2x - 4 = x + 6, ¿cuánto vale x?', opts:['10','5','2','6'], ans:0 },
+  { q:'Si 5(x - 2) = 15, ¿cuánto vale x?', opts:['5','3','7','2'], ans:0 },
+  { q:'Si A+B=10 y A-B=4, ¿cuánto vale A?', opts:['7','6','3','5'], ans:0 },
+];
+
+const POWERS = [
+  { id:'invincible', label:'🛡 INVENCIBLE 10s', desc:'Invencible durante 10 segundos' },
+  { id:'onehit',    label:'⚡ GOLPE MORTAL',   desc:'Mata de un solo golpe' },
+  { id:'fly',       label:'🦅 VOLAR',           desc:'Puede volar libremente' },
+  { id:'acid',      label:'☣️ ÁCIDO',           desc:'Activa el ácido tóxico' },
+];
+
+let activeQuestion = null;   // current question shown on screen
+let myPower = null;          // my active power {id, endTime}
+let powerAnnouncement = null; // {name, label, timer}
 
 // On load: if status is 'ended' and no active session, clean it up automatically
 db.ref('game/status').once('value', snap => {
@@ -361,6 +396,11 @@ function teacherReset() {
   db.ref('game/hits').remove();
   document.getElementById('teacher-students').innerHTML = '<p style="color:#555;font-size:12px">Ningún jugador aún.</p>';
   document.getElementById('teacher-ranking-card').style.display = 'none';
+}
+
+function teacherQuestion() {
+  const q = QUESTIONS[Math.floor(Math.random() * QUESTIONS.length)];
+  questionRef.set({ ...q, t: Date.now(), answered: false, winner: null });
 }
 
 function teacherAcid() {
@@ -818,7 +858,7 @@ const ARENA_PLATS = [
   { x:0,     y:0,           w:12,  h:AH  }, // 1: left wall
   { x:AW-12, y:0,           w:12,  h:AH  }, // 2: right wall
   { x:60,    y:200,         w:100, h:12  }, // 3: platform left-low
-  { x:300,   y:185,         w:100, h:12  }, // 4: platform right-low
+  { x:280,   y:185,         w:100, h:12  }, // 4: platform right-low
   { x:170,   y:155,         w:120, h:12  }, // 5: platform mid
   { x:30,    y:40,          w:100, h:12  }, // 6: SECRET high platform (ladder only)
 ];
@@ -826,7 +866,7 @@ const ARENA_PLATS = [
 // Arena ladders: {x, top, bot, w}
 const ARENA_LADDERS = [
   { x:12,  top:40, bot:ARENA_FLOOR, w:14 }, // left wall ladder to secret platform
-  { x:390, top:185, bot:ARENA_FLOOR, w:14 }, // right ladder to right-low platform
+  { x:408, top:155, bot:ARENA_FLOOR, w:14 }, // right ladder — outside right edge of platform right-low
 ];
 
 function onArenaLadder(p) {
@@ -922,6 +962,25 @@ function enterArena() {
     }
   });
 
+  // Listen for questions
+  questionRef.on('value', snap => {
+    const data = snap.val();
+    if (!data || data.answered) { activeQuestion = null; return; }
+    activeQuestion = data;
+  });
+
+  // Listen for power grants
+  powerRef.on('value', snap => {
+    const data = snap.val();
+    if (!data) return;
+    // Show announcement to everyone
+    powerAnnouncement = { name: data.winner, label: data.powerLabel, timer: 4.0 };
+    // If it's me, activate power
+    if (data.winnerKey === myKey) {
+      activatePower(data.powerId);
+    }
+  });
+
   // Listen for game end — only act if we are in the arena
   let inArena = true;
   db.ref('game/status').on('value', snap => {
@@ -953,6 +1012,25 @@ function arenaLoop(ts) {
     if (pushTimer > 0.05) { pushArenaPos(); pushTimer = 0; }
   }
   drawArena();
+  // Listen for questions
+  questionRef.on('value', snap => {
+    const data = snap.val();
+    if (!data || data.answered) { activeQuestion = null; return; }
+    activeQuestion = data;
+  });
+
+  // Listen for power grants
+  powerRef.on('value', snap => {
+    const data = snap.val();
+    if (!data) return;
+    // Show announcement to everyone
+    powerAnnouncement = { name: data.winner, label: data.powerLabel, timer: 4.0 };
+    // If it's me, activate power
+    if (data.winnerKey === myKey) {
+      activatePower(data.powerId);
+    }
+  });
+
   // Listen for game end — only act if we are in the arena
   let inArena = true;
   db.ref('game/status').on('value', snap => {
@@ -991,7 +1069,8 @@ function updateArena(dt) {
       const ob = { x: v.ax, y: v.ay, w: 14, h: 18 };
       if (arenaOverlap({ x:tipX-5, y:tipY-5, w:10, h:10 }, ob)) {
         // Record hit — victim decides if it's a kill
-        db.ref('game/hits').push({ victim: k, attacker: myKey, t: Date.now() });
+        const isOneHit = myPower && myPower.id === 'onehit';
+        db.ref('game/hits').push({ victim: k, attacker: myKey, t: Date.now(), oneHit: isOneHit });
         arenaSpear = null;
       }
     });
@@ -1010,6 +1089,14 @@ function updateArena(dt) {
   // (handled in separate listener below)
 
   // Movement
+  // Power timers
+  if (myPower && myPower.endTime && Date.now() > myPower.endTime) myPower = null;
+  if (myPower && myPower.id === 'invincible') arenaPlayer.invincible = 999;
+  if (powerAnnouncement) {
+    powerAnnouncement.timer -= dt;
+    if (powerAnnouncement.timer <= 0) powerAnnouncement = null;
+  }
+
   const spd = 2.2;
   const onLad = onArenaLadder(p);
   p.climbing = onLad;
@@ -1018,10 +1105,16 @@ function updateArena(dt) {
   else if (arenaKeys.right) { p.vx = spd; p.facing = 1; }
   else p.vx *= 0.75;
 
-  if (onLad) {
+  if (myPower && myPower.id === 'fly') {
+    p.vy = 0; p.vx = arenaKeys.left ? -spd : arenaKeys.right ? spd : 0;
+    if (arenaKeys.jump) p.vy = -3;
+    else if (!arenaKeys.jump && !arenaKeys.left && !arenaKeys.right) {}
+    // down
+    const downKey = arenaKeys.down;
+    if (arenaKeys.attack && !arenaAttackPressed) p.vy = 3;
+  } else if (onLad) {
     p.vy = 0; p.vx *= 0.5;
     if (arenaKeys.jump) p.vy = -2.5;
-    else if (arenaKeys.left || arenaKeys.right) {} // allow lateral exit
   } else {
     p.vy += 0.32; if (p.vy > 9) p.vy = 9;
     if (arenaKeys.jump && p.onGround && !arenaJumpPressed) {
@@ -1109,7 +1202,7 @@ function setupHitListener() {
     const hit = snap.val();
     if (!hit || !myKey) return;
     if (hit.victim === myKey && !isProf && arenaPlayer && !arenaPlayer.dead && arenaPlayer.invincible <= 0) {
-      myHp--;
+      myHp = hit.oneHit ? 0 : myHp - 1;
       updateArenaHpDisplay();
       arenaPlayer.invincible = 0.8;
       for (let i = 0; i < 8; i++) arenaParticles.push({
@@ -1355,6 +1448,90 @@ function drawArena() {
   });
   actx.globalAlpha = 1;
 
+  // Question overlay
+  if (activeQuestion && !activeQuestion.answered) {
+    const qh = 160, qw = AW - 20, qx = 10, qy = AH/2 - qh/2;
+    actx.fillStyle = 'rgba(0,0,30,0.92)';
+    actx.beginPath();
+    actx.roundRect ? actx.roundRect(qx, qy, qw, qh, 10) : actx.rect(qx, qy, qw, qh);
+    actx.fill();
+    actx.strokeStyle = '#44f'; actx.lineWidth = 2; actx.stroke();
+
+    actx.fillStyle = '#ff8'; actx.font = 'bold 10px monospace'; actx.textAlign = 'center';
+    actx.fillText('❓ PREGUNTA — ¡El primero en responder gana un poder!', AW/2, qy + 16);
+
+    // Question text — wrap if needed
+    actx.fillStyle = '#fff'; actx.font = 'bold 11px monospace';
+    const words = activeQuestion.q.split(' ');
+    let line = '', ly = qy + 34;
+    words.forEach(w => {
+      const test = line + w + ' ';
+      if (actx.measureText(test).width > qw - 20 && line) {
+        actx.fillText(line.trim(), AW/2, ly); ly += 14; line = w + ' ';
+      } else line = test;
+    });
+    if (line) actx.fillText(line.trim(), AW/2, ly);
+
+    // Options
+    const cols = ['#4af','#fa4','#4f8','#f44'];
+    const labels = ['A','B','C','D'];
+    activeQuestion.opts.forEach((opt, i) => {
+      const ox = qx + 8 + (i % 2) * (qw/2 - 4);
+      const oy2 = qy + 90 + Math.floor(i/2) * 32;
+      const wrong = activeQuestion.wrongAnswer;
+      actx.fillStyle = wrong ? 'rgba(80,0,0,0.8)' : `rgba(${i===0?'20,60,120':i===1?'80,50,10':i===2?'10,70,30':'80,10,10'},0.9)`;
+      actx.beginPath();
+      actx.roundRect ? actx.roundRect(ox, oy2, qw/2-12, 26, 6) : actx.rect(ox, oy2, qw/2-12, 26);
+      actx.fill();
+      actx.strokeStyle = cols[i]; actx.lineWidth = 1.5; actx.stroke();
+      actx.fillStyle = '#fff'; actx.font = 'bold 10px monospace'; actx.textAlign = 'left';
+      actx.fillText(labels[i]+') '+opt, ox+6, oy2+17);
+    });
+
+    // Tap zones — detect click/tap on canvas
+    if (!arenaCanvas._qListener) {
+      arenaCanvas._qListener = true;
+      arenaCanvas.addEventListener('click', e => {
+        if (!activeQuestion || activeQuestion.answered) return;
+        const rect = arenaCanvas.getBoundingClientRect();
+        const cx = (e.clientX - rect.left) * (AW / rect.width);
+        const cy = (e.clientY - rect.top) * (AH / rect.height);
+        const qhh = 160, qww = AW-20, qxx=10, qyy=AH/2-qhh/2;
+        activeQuestion.opts.forEach((_, i) => {
+          const ox = qxx+8+(i%2)*(qww/2-4);
+          const oy2 = qyy+90+Math.floor(i/2)*32;
+          if (cx>=ox && cx<=ox+qww/2-12 && cy>=oy2 && cy<=oy2+26) {
+            answerQuestion(i);
+          }
+        });
+      });
+    }
+  }
+
+  // Power announcement banner
+  if (powerAnnouncement) {
+    const pulse = 0.8 + 0.2*Math.sin(Date.now()*0.01);
+    actx.globalAlpha = Math.min(1, powerAnnouncement.timer / 1.5) * pulse;
+    actx.fillStyle = 'rgba(0,0,0,0.8)';
+    actx.fillRect(0, 10, AW, 36);
+    actx.fillStyle = '#ff8'; actx.font = 'bold 11px monospace'; actx.textAlign = 'center';
+    actx.fillText('🏆 ' + powerAnnouncement.name + ' ganó: ' + powerAnnouncement.label, AW/2, 24);
+    actx.fillStyle = '#aaa'; actx.font = '9px monospace';
+    actx.fillText('¡primer@ en responder!', AW/2, 38);
+    actx.globalAlpha = 1;
+  }
+
+  // My active power indicator
+  if (myPower && myPower.endTime) {
+    const remaining = Math.ceil((myPower.endTime - Date.now()) / 1000);
+    if (remaining > 0) {
+      const pow = POWERS.find(p => p.id === myPower.id);
+      actx.fillStyle = 'rgba(255,220,0,0.9)';
+      actx.font = 'bold 10px monospace'; actx.textAlign = 'left';
+      actx.fillText((pow?pow.label:'PODER') + ' ' + remaining+'s', 14, AH-8);
+    }
+  }
+
   // Dead overlay with countdown
   if (p.dead) {
     actx.fillStyle = 'rgba(0,0,0,0.6)';
@@ -1488,12 +1665,63 @@ function enterArena() {
       }
     }
   });
+  // Listen for questions
+  questionRef.on('value', snap => {
+    const data = snap.val();
+    if (!data || data.answered) { activeQuestion = null; return; }
+    activeQuestion = data;
+  });
+
+  // Listen for power grants
+  powerRef.on('value', snap => {
+    const data = snap.val();
+    if (!data) return;
+    // Show announcement to everyone
+    powerAnnouncement = { name: data.winner, label: data.powerLabel, timer: 4.0 };
+    // If it's me, activate power
+    if (data.winnerKey === myKey) {
+      activatePower(data.powerId);
+    }
+  });
+
   // Listen for game end — only act if we are in the arena
   let inArena = true;
   db.ref('game/status').on('value', snap => {
     if (snap.val() === 'ended' && inArena) showEndScreen();
   });
   requestAnimationFrame(arenaLoop);
+}
+
+function activatePower(powerId) {
+  myPower = { id: powerId, endTime: Date.now() + 10000 };
+  if (powerId === 'acid') {
+    // Activate acid immediately
+    setTimeout(() => playerAcid(), 500);
+    myPower = null; // acid doesn't need ongoing tracking
+  } else if (powerId === 'invincible') {
+    arenaPlayer.invincible = 10;
+  } else if (powerId === 'fly') {
+    myPower.endTime = Date.now() + 10000;
+  } else if (powerId === 'onehit') {
+    myPower.endTime = Date.now() + 10000;
+  }
+}
+
+function answerQuestion(optIndex) {
+  if (!activeQuestion || activeQuestion.answered) return;
+  if (activeQuestion.ans === optIndex) {
+    // Correct! Claim reward
+    const power = POWERS[Math.floor(Math.random() * POWERS.length)];
+    questionRef.update({ answered: true, winner: myName, winnerKey: myKey });
+    powerRef.set({ winner: myName, winnerKey: myKey, powerId: power.id, powerLabel: power.label, t: Date.now() });
+    activeQuestion = null;
+  } else {
+    // Wrong — just close question for this player temporarily
+    activeQuestion = { ...activeQuestion, wrongAnswer: true };
+    setTimeout(() => {
+      if (activeQuestion) activeQuestion.wrongAnswer = false;
+    }, 1500);
+  }
 }
 
 function showEndScreen() {
