@@ -305,7 +305,7 @@ function initGame(){
   player={x:WALL_W+8,y:PLAT_L_Y-20,w:14,h:18,vx:0,vy:0,onGround:false,dead:false,deathTimer:0,invincible:0,facing:1,swimming:false};
   state={waterLevel:WATER_START,valveUsed:false,valveActive:false,valveTimer:0,
     fishAlive:true,fishCaught:false,fishHp:3,fishX:210,fishY:0,fishDir:1,fishAnim:0,
-    spear:null,particles:[],waterDrops:[],outcome:null,outcomeTimer:0};
+    spear:null,particles:[],waterDrops:[],outcome:null,outcomeTimer:0,trapTriggered:false,trapAnim:0,trapDelay:0};
   document.getElementById('valveBtn').disabled=false;
   document.getElementById('valveSlider').disabled=false;
   setFishHp(3); setStatus('Abre la válvula para subir el agua');
@@ -364,12 +364,16 @@ function updatePuzzle(dt){
   }
   s.particles=s.particles.filter(sp=>{sp.x+=sp.vx;sp.y+=sp.vy;sp.vy+=0.18;sp.life-=dt;return sp.life>0;});
   // Hidden trap: opens when player walks over it after catching fish
+  // 1.5s grace period so it doesn't trigger right when fish dies
   if(s.fishCaught && !s.trapTriggered) {
-    const overTrap = p.x+p.w > TRAP_X && p.x < TRAP_X+TRAP_W;
-    const onPlat = p.onGround && p.y+p.h <= PLAT_R_Y+4;
-    if(overTrap && onPlat) s.trapTriggered = true;
+    if(s.trapDelay < 1.5) { s.trapDelay += dt; }
+    else {
+      const overTrap = p.x+p.w > TRAP_X && p.x < TRAP_X+TRAP_W;
+      const onPlat = p.onGround && p.y+p.h <= PLAT_R_Y+4;
+      if(overTrap && onPlat) s.trapTriggered = true;
+    }
   }
-  s.trapAnim = s.trapTriggered ? Math.min(1, s.trapAnim + dt*5) : 0;
+  s.trapAnim = s.trapTriggered ? Math.min(1, s.trapAnim + dt*5) : s.trapAnim;
 
   if(s.fishCaught&&p.x+p.w>FLAG_X&&p.x<FLAG_X+DOOR_W&&p.y+p.h>FLAG_Y&&p.y<FLAG_Y+DOOR_H)if(!s.outcome){s.outcome='win';s.outcomeTimer=0.4;}
   if(p.invincible>0)p.invincible-=dt;
