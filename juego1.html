@@ -71,7 +71,7 @@ const PIT_L     = 130;
 const PIT_R     = 310;
 const PIT_BOT   = 260;
 const WALL_W    = 12;
-const FLOW_RATE = 4;
+const FLOW_RATE = 5;
 
 const BEAR_X   = 68;
 const DOOR_W   = 22;
@@ -104,6 +104,7 @@ function initGame() {
     fishX:210, fishY:0, fishDir:1, fishAnim:0,
     spear:null,
     particles:[],
+    waterDrops:[],
     outcome:null, outcomeTimer:0
   };
   document.getElementById('valveBtn').disabled = false;
@@ -173,9 +174,20 @@ function update(dt) {
   }
 
   if (s.valveActive) {
-    s.valveTimer -= dt;
+    s.valveTimer -= dt * 3;
     s.waterLevel = Math.max(s.waterLevel - FLOW_RATE*dt, 55);
     if (s.valveTimer<=0 || s.waterLevel<=55) { s.valveActive=false; }
+    // Spawn water stream from pipe high on left wall of pit
+    const numDrops = Math.floor(2 + Math.random()*3);
+    for (let i = 0; i < numDrops; i++) {
+      s.waterDrops.push({
+        x: PIT_L + 2 + Math.random()*3,
+        y: PLAT_R_Y + 10 + Math.random()*10,
+        vx: 1.5 + Math.random()*2,
+        vy: -1 + Math.random()*2,
+        life: 1
+      });
+    }
     const pct = Math.round((PIT_BOT - s.waterLevel) / PIT_VOLUME * 100);
     setStatus('Llenando... ' + Math.max(0,s.valveTimer).toFixed(1)+'s  |  ' + pct + '%');
   } else if (s.valveUsed && !s.fishCaught && !s.fishEscaped) {
@@ -199,7 +211,22 @@ function update(dt) {
     // Hit detection: tip position
     const tipX = p.x + p.w/2 + Math.cos(s.spear.angle) * s.spear.reach;
     const tipY = p.y + p.h/2 + Math.sin(s.spear.angle) * s.spear.reach;
-    if (s.fishAlive) {
+    // Update water drops
+  s.waterDrops = s.waterDrops.filter(d => {
+    d.x += d.vx * dt * 60;
+    d.y += d.vy * dt * 60;
+    d.vy += 0.5;
+    if (d.vy > 12) d.vy = 12;
+    d.life -= dt * 0.8;
+    if (d.y > s.waterLevel) { // splash
+      // spawn splash particles
+      d.life = 0;
+    }
+    if (d.x > PIT_R - 4) { d.vx *= -0.5; d.x = PIT_R - 4; }
+    return d.life > 0 && d.y < s.waterLevel + 2;
+  });
+
+  if (s.fishAlive) {
       const fd = {x:s.fishX-14, y:s.fishY-10, w:28, h:20};
       const tip = {x:tipX-4, y:tipY-4, w:8, h:8};
       if (overlap(tip, fd)) {
@@ -234,8 +261,9 @@ function update(dt) {
   if (s.fishAlive) {
     const waterOver = wY < PLAT_L_Y;
     const waterBot  = PIT_BOT;
-    // Fish target Y: near surface when water is contained in pit, mid-depth when flooded
-    const waterMid  = waterOver ? wY + (waterBot - wY) * 0.55 : wY + 10;
+    // Fish target Y: near surface when player not forced to swim, mid-depth when flooded
+    const playerForcedSwim = wY < p.y + p.h/2;
+    const waterMid = playerForcedSwim ? wY + (waterBot - wY) * 0.55 : wY + 6;
 
     // Fish X limits: the left platform (café wall) is solid up to PLAT_L_Y.
     // The fish can only cross left of PIT_L if it is swimming ABOVE the platform surface,
@@ -399,6 +427,54 @@ function draw() {
   }
 
   const surfaceY = wY;
+  {
+    // Pipe always visible on left wall of pit, near top
+    const pipeX = PIT_L + 1;
+    const pipeY = PLAT_R_Y + 20;
+    // Pipe body protruding from wall
+    ctx.fillStyle = '#333';
+    ctx.fillRect(pipeX, pipeY - 5, 16, 10);
+    ctx.fillStyle = '#555';
+    ctx.fillRect(pipeX + 1, pipeY - 4, 14, 8);
+    ctx.fillStyle = '#444';
+    ctx.fillRect(pipeX + 12, pipeY - 5, 5, 10);
+    // Pipe opening (dark hole)
+    ctx.fillStyle = '#111';
+    ctx.fillRect(pipeX + 14, pipeY - 3, 4, 6);
+
+    // Animated water stream when valve active
+    if (state.valveActive) {
+      const streamX = pipeX + 16;
+      const streamTop = pipeY;
+      const streamBot = state.waterLevel;
+      const t = Date.now() / 120;
+      // Draw segmented animated stream
+      const segments = 10;
+      for (let i = 0; i < segments; i++) {
+        const frac = i / segments;
+        const sy = streamTop + (streamBot - streamTop) * frac;
+        const sy2 = streamTop + (streamBot - streamTop) * (i+1) / segments;
+        const wobble = Math.sin(t + i * 1.2) * 1.2;
+        const alpha = 0.5 + 0.4 * Math.sin(t * 2 + i);
+        ctx.strokeStyle = `rgba(80,170,255,${alpha})`;
+        ctx.lineWidth = 3 + Math.sin(t + i) * 0.8;
+        ctx.lineCap = 'round';
+        ctx.beginPath();
+        ctx.moveTo(streamX + wobble, sy);
+        ctx.lineTo(streamX + wobble, sy2);
+        ctx.stroke();
+      }
+      // Splash at water surface
+      const splashW = 6 + Math.sin(t * 3) * 2;
+      ctx.strokeStyle = 'rgba(140,210,255,0.6)';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(streamX - splashW, streamBot);
+      ctx.lineTo(streamX + splashW, streamBot);
+      ctx.stroke();
+    }
+  }
+
   ctx.strokeStyle='rgba(140,210,255,0.9)'; ctx.lineWidth=1.5;
   ctx.beginPath();
   const leftEdge  = wY < PLAT_L_Y ? WALL_W : PIT_L;
