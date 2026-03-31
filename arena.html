@@ -1238,7 +1238,7 @@ function drawArena() {
   }
 
   // Draw acid
-  if (acidDir !== 0 || acidLevel < ACID_MAX_Y) {
+  if (acidDir !== 0 || acidLevel < ACID_BOT_Y) {
     const t = Date.now() / 400;
     const grad = actx.createLinearGradient(0, acidLevel, 0, AH);
     grad.addColorStop(0, 'rgba(80,220,60,0.85)');
