@@ -162,6 +162,9 @@ canvas { display: block; width: 100%; image-rendering: pixelated; }
       <button class="tc-btn tc-start" onclick="teacherOpenArena()">⚔ Abrir Arena</button>
       <button class="tc-btn tc-reset" onclick="teacherReset()">↺ Resetear todo</button>
     </div>
+    <div style="display:flex;gap:8px;margin-top:8px">
+      <button class="tc-btn" style="background:#744;border-color:#f44;color:#faa;flex:1" onclick="teacherEndGame()">🏁 Terminar juego</button>
+    </div>
     <div style="display:flex;gap:8px">
       <button class="tc-btn tc-arena" onclick="teacherClearDeaths()">🗑 Borrar muertes</button>
       <button class="tc-btn" style="background:#222;border-color:#555;color:#aaa" onclick="joinAsTeacherPlayer()">🎮 Entrar a jugar</button>
@@ -177,6 +180,24 @@ canvas { display: block; width: 100%; image-rendering: pixelated; }
   </div>
 </div>
 
+
+<!-- ── END GAME SCREEN ── -->
+<div id="end-screen" style="display:none;width:100%;max-width:520px;margin:0 auto;padding:16px;color:#fff">
+  <div style="background:#1a0a0a;border:1px solid #5a2a1a;border-radius:14px;padding:20px;text-align:center;margin-bottom:12px">
+    <h2 style="color:#f84;font-size:20px;margin-bottom:4px">⚔ Fin de la Arena</h2>
+    <p style="color:#888;font-size:12px">Resultados finales</p>
+  </div>
+  <div style="display:flex;gap:10px;margin-bottom:12px">
+    <div style="flex:1;background:#1a0a0a;border:1px solid #5a2a1a;border-radius:12px;padding:14px">
+      <div style="color:#ff8;font-size:11px;font-weight:bold;margin-bottom:8px;text-align:center">⚔ KILLS</div>
+      <div id="end-kills-list"></div>
+    </div>
+    <div style="flex:1;background:#1a0a0a;border:1px solid #5a2a1a;border-radius:12px;padding:14px">
+      <div style="color:#f44;font-size:11px;font-weight:bold;margin-bottom:8px;text-align:center">💀 MUERTES</div>
+      <div id="end-deaths-list"></div>
+    </div>
+  </div>
+</div>
 <!-- ── PUZZLE GAME ── -->
 <div id="game-screen">
   <div id="ui">
@@ -211,7 +232,9 @@ canvas { display: block; width: 100%; image-rendering: pixelated; }
 <!-- ── ARENA ── -->
 <div id="arena-screen">
   <div id="arena-ui">
-    <span id="arena-status">⚔ Arena</span>
+    <span id="arena-status" style="color:#4ef">⚔ Arena de Caudaleros</span>
+    <span id="arena-hp" style="font-size:14px">❤️❤️❤️</span>
+    <span style="color:#ff8">Kills: <span id="my-kills">0</span></span>
     <span style="color:#f44">Muertes: <span id="my-deaths">0</span></span>
   </div>
   <div id="arena-canvas-wrap">
@@ -247,6 +270,7 @@ const db = firebase.database();
 const playersRef = db.ref('game/players');
 const arenaRef   = db.ref('game/arena');
 const deathsRef  = db.ref('game/deaths');
+const killsRef   = db.ref('game/kills');
 
 // ═══════════════════════════════════════════════════════
 // GLOBAL STATE
@@ -317,6 +341,11 @@ function teacherReset() {
   deathsRef.remove();
   document.getElementById('teacher-students').innerHTML = '<p style="color:#555;font-size:12px">Ningún jugador aún.</p>';
   document.getElementById('teacher-ranking-card').style.display = 'none';
+}
+
+function teacherEndGame() {
+  if (!confirm('¿Terminar el juego y mostrar resultados finales a todos?')) return;
+  db.ref('game/status').set('ended');
 }
 
 function teacherClearDeaths() {
@@ -752,22 +781,38 @@ const arenaCanvas = document.getElementById('arena-canvas');
 const actx = arenaCanvas.getContext('2d');
 arenaCanvas.width = AW; arenaCanvas.height = AH;
 
-// Arena layout — simple flat room with platforms
+// Arena layout
 const ARENA_FLOOR = AH - 30;
 const ARENA_PLATS = [
-  { x:0,   y:ARENA_FLOOR, w:AW,  h:30  }, // floor
-  { x:0,   y:0,           w:12,  h:AH  }, // left wall
-  { x:AW-12, y:0,         w:12,  h:AH  }, // right wall
-  { x:80,  y:180,         w:90,  h:12  }, // platform 1
-  { x:280, y:160,         w:90,  h:12  }, // platform 2
-  { x:170, y:110,         w:120, h:12  }, // platform 3 (top center)
+  { x:0,     y:ARENA_FLOOR, w:AW,  h:30  }, // 0: floor
+  { x:0,     y:0,           w:12,  h:AH  }, // 1: left wall
+  { x:AW-12, y:0,           w:12,  h:AH  }, // 2: right wall
+  { x:60,    y:200,         w:100, h:12  }, // 3: platform left-low
+  { x:300,   y:185,         w:100, h:12  }, // 4: platform right-low
+  { x:170,   y:155,         w:120, h:12  }, // 5: platform mid
+  { x:30,    y:40,          w:100, h:12  }, // 6: SECRET high platform (ladder only)
 ];
+
+// Arena ladders: {x, top, bot, w}
+const ARENA_LADDERS = [
+  { x:12,  top:40, bot:ARENA_FLOOR, w:14 }, // left wall ladder to secret platform
+  { x:390, top:185, bot:ARENA_FLOOR, w:14 }, // right ladder to right-low platform
+];
+
+function onArenaLadder(p) {
+  return ARENA_LADDERS.some(l =>
+    p.x+p.w > l.x && p.x < l.x+l.w &&
+    p.y+p.h > l.top && p.y < l.bot
+  );
+}
 
 let arenaPlayer = null;
 let arenaKeys = { left:false, right:false, jump:false, attack:false };
 let arenaJumpPressed = false, arenaAttackPressed = false;
 let otherPlayers = {}; // from Firebase
 let myDeaths = 0;
+let myKills = 0;
+let myHp = 3;
 let arenaSpear = null;
 let arenaParticles = [];
 let arenaRunning = false;
@@ -780,18 +825,26 @@ function colorForName(name) {
   return PLAYER_COLORS[h % PLAYER_COLORS.length];
 }
 
-function initArenaPlayer() {
+function initArenaPlayer(respawn) {
   arenaPlayer = {
-    x: 50 + Math.random() * (AW - 100),
-    y: ARENA_FLOOR - 60,
+    x: 80 + Math.random() * (AW - 160),
+    y: ARENA_FLOOR - 30,
     w: 14, h: 18,
     vx: 0, vy: 0,
     onGround: false,
     dead: false, deathTimer: 0,
-    invincible: 0,
-    facing: 1
+    invincible: respawn ? 2.5 : 0,
+    facing: 1,
+    climbing: false
   };
+  if (!respawn) myHp = 3;
   arenaSpear = null;
+  updateArenaHpDisplay();
+}
+
+function updateArenaHpDisplay() {
+  document.getElementById('arena-hp').textContent =
+    '❤️'.repeat(Math.max(0,myHp)) + '🖤'.repeat(Math.max(0,3-myHp));
 }
 
 function enterArena() {
@@ -832,6 +885,10 @@ function enterArena() {
     }
   });
 
+  // Listen for game end
+  db.ref('game/status').on('value', snap => {
+    if (snap.val() === 'ended') showEndScreen();
+  });
   requestAnimationFrame(arenaLoop);
 }
 
@@ -857,6 +914,10 @@ function arenaLoop(ts) {
     if (pushTimer > 0.05) { pushArenaPos(); pushTimer = 0; }
   }
   drawArena();
+  // Listen for game end
+  db.ref('game/status').on('value', snap => {
+    if (snap.val() === 'ended') showEndScreen();
+  });
   requestAnimationFrame(arenaLoop);
 }
 
@@ -868,7 +929,8 @@ function updateArena(dt) {
   if (p.dead) {
     p.deathTimer -= dt;
     if (p.deathTimer <= 0) {
-      initArenaPlayer();
+      myHp = 3;
+      initArenaPlayer(true);
     }
     return;
   }
@@ -899,8 +961,8 @@ function updateArena(dt) {
   // Launch spear
   if (arenaKeys.attack && !arenaAttackPressed && !p.dead && !arenaSpear) {
     arenaAttackPressed = true;
-    const angle = p.facing === 1 ? Math.PI * 0.15 : Math.PI * 0.85;
-    arenaSpear = { angle, reach: 0, maxReach: 40, timer: 0.35, duration: 0.35 };
+    const angle = p.facing === 1 ? 0 : Math.PI;
+    arenaSpear = { angle, reach: 0, maxReach: 44, timer: 0.35, duration: 0.35 };
   }
   if (!arenaKeys.attack) arenaAttackPressed = false;
 
@@ -909,13 +971,22 @@ function updateArena(dt) {
 
   // Movement
   const spd = 2.2;
+  const onLad = onArenaLadder(p);
+  p.climbing = onLad;
+
   if (arenaKeys.left) { p.vx = -spd; p.facing = -1; }
   else if (arenaKeys.right) { p.vx = spd; p.facing = 1; }
   else p.vx *= 0.75;
 
-  p.vy += 0.32; if (p.vy > 9) p.vy = 9;
-  if (arenaKeys.jump && p.onGround && !arenaJumpPressed) {
-    p.vy = -6.5; p.onGround = false; arenaJumpPressed = true;
+  if (onLad) {
+    p.vy = 0; p.vx *= 0.5;
+    if (arenaKeys.jump) p.vy = -2.5;
+    else if (arenaKeys.left || arenaKeys.right) {} // allow lateral exit
+  } else {
+    p.vy += 0.32; if (p.vy > 9) p.vy = 9;
+    if (arenaKeys.jump && p.onGround && !arenaJumpPressed) {
+      p.vy = -6.5; p.onGround = false; arenaJumpPressed = true;
+    }
   }
   if (!arenaKeys.jump) arenaJumpPressed = false;
 
@@ -952,18 +1023,30 @@ function setupHitListener() {
     const hit = snap.val();
     if (!hit || !myKey) return;
     if (hit.victim === myKey && !isProf && arenaPlayer && !arenaPlayer.dead && arenaPlayer.invincible <= 0) {
-      // I got hit!
-      arenaPlayer.dead = true;
-      arenaPlayer.deathTimer = 1.5;
-      myDeaths++;
-      document.getElementById('my-deaths').textContent = myDeaths;
-      // Update deaths board
-      deathsRef.child(myKey).set({ name: myName, count: myDeaths });
-      // Particles
-      for (let i = 0; i < 12; i++) arenaParticles.push({
+      myHp--;
+      updateArenaHpDisplay();
+      arenaPlayer.invincible = 0.8;
+      for (let i = 0; i < 8; i++) arenaParticles.push({
         x: arenaPlayer.x + arenaPlayer.w/2, y: arenaPlayer.y + arenaPlayer.h/2,
-        vx: (Math.random()-0.5)*6, vy: -Math.random()*5-1, life: 0.9
+        vx: (Math.random()-0.5)*6, vy: -Math.random()*5-1, life: 0.7
       });
+      if (myHp <= 0) {
+        arenaPlayer.dead = true;
+        arenaPlayer.deathTimer = 1.8;
+        myDeaths++;
+        myHp = 3;
+        document.getElementById('my-deaths').textContent = myDeaths;
+        deathsRef.child(myKey).set({ name: myName, count: myDeaths });
+        for (let i = 0; i < 14; i++) arenaParticles.push({
+          x: arenaPlayer.x + arenaPlayer.w/2, y: arenaPlayer.y + arenaPlayer.h/2,
+          vx: (Math.random()-0.5)*7, vy: -Math.random()*6-2, life: 1.0
+        });
+      }
+    }
+    if (hit.attacker === myKey) {
+      myKills++;
+      killsRef.child(myKey).set({ name: myName, count: myKills });
+      document.getElementById('my-kills').textContent = myKills;
     }
   });
 }
@@ -993,22 +1076,48 @@ function drawArena() {
     }
   });
 
-  // Deaths scoreboard on back wall
-  const deaths = Object.entries(otherPlayers)
-    .filter(([k,v]) => v.deaths > 0 || myDeaths > 0)
-    .map(([k,v]) => ({ name: v.name, deaths: v.deaths||0 }));
-  deaths.push({ name: myName, deaths: myDeaths });
-  deaths.sort((a,b) => b.deaths - a.deaths);
+  // Draw ladders
+  ARENA_LADDERS.forEach(l => {
+    actx.strokeStyle = '#7a5c2e'; actx.lineWidth = 2.5;
+    actx.beginPath(); actx.moveTo(l.x+2, l.top); actx.lineTo(l.x+2, l.bot); actx.stroke();
+    actx.beginPath(); actx.moveTo(l.x+l.w-2, l.top); actx.lineTo(l.x+l.w-2, l.bot); actx.stroke();
+    actx.strokeStyle = '#9a7a3e'; actx.lineWidth = 2;
+    for (let ry = l.top+8; ry < l.bot; ry += 12) {
+      actx.beginPath(); actx.moveTo(l.x+2, ry); actx.lineTo(l.x+l.w-2, ry); actx.stroke();
+    }
+  });
 
-  if (deaths.length > 0) {
-    actx.fillStyle = 'rgba(0,0,0,0.5)';
-    actx.fillRect(AW/2 - 70, 8, 140, 10 + deaths.length * 13);
-    actx.fillStyle = '#f44'; actx.font = 'bold 8px monospace'; actx.textAlign = 'center';
-    actx.fillText('💀 MUERTES', AW/2, 17);
-    deaths.forEach((d, i) => {
-      actx.fillStyle = d.name === myName ? '#ff8' : '#ccc';
-      actx.font = '8px monospace';
-      actx.fillText(d.name + ': ' + d.deaths, AW/2, 28 + i*13);
+  // Scoreboards (left=kills, right=deaths)
+  const allNames = new Set([myName, ...Object.values(otherPlayers).map(v=>v.name)]);
+  const scoreData = Array.from(allNames).map(n => {
+    const isMe = n === myName;
+    const k = isMe ? myKills : (Object.values(otherPlayers).find(v=>v.name===n)||{}).kills||0;
+    const d = isMe ? myDeaths : (Object.values(otherPlayers).find(v=>v.name===n)||{}).deaths||0;
+    return { name: n, kills: k, deaths: d };
+  });
+
+  // Left scoreboard — kills
+  const byKills = [...scoreData].sort((a,b)=>b.kills-a.kills);
+  if (byKills.length) {
+    actx.fillStyle='rgba(0,0,0,0.55)'; actx.fillRect(14,8,90,12+byKills.length*12);
+    actx.fillStyle='#ff8'; actx.font='bold 7px monospace'; actx.textAlign='left';
+    actx.fillText('⚔ KILLS',16,18);
+    byKills.forEach((d,i)=>{
+      actx.fillStyle = d.name===myName?'#ff8':'#ccc';
+      actx.font='7px monospace';
+      actx.fillText(d.name+': '+d.kills, 16, 28+i*12);
+    });
+  }
+  // Right scoreboard — deaths
+  const byDeaths = [...scoreData].sort((a,b)=>b.deaths-a.deaths);
+  if (byDeaths.length) {
+    actx.fillStyle='rgba(0,0,0,0.55)'; actx.fillRect(AW-104,8,90,12+byDeaths.length*12);
+    actx.fillStyle='#f44'; actx.font='bold 7px monospace'; actx.textAlign='left';
+    actx.fillText('💀 MUERTES',AW-102,18);
+    byDeaths.forEach((d,i)=>{
+      actx.fillStyle = d.name===myName?'#ff8':'#ccc';
+      actx.font='7px monospace';
+      actx.fillText(d.name+': '+d.deaths, AW-102, 28+i*12);
     });
   }
 
@@ -1073,11 +1182,15 @@ function drawArena() {
     actx.restore();
   }
 
-  // My name
+  // My name + hearts
   actx.globalAlpha = 1;
   actx.fillStyle = isProf ? '#f84' : '#fff';
   actx.font = 'bold 9px monospace'; actx.textAlign = 'center';
   actx.fillText(myName, p.x+p.w/2, p.y-3);
+  if (!isProf) {
+    actx.font = '9px monospace';
+    actx.fillText('❤️'.repeat(Math.max(0,myHp))+'🖤'.repeat(Math.max(0,3-myHp)), p.x+p.w/2, p.y-13);
+  }
   if (isProf) { actx.fillStyle='#f84'; actx.fillText('👑PROF', p.x+p.w/2, p.y-11); }
 
   // Particles
@@ -1181,6 +1294,12 @@ function enterArena() {
       if (k !== myKey && v.status === 'arena') otherPlayers[k] = v;
     });
   });
+  killsRef.on('value', snap => {
+    const data = snap.val() || {};
+    Object.entries(data).forEach(([k,v]) => {
+      if (otherPlayers[k]) otherPlayers[k].kills = v.count;
+    });
+  });
   deathsRef.on('value', snap => {
     const data = snap.val() || {};
     const card = document.getElementById('teacher-ranking-card');
@@ -1199,8 +1318,43 @@ function enterArena() {
       }
     }
   });
+  // Listen for game end
+  db.ref('game/status').on('value', snap => {
+    if (snap.val() === 'ended') showEndScreen();
+  });
   requestAnimationFrame(arenaLoop);
 }
+
+function showEndScreen() {
+  arenaRunning = false;
+  show('end-screen');
+  // Load kills and deaths from Firebase
+  Promise.all([
+    killsRef.once('value'),
+    deathsRef.once('value')
+  ]).then(([killsSnap, deathsSnap]) => {
+    const kills = Object.values(killsSnap.val()||{}).sort((a,b)=>b.count-a.count);
+    const deaths = Object.values(deathsSnap.val()||{}).sort((a,b)=>b.count-a.count);
+    const medals = ['🥇','🥈','🥉'];
+    document.getElementById('end-kills-list').innerHTML = kills.length
+      ? kills.map((v,i)=>`<div style="display:flex;justify-content:space-between;padding:4px 0;font-size:12px;border-bottom:1px solid #3a1a0a">
+          <span>${medals[i]||''} ${v.name}</span><span style="color:#ff8;font-weight:bold">${v.count}</span>
+        </div>`).join('')
+      : '<p style="color:#555;font-size:11px">Sin kills</p>';
+    document.getElementById('end-deaths-list').innerHTML = deaths.length
+      ? deaths.map((v,i)=>`<div style="display:flex;justify-content:space-between;padding:4px 0;font-size:12px;border-bottom:1px solid #3a1a0a">
+          <span>${medals[i]||''} ${v.name}</span><span style="color:#f44;font-weight:bold">${v.count}</span>
+        </div>`).join('')
+      : '<p style="color:#555;font-size:11px">Sin muertes</p>';
+  });
+}
+
+// Also listen for game end from teacher screen
+db.ref('game/status').on('value', snap => {
+  if (snap.val() === 'ended' && document.getElementById('arena-screen').style.display !== 'none') {
+    showEndScreen();
+  }
+});
 </script>
 </body>
 </html>
