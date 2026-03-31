@@ -2,345 +2,239 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ICB1121 — Actividad interactiva</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Arena de Caudaleros</title>
 <style>
-*{box-sizing:border-box;margin:0;padding:0}
-body{font-family:system-ui,sans-serif;background:#f0f0ee;color:#1a1a1a;padding:1rem;max-width:560px;margin:0 auto}
+* { box-sizing: border-box; margin: 0; padding: 0; user-select: none; -webkit-user-select: none; }
+body { background: #111; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; font-family: monospace; }
 
-/* ── screens ── */
-.screen{display:none}
-.screen.active{display:block}
+/* ── LOGIN SCREEN ── */
+#login-screen {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  min-height: 100vh; width: 100%; padding: 20px;
+}
+.login-card {
+  background: #1a1a1a; border: 1px solid #333; border-radius: 16px;
+  padding: 32px 24px; width: 100%; max-width: 360px; text-align: center;
+}
+.login-card h1 { color: #4ef; font-size: 22px; margin-bottom: 4px; }
+.login-card p { color: #888; font-size: 12px; margin-bottom: 20px; }
+.login-card input {
+  width: 100%; background: #111; border: 1px solid #444; border-radius: 8px;
+  color: #fff; font-size: 18px; font-family: monospace; padding: 10px 14px;
+  text-align: center; margin-bottom: 10px; outline: none;
+}
+.login-card input:focus { border-color: #4ef; }
+.btn-play {
+  width: 100%; padding: 12px; font-size: 15px; font-weight: bold;
+  border: none; border-radius: 8px; cursor: pointer; font-family: monospace;
+  margin-bottom: 8px; transition: opacity 0.15s;
+}
+.btn-play:hover { opacity: 0.85; }
+.btn-student { background: #1a8; color: #fff; }
+.btn-teacher { background: #555; color: #ccc; font-size: 12px; padding: 8px; }
 
-/* ── join screen ── */
-.join-card{background:#fff;border:0.5px solid #ddd;border-radius:16px;padding:2rem;text-align:center;margin-top:2rem}
-.join-card h1{font-size:22px;font-weight:600;color:#185FA5;margin-bottom:0.5rem}
-.join-card p{font-size:13px;color:#888;margin-bottom:1.5rem}
-.join-card input{width:100%;font-size:18px;padding:10px 14px;border:0.5px solid #ccc;border-radius:10px;text-align:center;margin-bottom:10px;font-family:monospace}
-.join-card input:focus{outline:none;border-color:#185FA5}
-.btn-join{width:100%;padding:13px;font-size:15px;font-weight:600;border:none;border-radius:10px;background:#185FA5;color:#fff;cursor:pointer}
-.btn-join:hover{background:#0C447C}
-.btn-join:disabled{background:#aaa;cursor:not-allowed}
+/* ── WAITING SCREEN ── */
+#waiting-screen {
+  display: none; flex-direction: column; align-items: center; justify-content: center;
+  min-height: 100vh; width: 100%; padding: 20px; color: #fff; text-align: center;
+}
+#waiting-screen h2 { color: #4ef; font-size: 20px; margin-bottom: 8px; }
+#waiting-screen p { color: #888; font-size: 13px; }
+.pulse { animation: pulse 1.5s infinite; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
 
-/* ── waiting screen ── */
-.waiting-card{background:#fff;border:0.5px solid #ddd;border-radius:16px;padding:2rem;text-align:center;margin-top:1rem}
-.waiting-card h2{font-size:18px;color:#444;margin-bottom:0.5rem}
-.waiting-card .name-badge{font-size:28px;font-weight:700;color:#185FA5;margin:1rem 0}
-.waiting-card p{font-size:13px;color:#888}
-.pulse{animation:pulse 1.5s infinite}
-@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
+/* ── GAME WRAPPER ── */
+#game-screen { display: none; width: 100%; max-width: 520px; margin: 0 auto; }
+#ui {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 6px 12px; background: #000; color: #fff; font-size: 12px; gap: 4px;
+}
+#ui span { flex: 1; text-align: center; }
+#gameWrap { position: relative; width: 100%; overflow: hidden; background: #c8e8c8; }
+canvas { display: block; width: 100%; image-rendering: pixelated; }
+#valve-panel {
+  background: #1a1a1a; padding: 8px 14px; display: flex;
+  align-items: center; gap: 8px; flex-wrap: wrap;
+}
+#valve-panel label { color: #aaa; font-size: 11px; white-space: nowrap; }
+#valve-panel input[type=range] { flex: 1; min-width: 80px; }
+#valve-panel span { color: #fff; font-size: 12px; min-width: 32px; text-align: right; }
+#valveBtn {
+  background: #c44; border: none; color: #fff; font-family: monospace;
+  font-size: 12px; padding: 7px 12px; border-radius: 5px; cursor: pointer; white-space: nowrap;
+}
+#valveBtn:disabled { background: #555; cursor: not-allowed; }
+#controls {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 10px 16px; background: #111;
+}
+.btn {
+  background: rgba(255,255,255,0.15); border: 2px solid rgba(255,255,255,0.3);
+  border-radius: 50%; color: #fff; font-size: 20px; width: 56px; height: 56px;
+  display: flex; align-items: center; justify-content: center; cursor: pointer;
+  -webkit-tap-highlight-color: transparent; touch-action: manipulation;
+}
+.btn:active { background: rgba(255,255,255,0.35); }
+#dpad { display: flex; gap: 4px; }
+#jumpBtn { background: rgba(255,80,80,0.35); border-color: rgba(255,80,80,0.6); font-size: 24px; width: 64px; height: 64px; }
+#overlay {
+  position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+  background: rgba(0,0,0,0.75); display: flex; flex-direction: column;
+  align-items: center; justify-content: center; color: #fff;
+  font-family: monospace; text-align: center; padding: 20px;
+}
+#overlay h2 { font-size: 18px; margin-bottom: 8px; }
+#overlay p { font-size: 12px; color: #ccc; margin-bottom: 14px; line-height: 1.8; }
+#overlay button {
+  background: #2a8; border: none; color: #fff; font-family: monospace;
+  font-size: 14px; padding: 9px 24px; border-radius: 6px; cursor: pointer;
+}
 
-/* ── activity screen ── */
-.problem-box{background:#fff;border:0.5px solid #ddd;border-radius:14px;padding:1rem;margin-bottom:10px}
-.problem-box h2{font-size:10px;font-weight:500;color:#aaa;text-transform:uppercase;letter-spacing:0.07em;margin-bottom:0.6rem}
-.problem-text{font-size:13px;color:#444;line-height:1.9;background:#f8f8f6;border-radius:8px;padding:0.8rem;margin-bottom:10px}
-.highlight{background:#fff3cd;border-radius:3px;padding:1px 3px;font-weight:500}
-.vars{font-size:12px;color:#555;line-height:1.8;margin-bottom:4px}
+/* ── ARENA SCREEN ── */
+#arena-screen { display: none; width: 100%; max-width: 520px; margin: 0 auto; }
+#arena-ui {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 6px 12px; background: #1a0000; color: #fff; font-size: 12px; gap: 4px;
+}
+#arena-canvas-wrap { position: relative; width: 100%; overflow: hidden; background: #2a1a1a; }
+#arena-canvas { display: block; width: 100%; image-rendering: pixelated; }
+#arena-controls {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 10px 16px; background: #111;
+}
 
-.eq-label{font-size:11px;color:#aaa;margin:8px 0 4px;text-transform:uppercase;letter-spacing:0.05em}
-.eq-row{display:flex;align-items:center;gap:5px;flex-wrap:wrap;min-height:42px;background:#f8f8f6;border-radius:10px;padding:5px 8px;border:0.5px solid #eee;margin-bottom:6px}
-.fixed{font-size:15px;font-weight:500;color:#555;padding:0 2px}
-.slot{min-width:52px;height:34px;border:1.5px dashed #ccc;border-radius:8px;background:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:500;font-family:monospace;color:#888;cursor:pointer;padding:0 5px;transition:all 0.15s}
-.slot.filled{border:1.5px solid #185FA5;background:#E6F1FB;color:#185FA5;border-style:solid}
-.slot.correct{border-color:#3B6D11;background:#EAF3DE;color:#1a3d08}
-.slot.wrong{border-color:#A32D2D;background:#FCEBEB;color:#A32D2D;animation:shake 0.3s}
-@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-4px)}75%{transform:translateX(4px)}}
-
-.palette-title{font-size:11px;color:#aaa;margin:10px 0 5px;text-transform:uppercase;letter-spacing:0.05em}
-.blocks{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:12px}
-.block{padding:6px 11px;font-size:13px;font-weight:500;font-family:monospace;border-radius:8px;cursor:pointer;border:0.5px solid #ddd;background:#fff;color:#333;transition:all 0.15s;user-select:none}
-.block:hover{background:#f0f0ee}
-.block.number{border-color:#aac0f0;background:#E6F1FB;color:#185FA5}
-.block.variable{border-color:#aadfc0;background:#EAF3DE;color:#0F6E56}
-.block.used{opacity:0.3;pointer-events:none}
-.block.selected{outline:2.5px solid #185FA5;transform:translateY(-2px);box-shadow:0 2px 8px rgba(0,0,0,0.1)}
-
-.btn-row{display:flex;gap:7px;margin-top:4px}
-.btn{flex:1;padding:9px;font-size:13px;border-radius:8px;cursor:pointer;border:0.5px solid #ccc;background:#f8f8f6;color:#444;font-weight:500}
-.btn.check{background:#534AB7;border-color:#534AB7;color:#fff}
-.btn.check:hover{background:#3C3489}
-.btn.hint-btn{background:#FEF9EC;border-color:#EF9F27;color:#854F0B}
-
-.result{margin-top:10px;padding:10px 14px;border-radius:8px;font-size:13px;display:none;line-height:1.7}
-.result.ok{background:#EAF3DE;color:#1a3d08;border:0.5px solid #3B6D11}
-.result.err{background:#FCEBEB;color:#791F1F;border:0.5px solid #A32D2D}
-.hint-box{font-size:12px;color:#854F0B;background:#FAEEDA;border-radius:7px;padding:7px 10px;margin-top:8px;display:none}
-
-/* ── ranking screen ── */
-.ranking-card{background:#fff;border:0.5px solid #ddd;border-radius:14px;padding:1rem;margin-top:10px}
-.ranking-card h2{font-size:14px;font-weight:600;color:#444;margin-bottom:10px;text-align:center}
-.rank-row{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:9px;margin-bottom:5px;background:#f8f8f6;font-size:13px}
-.rank-row.me{background:#E6F1FB;border:0.5px solid #aac0f0}
-.rank-pos{font-size:16px;font-weight:700;width:28px;text-align:center}
-.rank-name{flex:1;font-weight:500}
-.rank-score{font-family:monospace;font-weight:600;color:#185FA5}
-.rank-badge{font-size:11px;padding:2px 7px;border-radius:4px;background:#EAF3DE;color:#1a3d08;margin-left:4px}
-
-/* ── teacher screen ── */
-.teacher-link{background:#fff;border:0.5px solid #ddd;border-radius:12px;padding:1rem;margin-bottom:10px}
-.teacher-link h2{font-size:12px;font-weight:500;color:#999;margin-bottom:8px;text-transform:uppercase;letter-spacing:0.06em}
-.mode-btns{display:flex;gap:8px;margin-bottom:12px}
-.mode-btn{flex:1;padding:8px;font-size:13px;border-radius:8px;cursor:pointer;border:0.5px solid #ccc;background:#f8f8f6;color:#444}
-.mode-btn.active{background:#185FA5;border-color:#185FA5;color:#fff;font-weight:500}
-.students-list{font-size:12px}
-.student-row{display:flex;align-items:center;justify-content:space-between;padding:6px 8px;border-radius:7px;margin-bottom:4px;background:#f8f8f6}
-.student-row .sname{font-weight:500}
-.student-row .sbadge{font-size:11px;padding:2px 7px;border-radius:4px}
-.sbadge.done{background:#EAF3DE;color:#1a3d08}
-.sbadge.wrong{background:#FCEBEB;color:#791F1F}
-.sbadge.waiting{background:#f0f0ee;color:#888}
-.teacher-controls{display:flex;gap:7px;margin-top:10px}
-.tc-btn{flex:1;padding:9px;font-size:13px;border-radius:8px;cursor:pointer;border:0.5px solid;font-weight:500}
-.tc-btn.start{background:#EAF3DE;border-color:#3B6D11;color:#1a3d08}
-.tc-btn.reset{background:#FCEBEB;border-color:#A32D2D;color:#791F1F}
-.tc-btn.show{background:#E6F1FB;border-color:#185FA5;color:#185FA5}
-
-.status-badge{display:inline-block;padding:3px 10px;border-radius:10px;font-size:11px;font-weight:500;margin-bottom:8px}
-.status-badge.open{background:#EAF3DE;color:#1a3d08}
-.status-badge.closed{background:#FCEBEB;color:#791F1F}
-.status-badge.waiting{background:#f8f8f6;color:#888}
-
-/* ── tree problem ── */
-.tree-problem{background:#fff;border:0.5px solid #ddd;border-radius:14px;padding:1rem;margin-bottom:10px}
-.tree-canvas-wrap{border-radius:10px;overflow:hidden;margin-bottom:10px;border:0.5px solid #eee}
-.tree-input-row{display:flex;gap:8px;align-items:flex-end;margin-top:10px}
-.tree-input-row input{flex:1;font-size:22px;font-weight:500;padding:9px 12px;border:0.5px solid #ccc;border-radius:8px;text-align:center;font-family:monospace}
-.tree-input-row input:focus{outline:none;border-color:#185FA5}
-.score-bar{display:flex;align-items:center;justify-content:space-between;background:#f8f8f6;border-radius:8px;padding:7px 12px;margin-bottom:10px}
-.score-num{font-size:20px;font-weight:700;font-family:monospace;color:#185FA5}
-.score-lbl{font-size:11px;color:#aaa}
-.tree-result{margin-top:8px;padding:9px 12px;border-radius:8px;font-size:13px;display:none;line-height:1.6}
-.tree-result.ok{background:#EAF3DE;color:#1a3d08;border:0.5px solid #3B6D11}
-.tree-result.err{background:#FCEBEB;color:#791F1F;border:0.5px solid #A32D2D}
+/* ── TEACHER PANEL ── */
+#teacher-screen {
+  display: none; width: 100%; max-width: 520px; margin: 0 auto;
+  padding: 16px; color: #fff;
+}
+.teacher-card {
+  background: #1a1a1a; border: 1px solid #333; border-radius: 12px;
+  padding: 16px; margin-bottom: 12px;
+}
+.teacher-card h2 { color: #4ef; font-size: 14px; margin-bottom: 12px; }
+.tc-btn {
+  flex: 1; padding: 10px; font-size: 13px; border-radius: 8px;
+  cursor: pointer; border: 1px solid; font-family: monospace; font-weight: bold;
+}
+.tc-start { background: #1a4; border-color: #1a4; color: #fff; }
+.tc-reset { background: #a22; border-color: #a22; color: #fff; }
+.tc-arena { background: #225; border-color: #44f; color: #aaf; }
+.student-row {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 6px 8px; border-radius: 6px; margin-bottom: 4px; background: #111;
+  font-size: 12px;
+}
+.badge-done { background: #1a4; color: #8f8; padding: 2px 6px; border-radius: 4px; font-size: 10px; }
+.badge-wait { background: #333; color: #888; padding: 2px 6px; border-radius: 4px; font-size: 10px; }
+.badge-arena { background: #225; color: #aaf; padding: 2px 6px; border-radius: 4px; font-size: 10px; }
+.rank-row {
+  display: flex; align-items: center; gap: 10px; padding: 6px 8px;
+  border-radius: 8px; margin-bottom: 4px; background: #111; font-size: 12px;
+}
 </style>
 </head>
 <body>
 
-<!-- ── SCREEN: ROLE SELECT ── -->
-<div class="screen active" id="screen-role">
-  <div class="join-card">
-    <h1>ICB 1121</h1>
-    <p>Actividad interactiva — Sistemas de ecuaciones</p>
-    <button class="btn-join" style="margin-bottom:10px" onclick="showTeacher()">👨‍🏫 Soy el profesor</button>
-    <button class="btn-join" style="background:#1D9E75;margin-bottom:10px" onclick="showJoin()">👨‍🎓 Soy estudiante</button>
-    <button class="btn-join" style="background:#854F0B" onclick="startPractice()">📚 Practicar solo</button>
+<!-- ── LOGIN ── -->
+<div id="login-screen">
+  <div class="login-card">
+    <h1>⚔ Arena de Caudaleros</h1>
+    <p>Multijugador Online</p>
+    <input type="text" id="name-input" placeholder="Tu nombre" maxlength="16" autocomplete="off">
+    <button class="btn-play btn-student" onclick="joinAsStudent()">🎮 Jugar</button>
+    <button class="btn-play btn-teacher" onclick="joinAsTeacher()">👨‍🏫 Entrar como profesor</button>
   </div>
 </div>
 
-<!-- ── SCREEN: JOIN ── -->
-<div class="screen" id="screen-join">
-  <div class="join-card">
-    <h1>🧩 Actividad</h1>
-    <p>Ingresa tu nombre para participar</p>
-    <input type="text" id="name-input" placeholder="Tu nombre" maxlength="20">
-    <button class="btn-join" id="btn-join" onclick="joinActivity()">Entrar →</button>
-  </div>
+<!-- ── WAITING ── -->
+<div id="waiting-screen">
+  <h2>¡Listo, <span id="waiting-name"></span>!</h2>
+  <p class="pulse" style="margin-top:16px">Completando el nivel para entrar a la arena... 🎯</p>
 </div>
 
-<!-- ── SCREEN: WAITING ── -->
-<div class="screen" id="screen-waiting">
-  <div class="waiting-card">
-    <h2>¡Listo! Esperando al profesor...</h2>
-    <div class="name-badge" id="waiting-name"></div>
-    <p class="pulse">La actividad comenzará en breve 🎯</p>
-  </div>
-</div>
-
-<!-- ── SCREEN: ACTIVITY ── -->
-<div class="screen" id="screen-activity">
-  <div class="score-bar">
-    <div><div class="score-lbl">PUNTAJE</div><div class="score-num" id="score-display">0</div></div>
-    <div style="text-align:right"><div class="score-lbl">PREGUNTA</div><div class="score-num" id="q-display" style="color:#1D9E75">1 / 2</div></div>
-  </div>
-
-  <!-- Q1: árboles -->
-  <div id="q1-panel">
-    <div class="tree-problem">
-      <h2 style="font-size:10px;font-weight:500;color:#aaa;text-transform:uppercase;letter-spacing:0.07em;margin-bottom:0.6rem">Pregunta 1</h2>
-      <div class="problem-text" style="font-size:13px;color:#444;line-height:1.9;background:#f8f8f6;border-radius:8px;padding:0.8rem;margin-bottom:10px">
-        El <strong>árbol A</strong> mide hoy <span class="highlight">2 m</span> y crece <span class="highlight">3 m por año</span>.<br>
-        El <strong>árbol B</strong> mide hoy <span class="highlight">14 m</span> y crece <span class="highlight">1 m por año</span>.<br>
-        ¿En cuántos años tendrán la misma altura?
-      </div>
-      <div class="tree-canvas-wrap">
-        <canvas id="tree-canvas" style="width:100%;height:260px;display:block;background:#e8f5e1"></canvas>
-      </div>
-      <div class="tree-input-row">
-        <input type="number" id="tree-answer" placeholder="t = ?" min="0" step="1">
-        <button class="btn check" onclick="checkTree()">✓ Verificar</button>
-      </div>
-      <div class="tree-result" id="tree-result"></div>
+<!-- ── TEACHER ── -->
+<div id="teacher-screen">
+  <div class="teacher-card">
+    <h2>👨‍🏫 Panel del Profesor</h2>
+    <div style="display:flex;gap:8px;margin-bottom:10px">
+      <button class="tc-btn tc-start" onclick="teacherOpenArena()">⚔ Abrir Arena</button>
+      <button class="tc-btn tc-reset" onclick="teacherReset()">↺ Resetear todo</button>
+    </div>
+    <div style="display:flex;gap:8px">
+      <button class="tc-btn tc-arena" onclick="teacherClearDeaths()">🗑 Borrar muertes</button>
+      <button class="tc-btn" style="background:#222;border-color:#555;color:#aaa" onclick="joinAsTeacherPlayer()">🎮 Entrar a jugar</button>
     </div>
   </div>
-
-  <!-- Q2: mezclas -->
-  <div id="q2-panel" style="display:none">
-    <div class="problem-box">
-      <h2 style="font-size:10px;font-weight:500;color:#aaa;text-transform:uppercase;letter-spacing:0.07em;margin-bottom:0.6rem">Pregunta 2</h2>
-      <div class="problem-text" style="font-size:13px;color:#444;line-height:1.9;background:#f8f8f6;border-radius:8px;padding:0.8rem;margin-bottom:10px">
-        A cada animal se le debe suministrar <span class="highlight">20 g de proteína</span> y <span class="highlight">6 g de grasa</span>.
-        La mezcla A contiene <span class="highlight">10% proteína</span> y <span class="highlight">6% grasa</span>.
-        La mezcla B contiene <span class="highlight">20% proteína</span> y <span class="highlight">2% grasa</span>.
-        ¿Cuántos gramos de cada mezcla usar?
-      </div>
-      <div class="vars" style="font-size:12px;color:#555;margin-bottom:10px;line-height:1.8">
-        <div>• <strong>A</strong> = gramos de mezcla A</div>
-        <div>• <strong>B</strong> = gramos de mezcla B</div>
-      </div>
-    </div>
-    <div class="problem-box">
-      <h2 style="font-size:10px;font-weight:500;color:#aaa;text-transform:uppercase;letter-spacing:0.07em;margin-bottom:0.6rem">Construye el sistema</h2>
-      <div class="eq-label">Ecuación de proteína:</div>
-      <div class="eq-row" id="eq-0">
-        <div class="slot" id="slot-0-0" onclick="clickSlot(0,0)">?</div>
-        <span class="fixed">·A +</span>
-        <div class="slot" id="slot-0-1" onclick="clickSlot(0,1)">?</div>
-        <span class="fixed">·B =</span>
-        <div class="slot" id="slot-0-2" onclick="clickSlot(0,2)">?</div>
-      </div>
-      <div class="eq-label">Ecuación de grasa:</div>
-      <div class="eq-row" id="eq-1">
-        <div class="slot" id="slot-1-0" onclick="clickSlot(1,0)">?</div>
-        <span class="fixed">·A +</span>
-        <div class="slot" id="slot-1-1" onclick="clickSlot(1,1)">?</div>
-        <span class="fixed">·B =</span>
-        <div class="slot" id="slot-1-2" onclick="clickSlot(1,2)">?</div>
-      </div>
-      <div class="palette-title">Bloques disponibles</div>
-      <div class="blocks" id="blocks-area"></div>
-      <div class="btn-row">
-        <button class="btn check" onclick="checkAnswer()">✓ Verificar</button>
-        <button class="btn" onclick="resetActivity()">↺</button>
-        <button class="btn hint-btn" onclick="toggleHint()">💡 Pista</button>
-      </div>
-      <div class="hint-box" id="hint-box">El aporte de proteína de la mezcla A es 0,10·A. La suma de los aportes debe dar exactamente 20 g.</div>
-      <div class="result" id="result"></div>
-    </div>
+  <div class="teacher-card">
+    <h2>Jugadores</h2>
+    <div id="teacher-students"><p style="color:#555;font-size:12px">Ningún jugador aún.</p></div>
+  </div>
+  <div class="teacher-card" id="teacher-ranking-card" style="display:none">
+    <h2>📊 Muertes en la Arena</h2>
+    <div id="teacher-deaths-list"></div>
   </div>
 </div>
 
-<!-- ── SCREEN: DONE ── -->
-<div class="screen" id="screen-done">
-  <div class="waiting-card">
-    <h2>✓ ¡Actividad completada!</h2>
-    <div class="name-badge" id="done-name" style="font-size:18px"></div>
-    <p style="margin-top:8px;color:#1a3d08;font-weight:500" id="done-msg"></p>
+<!-- ── PUZZLE GAME ── -->
+<div id="game-screen">
+  <div id="ui">
+    <span>VIDAS: <span id="livesEl">3</span></span>
+    <span id="statusEl">Abre la válvula</span>
+    <span>EL PEZ VENENOSO<br><span id="fishHpEl" style="font-size:14px;">❤️❤️❤️</span></span>
   </div>
-  <div class="ranking-card" id="ranking-area"></div>
-</div>
-
-<!-- ── SCREEN: PRACTICE ── -->
-<div class="screen" id="screen-practice">
-  <div class="score-bar">
-    <div><div class="score-lbl">PUNTAJE</div><div class="score-num" id="prac-score">0</div></div>
-    <div style="text-align:right"><div class="score-lbl">PREGUNTA</div><div class="score-num" id="prac-q" style="color:#1D9E75">1 / 2</div></div>
-  </div>
-
-  <!-- P1: árboles -->
-  <div id="prac-q1">
-    <div class="tree-problem">
-      <h2 style="font-size:10px;font-weight:500;color:#aaa;text-transform:uppercase;letter-spacing:0.07em;margin-bottom:0.6rem">Pregunta 1 — Práctica</h2>
-      <div class="problem-text" style="font-size:13px;color:#444;line-height:1.9;background:#f8f8f6;border-radius:8px;padding:0.8rem;margin-bottom:10px">
-        El <strong>árbol A</strong> mide hoy <span class="highlight">2 m</span> y crece <span class="highlight">3 m por año</span>.<br>
-        El <strong>árbol B</strong> mide hoy <span class="highlight">14 m</span> y crece <span class="highlight">1 m por año</span>.<br>
-        ¿En cuántos años tendrán la misma altura?
-      </div>
-      <div class="tree-canvas-wrap">
-        <canvas id="ptree-canvas" style="width:100%;height:260px;display:block;background:#e8f5e1"></canvas>
-      </div>
-      <div class="tree-input-row">
-        <input type="number" id="ptree-answer" placeholder="t = ?" min="0" step="1">
-        <button class="btn check" onclick="checkPracTree()">✓ Verificar</button>
-      </div>
-      <div class="tree-result" id="ptree-result"></div>
-      <button id="prac-next-1" class="btn run" style="width:100%;margin-top:10px;display:none" onclick="pracGoQ2()">Siguiente pregunta →</button>
+  <div id="gameWrap">
+    <canvas id="c"></canvas>
+    <div id="overlay">
+      <h2>Nivel 1 — El Pez Venenoso</h2>
+      <p style="font-size:11px;color:#aef">Jugando como: <span id="overlay-name" style="color:#4ef;font-weight:bold"></span></p>
+      <button id="startBtn">JUGAR</button>
     </div>
   </div>
-
-  <!-- P2: mezclas -->
-  <div id="prac-q2" style="display:none">
-    <div class="problem-box">
-      <h2 style="font-size:10px;font-weight:500;color:#aaa;text-transform:uppercase;letter-spacing:0.07em;margin-bottom:0.6rem">Pregunta 2 — Práctica</h2>
-      <div class="problem-text" style="font-size:13px;color:#444;line-height:1.9;background:#f8f8f6;border-radius:8px;padding:0.8rem;margin-bottom:10px">
-        A cada animal se le debe suministrar <span class="highlight">20 g de proteína</span> y <span class="highlight">6 g de grasa</span>.
-        La mezcla A contiene <span class="highlight">10% proteína</span> y <span class="highlight">6% grasa</span>.
-        La mezcla B contiene <span class="highlight">20% proteína</span> y <span class="highlight">2% grasa</span>.
-        ¿Cuántos gramos de cada mezcla usar?
-      </div>
-      <div style="font-size:12px;color:#555;margin-bottom:10px;line-height:1.8">
-        <div>• <strong>A</strong> = gramos de mezcla A</div>
-        <div>• <strong>B</strong> = gramos de mezcla B</div>
-      </div>
+  <div id="valve-panel">
+    <label>Válvula — tiempo:</label>
+    <input type="range" id="valveSlider" min="1" max="60" value="20" step="1">
+    <span id="valveTimeLabel">20s</span>
+    <button id="valveBtn">Abrir válvula</button>
+  </div>
+  <div id="controls">
+    <div id="dpad">
+      <div class="btn" id="leftBtn">&#8592;</div>
+      <div class="btn" id="rightBtn">&#8594;</div>
     </div>
-    <div class="problem-box">
-      <h2 style="font-size:10px;font-weight:500;color:#aaa;text-transform:uppercase;letter-spacing:0.07em;margin-bottom:0.6rem">Construye el sistema</h2>
-      <div class="eq-label">Ecuación de proteína:</div>
-      <div class="eq-row" id="peq-0">
-        <div class="slot" id="pslot-0-0" onclick="clickPracSlot(0,0)">?</div>
-        <span class="fixed">·A +</span>
-        <div class="slot" id="pslot-0-1" onclick="clickPracSlot(0,1)">?</div>
-        <span class="fixed">·B =</span>
-        <div class="slot" id="pslot-0-2" onclick="clickPracSlot(0,2)">?</div>
-      </div>
-      <div class="eq-label">Ecuación de grasa:</div>
-      <div class="eq-row" id="peq-1">
-        <div class="slot" id="pslot-1-0" onclick="clickPracSlot(1,0)">?</div>
-        <span class="fixed">·A +</span>
-        <div class="slot" id="pslot-1-1" onclick="clickPracSlot(1,1)">?</div>
-        <span class="fixed">·B =</span>
-        <div class="slot" id="pslot-1-2" onclick="clickPracSlot(1,2)">?</div>
-      </div>
-      <div class="palette-title">Bloques disponibles</div>
-      <div class="blocks" id="pblocks-area"></div>
-      <div class="btn-row">
-        <button class="btn check" onclick="checkPracMix()">✓ Verificar</button>
-        <button class="btn" onclick="resetPracMix()">↺</button>
-        <button class="btn hint-btn" onclick="togglePracHint()">💡 Pista</button>
-      </div>
-      <div class="hint-box" id="phint-box">El aporte de proteína de la mezcla A es 0,10·A. La suma debe dar exactamente 20 g.</div>
-      <div class="result" id="presult"></div>
-      <button id="prac-next-2" class="btn run" style="width:100%;margin-top:10px;display:none" onclick="pracDone()">Ver resultado final →</button>
-    </div>
+    <div class="btn" id="jumpBtn">&#8679;</div>
+    <div class="btn" id="attackBtn" style="background:rgba(255,180,0,0.35);border-color:rgba(255,180,0,0.7);font-size:18px;">&#9876;</div>
   </div>
 </div>
 
-<!-- ── SCREEN: PRACTICE DONE ── -->
-<div class="screen" id="screen-practicdone">
-  <div class="waiting-card" style="text-align:center;padding:2rem">
-    <h2 style="font-size:22px;margin-bottom:1rem">🎉 ¡Práctica completada!</h2>
-    <div style="font-size:36px;font-weight:700;font-family:monospace;color:#185FA5;margin-bottom:0.5rem" id="final-score">0</div>
-    <div style="font-size:13px;color:#888;margin-bottom:1.5rem">puntos de 4 posibles</div>
-    <div id="final-msg" style="font-size:14px;color:#444;margin-bottom:1.5rem"></div>
-    <button class="btn-join" style="background:#854F0B" onclick="restartPractice()">↺ Practicar de nuevo</button>
+<!-- ── ARENA ── -->
+<div id="arena-screen">
+  <div id="arena-ui">
+    <span id="arena-status">⚔ Arena</span>
+    <span style="color:#f44">Muertes: <span id="my-deaths">0</span></span>
   </div>
-</div>
-
-<!-- ── SCREEN: TEACHER ── --><!-- ── SCREEN: TEACHER ── -->
-<div class="screen" id="screen-teacher">
-  <div class="teacher-link">
-    <h2>Panel del Profesor</h2>
-    <div id="activity-status" class="status-badge waiting">⏳ Actividad no iniciada</div>
-    <div class="teacher-controls">
-      <button class="tc-btn start" onclick="teacherStart()">▶ Iniciar actividad</button>
-      <button class="tc-btn show" onclick="teacherShowRanking()">📊 Ver ranking</button>
-      <button class="tc-btn reset" onclick="teacherReset()">↺ Resetear</button>
+  <div id="arena-canvas-wrap">
+    <canvas id="arena-canvas"></canvas>
+  </div>
+  <div id="arena-controls">
+    <div style="display:flex;gap:4px">
+      <div class="btn" id="a-leftBtn">&#8592;</div>
+      <div class="btn" id="a-rightBtn">&#8594;</div>
     </div>
-  </div>
-  <div class="teacher-link">
-    <h2>Estudiantes conectados</h2>
-    <div id="students-list"><p style="color:#aaa;font-size:12px">Ningún estudiante conectado aún.</p></div>
-  </div>
-  <div class="ranking-card" id="teacher-ranking" style="display:none">
-    <h2>📊 Ranking en vivo</h2>
-    <div id="teacher-ranking-list"></div>
+    <div class="btn" id="a-jumpBtn" style="background:rgba(255,80,80,0.35);border-color:rgba(255,80,80,0.6);font-size:24px;width:64px;height:64px;">&#8679;</div>
+    <div class="btn" id="a-attackBtn" style="background:rgba(255,180,0,0.35);border-color:rgba(255,180,0,0.7);font-size:18px;">&#9876;</div>
   </div>
 </div>
 
-
+<!-- Firebase -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 <script>
-const firebaseConfig = {
+// ═══════════════════════════════════════════════════════
+// FIREBASE
+// ═══════════════════════════════════════════════════════
+firebase.initializeApp({
   apiKey: "AIzaSyBRlYXe71cyD-pxrxN5ay1AsAPkVXYoDPQ",
   authDomain: "icb1121.firebaseapp.com",
   databaseURL: "https://icb1121-default-rtdb.firebaseio.com",
@@ -348,591 +242,965 @@ const firebaseConfig = {
   storageBucket: "icb1121.firebasestorage.app",
   messagingSenderId: "938191218557",
   appId: "1:938191218557:web:07cd2d5e4df59d14094e14"
-};
-firebase.initializeApp(firebaseConfig);
+});
 const db = firebase.database();
-const sessionRef = db.ref('session');
-const studentsRef = db.ref('students');
+const playersRef = db.ref('game/players');
+const arenaRef   = db.ref('game/arena');
+const deathsRef  = db.ref('game/deaths');
 
+// ═══════════════════════════════════════════════════════
+// GLOBAL STATE
+// ═══════════════════════════════════════════════════════
 let myName = '';
-let myKey = '';
-let selected = null;
+let myKey  = '';
+let isTeacher = false;
+let isProf = false; // profesor jugando
 
-const CORRECT = [
-  ['0.10','0.20','20'],
-  ['0.06','0.02','6']
-];
-const BLOCKS = [
-  {label:'0.10',type:'number'},{label:'0.20',type:'number'},
-  {label:'0.06',type:'number'},{label:'0.02',type:'number'},
-  {label:'20',type:'number'},{label:'6',type:'number'},
-  {label:'0.30',type:'number'},{label:'0.50',type:'number'}
-];
-
-let filled = [[null,null,null],[null,null,null]];
-let startTime = null;
-let submitted = false;
-
-// ── navigation ──────────────────────────────────────────
-function showScreen(id){
-  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
-  document.getElementById('screen-'+id).classList.add('active');
-  if(id === 'activity'){
-    treeSubmitted = false; score = 0; currentQ = 1;
-    updateScoreDisplay();
-    setTimeout(()=>drawTrees(0), 100);
-    document.getElementById('q1-panel').style.display = 'block';
-    document.getElementById('q2-panel').style.display = 'none';
-  }
+// ═══════════════════════════════════════════════════════
+// LOGIN
+// ═══════════════════════════════════════════════════════
+function show(id) {
+  ['login-screen','waiting-screen','game-screen','arena-screen','teacher-screen']
+    .forEach(s => document.getElementById(s).style.display = 'none');
+  const el = document.getElementById(id);
+  el.style.display = id === 'game-screen' || id === 'arena-screen' || id === 'teacher-screen'
+    ? 'block' : 'flex';
 }
-function showTeacher(){
-  const pwd = prompt('Ingresa la clave de profesor:');
-  if(pwd === 'icb1121'){
-    showScreen('teacher');
-    listenTeacher();
-  } else {
-    alert('Clave incorrecta.');
-  }
-}
-function showJoin(){ showScreen('join'); }
 
-// ── join ────────────────────────────────────────────────
-function joinActivity(){
+function joinAsStudent() {
   const name = document.getElementById('name-input').value.trim();
-  if(!name) return;
+  if (!name) { alert('Escribe tu nombre'); return; }
   myName = name;
-  myKey = studentsRef.push({name, status:'waiting', score:null, time:null}).key;
-  document.getElementById('waiting-name').textContent = name;
-  showScreen('waiting');
-  listenSession();
+  myKey = playersRef.push({ name, status: 'puzzle', deaths: 0 }).key;
+  playersRef.child(myKey).onDisconnect().remove();
+  document.getElementById('overlay-name').textContent = name;
+  show('game-screen');
+  startPuzzle();
+  listenArenaOpen();
 }
 
-function listenSession(){
-  sessionRef.on('value', snap => {
-    const data = snap.val();
-    if(!data) return;
-    if(data.status === 'active' && !submitted){
-      startTime = data.startTime || Date.now();
-      showScreen('activity');
-      renderBlocks();
-    }
-    if(data.status === 'ranking'){
-      showRanking();
-    }
+function joinAsTeacher() {
+  const pwd = prompt('Clave de profesor:');
+  if (pwd !== 'icb1121') { alert('Clave incorrecta'); return; }
+  isTeacher = true;
+  show('teacher-screen');
+  listenTeacher();
+}
+
+function joinAsTeacherPlayer() {
+  myName = 'Profesor';
+  isProf = true;
+  myKey = playersRef.push({ name: 'Profesor', status: 'arena', deaths: 0, isProf: true }).key;
+  playersRef.child(myKey).onDisconnect().remove();
+  enterArena();
+}
+
+// Listen for arena opening (for students still in puzzle)
+function listenArenaOpen() {
+  arenaRef.child('open').on('value', snap => {
+    // Only redirect after puzzle is done — puzzle completion handles it
   });
 }
 
-// ── activity ────────────────────────────────────────────
-function renderBlocks(){
-  const usedMap = {};
-  filled.forEach(row => row.forEach(v => { if(v) usedMap[v]=(usedMap[v]||0)+1; }));
-  const countMap = {};
-  BLOCKS.forEach(b => countMap[b.label]=(countMap[b.label]||0)+1);
-
-  const area = document.getElementById('blocks-area');
-  area.innerHTML = BLOCKS.map(b => {
-    const uses = usedMap[b.label]||0;
-    const avail = countMap[b.label];
-    const isUsed = uses >= avail;
-    const isSel = selected === b.label;
-    return `<div class="block ${b.type} ${isUsed?'used':''} ${isSel?'selected':''}"
-      onclick="selectBlock('${b.label}')">${b.label}</div>`;
-  }).join('');
+// ═══════════════════════════════════════════════════════
+// TEACHER PANEL
+// ═══════════════════════════════════════════════════════
+function teacherOpenArena() {
+  arenaRef.child('open').set(true);
+  alert('Arena abierta. Los jugadores que completen el puzzle entrarán automáticamente.');
 }
 
-function selectBlock(label){
-  selected = selected===label ? null : label;
-  renderBlocks();
+function teacherReset() {
+  if (!confirm('¿Resetear todo?')) return;
+  playersRef.remove();
+  arenaRef.remove();
+  deathsRef.remove();
+  document.getElementById('teacher-students').innerHTML = '<p style="color:#555;font-size:12px">Ningún jugador aún.</p>';
+  document.getElementById('teacher-ranking-card').style.display = 'none';
 }
 
-function clickSlot(eq, sl){
-  if(submitted) return;
-  if(selected){
-    filled[eq][sl] = selected;
-    selected = null;
-  } else if(filled[eq][sl]){
-    filled[eq][sl] = null;
-  }
-  updateSlots();
-  renderBlocks();
-}
-
-function updateSlots(){
-  for(let e=0;e<2;e++) for(let s=0;s<3;s++){
-    const el = document.getElementById(`slot-${e}-${s}`);
-    const val = filled[e][s];
-    el.textContent = val || '?';
-    el.className = 'slot' + (val?' filled':'');
-  }
-}
-
-function checkAnswer(){
-  if(submitted) return;
-  let allFilled=true, allCorrect=true;
-  for(let e=0;e<2;e++) for(let s=0;s<3;s++){
-    if(!filled[e][s]){allFilled=false;continue;}
-    const el=document.getElementById(`slot-${e}-${s}`);
-    if(filled[e][s]===CORRECT[e][s]){
-      el.className='slot correct';
-    } else {
-      el.className='slot wrong';
-      allCorrect=false;
-      setTimeout(()=>el.className='slot filled',600);
-    }
-  }
-  const res = document.getElementById('result');
-  res.style.display='block';
-  if(!allFilled){
-    res.className='result err';
-    res.textContent='¡Faltan bloques por colocar!';
-    return;
-  }
-  if(allCorrect){
-    submitted=true;
-    score += 2;
-    updateScoreDisplay();
-    const elapsed = Math.round((Date.now()-startTime)/1000);
-    studentsRef.child(myKey).update({status:'correct', score:score, time:elapsed});
-    res.className='result ok';
-    res.innerHTML=`✓ ¡Correcto! +2 puntos. Completado en ${elapsed} s.<br><strong>Solución:</strong> A = 80 g de mezcla A, B = 60 g de mezcla B`;
-    showDoneScreen(elapsed, true);
-  } else {
-    score = Math.max(0, score - 1);
-    updateScoreDisplay();
-    res.className='result err';
-    res.textContent='✗ Hay bloques incorrectos. -1 punto. Los huecos en rojo deben corregirse.';
-    studentsRef.child(myKey).update({status:'wrong', score:score});
-  }
-}
-
-function resetActivity(){
-  if(submitted) return;
-  filled=[[null,null,null],[null,null,null]];
-  selected=null;
-  updateSlots();
-  renderBlocks();
-  document.getElementById('result').style.display='none';
-}
-
-function toggleHint(){
-  const h=document.getElementById('hint-box');
-  h.style.display=h.style.display==='none'||!h.style.display?'block':'none';
-}
-
-function showDoneScreen(elapsed, correct){
-  document.getElementById('done-name').textContent=myName;
-  document.getElementById('done-msg').textContent=
-    correct?`¡Sistema planteado correctamente en ${elapsed} s! 🎉`:'Intenta de nuevo cuando el profesor reinicie.';
-  setTimeout(()=>showScreen('done'),1200);
-  listenRanking();
-}
-
-function showRanking(){
-  showScreen('done');
-  listenRanking();
-}
-
-function listenRanking(){
-  studentsRef.on('value', snap => {
-    const data = snap.val();
-    if(!data) return;
-    const rows = Object.entries(data)
-      .filter(([k,v])=>v.status==='correct')
-      .sort((a,b)=>(a[1].time||999)-(b[1].time||999));
-    const area = document.getElementById('ranking-area');
-    if(!rows.length){area.innerHTML='<p style="color:#aaa;font-size:12px;text-align:center">Aún no hay respuestas correctas.</p>';return;}
-    const medals=['🥇','🥈','🥉'];
-    area.innerHTML='<h2 style="font-size:14px;font-weight:600;color:#444;margin-bottom:10px;text-align:center">📊 Ranking</h2>'+
-      rows.map(([k,v],i)=>`
-      <div class="rank-row ${k===myKey?'me':''}">
-        <span class="rank-pos">${medals[i]||i+1}</span>
-        <span class="rank-name">${v.name}${k===myKey?' (tú)':''}</span>
-        <span class="rank-score">${v.time}s</span>
-      </div>`).join('');
-  });
-}
-
-// ── teacher ─────────────────────────────────────────────
-function listenTeacher(){
-  studentsRef.on('value', snap => {
+function teacherClearDeaths() {
+  deathsRef.remove();
+  // Also reset deaths counter for all players
+  playersRef.once('value', snap => {
     const data = snap.val() || {};
-    const list = document.getElementById('students-list');
+    Object.keys(data).forEach(k => playersRef.child(k).update({ deaths: 0 }));
+  });
+}
+
+function listenTeacher() {
+  playersRef.on('value', snap => {
+    const data = snap.val() || {};
     const entries = Object.entries(data);
-    if(!entries.length){
-      list.innerHTML='<p style="color:#aaa;font-size:12px">Ningún estudiante conectado aún.</p>';
+    const list = document.getElementById('teacher-students');
+    if (!entries.length) {
+      list.innerHTML = '<p style="color:#555;font-size:12px">Ningún jugador aún.</p>';
       return;
     }
-    list.innerHTML=entries.map(([k,v])=>{
-      const badge = v.status==='correct'
-        ? `<span class="sbadge done">✓ Correcto (${v.time}s)</span>`
-        : v.status==='wrong'
-        ? `<span class="sbadge wrong">✗ Incorrecto</span>`
-        : `<span class="sbadge waiting">Esperando</span>`;
-      return `<div class="student-row"><span class="sname">${v.name}</span>${badge}</div>`;
+    list.innerHTML = entries.map(([k, v]) => {
+      const badge = v.status === 'arena'
+        ? `<span class="badge-arena">⚔ Arena</span>`
+        : v.status === 'done'
+        ? `<span class="badge-done">✓ Listo</span>`
+        : `<span class="badge-wait">Puzzle…</span>`;
+      return `<div class="student-row"><span>${v.name}</span>${badge}</div>`;
     }).join('');
   });
-  sessionRef.on('value', snap => {
-    const data = snap.val();
-    const badge = document.getElementById('activity-status');
-    if(!data||data.status==='idle'){
-      badge.textContent='⏳ Actividad no iniciada';badge.className='status-badge waiting';
-    } else if(data.status==='active'){
-      badge.textContent='✅ Actividad en curso';badge.className='status-badge open';
-    } else if(data.status==='ranking'){
-      badge.textContent='📊 Mostrando ranking';badge.className='status-badge open';
+
+  deathsRef.on('value', snap => {
+    const data = snap.val() || {};
+    const entries = Object.entries(data).sort((a,b) => (b[1].count||0) - (a[1].count||0));
+    const card = document.getElementById('teacher-ranking-card');
+    const list = document.getElementById('teacher-deaths-list');
+    if (!entries.length) { card.style.display = 'none'; return; }
+    card.style.display = 'block';
+    list.innerHTML = entries.map(([k,v], i) =>
+      `<div class="rank-row">
+        <span style="color:#888;width:20px">${i+1}</span>
+        <span style="flex:1">${v.name}</span>
+        <span style="color:#f44;font-weight:bold">${v.count} 💀</span>
+      </div>`
+    ).join('');
+  });
+}
+
+// ═══════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════
+// PUZZLE GAME (FASE 1)
+// ═══════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+const W = 460, H = 280;
+canvas.width = W; canvas.height = H;
+
+const PLAT_L_Y = 160, PLAT_R_Y = 40, PIT_L = 130, PIT_R = 310, PIT_BOT = 260, WALL_W = 12;
+const FLOW_RATE = 5;
+const DOOR_W = 22, DOOR_H = 36;
+const FLAG_X = W - WALL_W - DOOR_W - 10, FLAG_Y = PLAT_R_Y - DOOR_H;
+const PIT_VOLUME = PIT_BOT - 55, WATER_START = PIT_BOT - 40;
+const LADDER_X = PIT_R - 18, LADDER_TOP = PLAT_R_Y - 16, LADDER_BOT = PLAT_L_Y + 22, LADDER_W = 14;
+
+let lives = 3, gameRunning = false;
+let keys = { left:false, right:false, jump:false, attack:false };
+let jumpPressed = false, attackPressed = false;
+let player, state;
+
+function onLadder(p) {
+  return p.x+p.w>LADDER_X && p.x<LADDER_X+LADDER_W && p.y+p.h>LADDER_TOP && p.y<LADDER_BOT;
+}
+function onLadderEntry(p) {
+  return p.x+p.w>LADDER_X-2 && p.x<LADDER_X+LADDER_W+2 && p.y+p.h>LADDER_TOP && p.y<LADDER_BOT+10;
+}
+function platforms() {
+  return [
+    {x:0,       y:PLAT_L_Y, w:PIT_L,       h:H-PLAT_L_Y},
+    {x:PIT_R,   y:PLAT_R_Y, w:W-PIT_R,     h:H-PLAT_R_Y},
+    {x:PIT_L,   y:PIT_BOT,  w:PIT_R-PIT_L, h:H-PIT_BOT },
+    {x:0,       y:0,        w:WALL_W,       h:H          },
+    {x:W-WALL_W,y:0,        w:WALL_W,       h:H          },
+  ];
+}
+function overlap(a,b) { return a.x<b.x+b.w&&a.x+a.w>b.x&&a.y<b.y+b.h&&a.y+a.h>b.y; }
+
+function setStatus(t) { document.getElementById('statusEl').textContent = t; }
+function setFishHp(hp) {
+  const el = document.getElementById('fishHpEl');
+  if(el) el.textContent = '❤️'.repeat(Math.max(0,hp)) + '🖤'.repeat(Math.max(0,3-hp));
+}
+function updateUI() { document.getElementById('livesEl').textContent = lives; }
+
+function initGame() {
+  player = { x:WALL_W+8, y:PLAT_L_Y-20, w:14, h:18, vx:0, vy:0, onGround:false,
+             dead:false, deathTimer:0, invincible:0, facing:1, swimming:false };
+  state = { waterLevel:WATER_START, valveUsed:false, valveActive:false, valveTimer:0,
+            fishAlive:true, fishCaught:false, fishHp:3, fishX:210, fishY:0, fishDir:1, fishAnim:0,
+            spear:null, particles:[], waterDrops:[], outcome:null, outcomeTimer:0 };
+  document.getElementById('valveBtn').disabled = false;
+  document.getElementById('valveSlider').disabled = false;
+  setFishHp(3);
+  setStatus('Abre la válvula para subir el agua');
+}
+
+function startPuzzle() {
+  lives = 3; updateUI();
+  initGame();
+  document.getElementById('overlay').style.display = 'flex';
+  document.getElementById('startBtn').onclick = () => {
+    initGame();
+    document.getElementById('overlay').style.display = 'none';
+    gameRunning = true;
+  };
+  requestAnimationFrame(puzzleLoop);
+}
+
+let lastPuzzle = 0;
+function puzzleLoop(ts) {
+  const dt = Math.min((ts-lastPuzzle)/1000, 0.05); lastPuzzle = ts;
+  if (player && state && gameRunning) { updatePuzzle(dt); drawPuzzle(); }
+  else if (player && state) drawPuzzle();
+  requestAnimationFrame(puzzleLoop);
+}
+
+function updatePuzzle(dt) {
+  const p = player, s = state;
+  if (p.dead) {
+    p.deathTimer -= dt;
+    if (p.deathTimer <= 0) {
+      lives--; updateUI();
+      if (lives <= 0) { showPuzzleOverlay('GAME OVER','Sin más vidas.','REINICIAR',true); gameRunning=false; return; }
+      initGame();
+    }
+    return;
+  }
+  if (s.outcome) {
+    s.outcomeTimer -= dt;
+    if (s.outcomeTimer <= 0) {
+      if (s.outcome==='win') {
+        gameRunning = false;
+        puzzleComplete();
+      } else { p.dead=true; p.deathTimer=1.0; }
+      s.outcome=null;
+    }
+    return;
+  }
+  if (s.valveActive) {
+    s.valveTimer -= dt * 3;
+    s.waterLevel = Math.max(s.waterLevel - FLOW_RATE*dt, 55);
+    if (s.valveTimer<=0 || s.waterLevel<=55) s.valveActive=false;
+    const numDrops = Math.floor(2+Math.random()*3);
+    for (let i=0;i<numDrops;i++) s.waterDrops.push({
+      x:PIT_L+2+Math.random()*3, y:PLAT_R_Y+10+Math.random()*10,
+      vx:1.5+Math.random()*2, vy:-1+Math.random()*2, life:1
+    });
+    setStatus('Llenando... '+Math.max(0,s.valveTimer).toFixed(1)+'s');
+  }
+
+  const wY = s.waterLevel;
+  s.waterDrops = s.waterDrops.filter(d => {
+    d.x+=d.vx*dt*60; d.y+=d.vy*dt*60; d.vy+=0.5; if(d.vy>12)d.vy=12;
+    d.life-=dt*0.8; if(d.y>s.waterLevel)d.life=0;
+    if(d.x>PIT_R-4){d.vx*=-0.5;d.x=PIT_R-4;}
+    return d.life>0&&d.y<s.waterLevel+2;
+  });
+
+  if (s.spear) {
+    s.spear.timer -= dt;
+    const progress = 1 - s.spear.timer / s.spear.duration;
+    s.spear.reach = Math.sin(progress*Math.PI) * s.spear.maxReach;
+    const tipX = p.x+p.w/2 + Math.cos(s.spear.angle)*s.spear.reach;
+    const tipY = p.y+p.h/2 + Math.sin(s.spear.angle)*s.spear.reach;
+    if (s.fishAlive) {
+      const fd={x:s.fishX-14,y:s.fishY-10,w:28,h:20};
+      if(overlap({x:tipX-4,y:tipY-4,w:8,h:8},fd)){
+        s.fishHp--; setFishHp(s.fishHp);
+        for(let i=0;i<6;i++) s.particles.push({x:s.fishX,y:s.fishY,vx:(Math.random()-0.5)*5,vy:-Math.random()*4-1,life:0.7});
+        s.spear=null;
+        if(s.fishHp<=0){
+          s.fishAlive=false; s.fishCaught=true;
+          setStatus('¡Pescado! Sube y llega a la puerta.');
+          for(let i=0;i<14;i++) s.particles.push({x:s.fishX,y:s.fishY,vx:(Math.random()-0.5)*5,vy:-Math.random()*4-1,life:0.9});
+        } else setStatus('¡Golpe! Le quedan '+s.fishHp+' vida'+(s.fishHp>1?'s':'')+' al pez.');
+      }
+    }
+    if(s.spear&&s.spear.timer<=0) s.spear=null;
+  }
+  if (keys.attack&&!attackPressed&&!p.swimming&&!p.climbing&&!s.spear) {
+    attackPressed=true;
+    const angle=p.facing===1?Math.PI*0.2:Math.PI*0.8;
+    const duration=0.35;
+    s.spear={angle,reach:0,maxReach:38,timer:duration,duration};
+  }
+  if(!keys.attack) attackPressed=false;
+
+  if (s.fishAlive) {
+    const waterOver=wY<PLAT_L_Y;
+    const playerForcedSwim=wY<p.y+p.h/2;
+    const waterMid=playerForcedSwim?wY+(PIT_BOT-wY)*0.55:wY+6;
+    const fishCanCrossLeft=s.fishY<PLAT_L_Y;
+    const fishMinX=fishCanCrossLeft?WALL_W+4:PIT_L+12;
+    const fishMaxX=PIT_R-18;
+    if(p.swimming){
+      const dx=(p.x+p.w/2)-s.fishX, dy=(p.y+p.h/2)-s.fishY;
+      const dist=Math.sqrt(dx*dx+dy*dy)||1;
+      s.fishDir=dx>0?1:-1;
+      s.fishX+=dx/dist*140*dt; s.fishY+=dy/dist*140*dt;
+      s.fishX=Math.max(fishMinX,Math.min(fishMaxX,s.fishX));
+      s.fishY=Math.max(wY+4,Math.min(PIT_BOT-8,s.fishY));
+    } else if(waterOver){
+      s.fishX+=s.fishDir*100*dt;
+      if(s.fishX<fishMinX){s.fishX=fishMinX;s.fishDir=1;}
+      if(s.fishX>fishMaxX){s.fishX=fishMaxX;s.fishDir=-1;}
+      s.fishY+=(waterMid-s.fishY)*3*dt;
+    } else {
+      s.fishX+=s.fishDir*100*dt;
+      if(s.fishX<PIT_L+12){s.fishX=PIT_L+12;s.fishDir=1;}
+      if(s.fishX>PIT_R-22){s.fishX=PIT_R-22;s.fishDir=-1;}
+      s.fishY+=(waterMid-s.fishY)*3*dt;
+    }
+    s.fishY=Math.max(wY+4,Math.min(PIT_BOT-8,s.fishY));
+    s.fishAnim+=dt*6;
+    if(p.invincible<=0){
+      if(overlap({x:p.x,y:p.y,w:p.w,h:p.h},{x:s.fishX-12,y:s.fishY-8,w:24,h:16}))
+        if(!s.outcome){s.outcome='die';s.outcomeTimer=0.5;setStatus('¡El pez te comió!');}
+    }
+  }
+
+  s.particles=s.particles.filter(sp=>{sp.x+=sp.vx;sp.y+=sp.vy;sp.vy+=0.18;sp.life-=dt;return sp.life>0;});
+  if(s.fishCaught&&p.x+p.w>FLAG_X&&p.x<FLAG_X+DOOR_W&&p.y+p.h>FLAG_Y&&p.y<FLAG_Y+DOOR_H)
+    if(!s.outcome){s.outcome='win';s.outcomeTimer=0.4;}
+
+  if(p.invincible>0) p.invincible-=dt;
+  const spd=1.9;
+  if(keys.left){p.vx=-spd;p.facing=-1;}
+  else if(keys.right){p.vx=spd;p.facing=1;}
+  else p.vx*=0.72;
+
+  const inPitX=p.x+p.w>PIT_L&&p.x<PIT_R;
+  const inWaterPit=inPitX&&p.y+p.h>wY;
+  const onLeftPlat=!inPitX&&p.x<PIT_L;
+  const floodOnLeft=wY<PLAT_L_Y&&wY<p.y+p.h/2;
+  const climbing=onLadderEntry(p);
+  const swimming=inWaterPit&&!climbing;
+  p.swimming=swimming||(onLeftPlat&&floodOnLeft);
+  p.climbing=climbing;
+
+  if(swimming){p.vy+=0.12;if(p.vy>1.5)p.vy=1.5;if(keys.jump)p.vy=-1.5;}
+  else if(climbing){p.vy=0;p.vx=0;if(keys.jump)p.vy=-2;if(keys.left){p.vx=-1.9;p.facing=-1;}if(keys.right){p.vx=1.9;p.facing=1;}p.onGround=false;}
+  else{p.vy+=0.32;if(p.vy>9)p.vy=9;if(keys.jump&&p.onGround&&!jumpPressed){p.vy=-6.2;p.onGround=false;jumpPressed=true;}}
+  if(!keys.jump)jumpPressed=false;
+
+  const prevY=p.y;
+  p.x+=p.vx; p.onGround=false;
+  for(const pl of platforms()){
+    if(!overlap({x:p.x,y:p.y,w:p.w,h:p.h},pl))continue;
+    const isLP=pl.x===0&&pl.y===PLAT_L_Y;
+    if(isLP&&p.vx>0)continue;
+    if(p.vx>0)p.x=pl.x-p.w;else if(p.vx<0)p.x=pl.x+pl.w;
+    p.vx=0;
+  }
+  p.y+=p.vy;
+  for(const pl of platforms()){
+    if(overlap({x:p.x,y:p.y,w:p.w,h:p.h},pl)){
+      if(p.vy>0){p.y=pl.y-p.h;p.onGround=true;}else p.y=pl.y+pl.h;
+      p.vy=0;
+    }
+  }
+  if(p.x<PIT_L&&p.x+p.w>PIT_L&&p.y+p.h>wY&&p.y>PLAT_L_Y-p.h){p.x=PIT_L-p.w;p.vx=0;}
+  if(p.x+p.w>WALL_W&&p.x<PIT_L&&prevY+p.h<=PLAT_L_Y&&p.y+p.h>=PLAT_L_Y){p.y=PLAT_L_Y-p.h;p.onGround=true;p.vy=0;}
+  if(p.x<WALL_W){p.x=WALL_W;p.vx=0;}
+  if(inWaterPit&&!climbing&&p.y<wY){p.y=wY;p.vy=0;}
+  if(p.x<0)p.x=0;
+  if(p.y>H+30){p.dead=true;p.deathTimer=0.8;}
+}
+
+function drawPuzzle() {
+  const p=player,s=state,wY=s.waterLevel;
+  ctx.clearRect(0,0,W,H);
+  ctx.fillStyle='#d4ecd4';ctx.fillRect(0,0,W,H);
+  ctx.fillStyle='#b8d8b8';
+  for(let i=0;i<W;i+=40)ctx.fillRect(i,0,20,H);
+  ctx.fillStyle='#7a5c2e';
+  ctx.fillRect(WALL_W,PLAT_L_Y,PIT_L-WALL_W,H-PLAT_L_Y);
+  ctx.fillRect(PIT_R,PLAT_R_Y,W-WALL_W-PIT_R,H-PLAT_R_Y);
+  ctx.fillStyle='#9a7a3e';
+  ctx.fillRect(WALL_W,PLAT_L_Y,PIT_L-WALL_W,7);
+  ctx.fillRect(PIT_R,PLAT_R_Y,W-WALL_W-PIT_R,7);
+  ctx.fillStyle='#444';ctx.fillRect(PIT_L,PIT_BOT,PIT_R-PIT_L,H-PIT_BOT);
+  ctx.fillStyle='#5a3a1a';ctx.fillRect(0,0,WALL_W,H);ctx.fillRect(W-WALL_W,0,WALL_W,H);
+
+  ctx.fillStyle='rgba(70,150,220,0.7)';ctx.fillRect(PIT_L,wY,PIT_R-PIT_L,PIT_BOT-wY);
+  if(wY<PLAT_L_Y){ctx.fillStyle='rgba(70,150,220,0.65)';ctx.fillRect(WALL_W,wY,PIT_L-WALL_W,PLAT_L_Y-wY);}
+
+  // Pipe
+  {
+    const px=PIT_L+1,py=PLAT_R_Y+20;
+    ctx.fillStyle='#555';ctx.fillRect(px,py-5,16,10);
+    ctx.fillStyle='#111';ctx.fillRect(px+14,py-3,4,6);
+    if(state.valveActive){
+      const sx=px+16,st=py,sb=state.waterLevel,t=Date.now()/120;
+      for(let i=0;i<10;i++){
+        const sy=st+(sb-st)*i/10,sy2=st+(sb-st)*(i+1)/10,wb=Math.sin(t+i*1.2)*1.2;
+        ctx.strokeStyle=`rgba(80,170,255,${0.5+0.4*Math.sin(t*2+i)})`;
+        ctx.lineWidth=3+Math.sin(t+i)*0.8;ctx.lineCap='round';
+        ctx.beginPath();ctx.moveTo(sx+wb,sy);ctx.lineTo(sx+wb,sy2);ctx.stroke();
+      }
+    }
+  }
+
+  // Water surface
+  ctx.strokeStyle='rgba(140,210,255,0.9)';ctx.lineWidth=1.5;
+  ctx.beginPath();
+  const le=wY<PLAT_L_Y?WALL_W:PIT_L,re=wY<PLAT_R_Y?W-WALL_W:PIT_R;
+  for(let wx=le;wx<=re;wx+=5){
+    const wo=Math.sin(wx*0.18+Date.now()*0.003)*1.8;
+    wx===le?ctx.moveTo(wx,wY+wo):ctx.lineTo(wx,wY+wo);
+  }
+  ctx.stroke();
+
+  // Ladder
+  ctx.strokeStyle='#7a5c2e';ctx.lineWidth=2.5;
+  ctx.beginPath();ctx.moveTo(LADDER_X+2,LADDER_TOP);ctx.lineTo(LADDER_X+2,LADDER_BOT);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(LADDER_X+LADDER_W-2,LADDER_TOP);ctx.lineTo(LADDER_X+LADDER_W-2,LADDER_BOT);ctx.stroke();
+  ctx.strokeStyle='#9a7a3e';ctx.lineWidth=2;
+  for(let ry=LADDER_TOP+8;ry<LADDER_BOT;ry+=12){ctx.beginPath();ctx.moveTo(LADDER_X+2,ry);ctx.lineTo(LADDER_X+LADDER_W-2,ry);ctx.stroke();}
+
+  // Door
+  const dX=FLAG_X,dY=FLAG_Y,dW=DOOR_W,dH=DOOR_H;
+  ctx.fillStyle='#5a3010';ctx.fillRect(dX,dY,dW,dH);
+  ctx.fillStyle='#7a4820';ctx.fillRect(dX+2,dY+2,dW-4,dH-4);
+  if(!s.fishCaught){
+    ctx.fillStyle='rgba(200,0,0,0.8)';ctx.font='bold 8px monospace';ctx.textAlign='center';
+    ctx.fillText('(atrapa el pez!)',dX+dW/2,dY-4);
+  } else {
+    const pulse=0.7+0.3*Math.sin(Date.now()*0.006);
+    ctx.globalAlpha=pulse;ctx.fillStyle='#0f0';ctx.font='bold 8px monospace';ctx.textAlign='center';
+    ctx.fillText('¡ABIERTA!',dX+dW/2,dY-4);ctx.globalAlpha=1;
+    ctx.strokeStyle='#0f0';ctx.lineWidth=1.5;ctx.strokeRect(dX-1,dY-1,dW+2,dH+2);
+  }
+
+  // Fish
+  if(s.fishAlive){
+    if(s.fishY===0)s.fishY=s.waterLevel+(PIT_BOT-s.waterLevel)*0.55;
+    const wb=Math.sin(s.fishAnim)*2;
+    ctx.save();ctx.translate(s.fishX,s.fishY);
+    if(s.fishDir<0)ctx.scale(-1,1);
+    ctx.fillStyle='#c00';ctx.beginPath();ctx.ellipse(0,0,11,7,0,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#e00';ctx.beginPath();ctx.moveTo(-11,-5+wb);ctx.lineTo(-18,-10+wb);ctx.lineTo(-18,5+wb);ctx.closePath();ctx.fill();
+    ctx.fillStyle='#ffd';ctx.beginPath();ctx.arc(6,-2,2.5,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#000';ctx.beginPath();ctx.arc(6,-2,1,0,Math.PI*2);ctx.fill();
+    ctx.restore();
+  }
+
+  // Spear
+  if(s.spear){
+    const ox=p.x+p.w/2,oy=p.y+p.h/2,reach=s.spear.reach,angle=s.spear.angle;
+    const shaftLen=14,tipX=ox+Math.cos(angle)*reach,tipY=oy+Math.sin(angle)*reach;
+    ctx.save();
+    ctx.strokeStyle='#8B4513';ctx.lineWidth=3;ctx.lineCap='round';
+    ctx.beginPath();ctx.moveTo(ox-Math.cos(angle)*shaftLen,oy-Math.sin(angle)*shaftLen);ctx.lineTo(tipX,tipY);ctx.stroke();
+    ctx.translate(tipX,tipY);ctx.rotate(angle);
+    ctx.fillStyle='#ddd';ctx.beginPath();ctx.moveTo(0,0);ctx.lineTo(-7,-4);ctx.lineTo(10,0);ctx.lineTo(-7,4);ctx.closePath();ctx.fill();
+    ctx.restore();
+  }
+
+  // Particles
+  s.particles.forEach(sp=>{ctx.globalAlpha=Math.max(0,sp.life);ctx.fillStyle='#88ccff';ctx.beginPath();ctx.arc(sp.x,sp.y,2.5,0,Math.PI*2);ctx.fill();});
+  ctx.globalAlpha=1;
+
+  // Player
+  if(!p.dead){
+    ctx.save();ctx.translate(p.x+p.w/2,p.y+p.h/2);
+    if(p.facing===-1)ctx.scale(-1,1);
+    if(p.swimming){
+      ctx.fillStyle='#1a8';ctx.beginPath();ctx.ellipse(0,3,9,6,0,0,Math.PI*2);ctx.fill();
+      ctx.fillStyle='#4ef';ctx.beginPath();ctx.arc(0,-2,6,0,Math.PI*2);ctx.fill();
+      ctx.fillStyle='#fdd';ctx.beginPath();ctx.arc(0,-1,4,0,Math.PI*2);ctx.fill();
+    } else {
+      ctx.fillStyle='#1a6';ctx.fillRect(-7,-7,14,10);
+      ctx.fillStyle='#4ef';ctx.fillRect(-5,-15,10,9);
+      ctx.fillStyle='#fdd';ctx.fillRect(-4,-6,8,6);
+      ctx.fillStyle='#164';ctx.fillRect(-6,3,5,7);ctx.fillRect(2,3,5,7);
+    }
+    ctx.restore();
+    // Name above player
+    ctx.fillStyle='#fff';ctx.font='bold 9px monospace';ctx.textAlign='center';
+    ctx.fillText(myName,p.x+p.w/2,p.y-4);
+  }
+
+  // Meter
+  const METER_TOTAL=PIT_BOT-PLAT_L_Y;
+  const pct=Math.min(100,Math.max(0,Math.round((PIT_BOT-wY)/METER_TOTAL*100)));
+  const mX=PIT_L-18,mY=PLAT_L_Y,mH=METER_TOTAL,mW=10;
+  ctx.fillStyle='rgba(0,0,0,0.4)';ctx.fillRect(mX-1,mY-1,mW+2,mH+2);
+  const fH=Math.round(mH*pct/100);
+  ctx.fillStyle=pct<40?'#44aaff':pct<75?'#22cc66':pct<90?'#ffaa00':'#ff4444';
+  ctx.fillRect(mX,mY+mH-fH,mW,fH);
+  ctx.strokeStyle='rgba(255,255,255,0.6)';ctx.lineWidth=0.5;ctx.strokeRect(mX,mY,mW,mH);
+  ctx.fillStyle='#fff';ctx.font='bold 11px monospace';ctx.textAlign='right';
+  ctx.fillText(pct+'%',mX-3,mY+mH-fH+4);
+}
+
+function showPuzzleOverlay(title,msg,btn,reset){
+  const ov=document.getElementById('overlay');
+  ov.innerHTML=`<h2>${title}</h2><p>${msg.replace(/\n/g,'<br>')}</p><button id="startBtn">${btn}</button>`;
+  ov.style.display='flex';
+  document.getElementById('startBtn').onclick=()=>{
+    if(reset){lives=3;updateUI();}
+    initGame();ov.style.display='none';gameRunning=true;
+  };
+}
+
+function puzzleComplete() {
+  // Mark player as done in Firebase
+  if (myKey) playersRef.child(myKey).update({ status: 'arena' });
+  // Show transition overlay
+  const ov = document.getElementById('overlay');
+  ov.innerHTML = `<h2>🎉 ¡Nivel completado!</h2><p>Entrando a la arena...</p>`;
+  ov.style.display = 'flex';
+  setTimeout(() => enterArena(), 1800);
+}
+
+// ═══════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════
+// ARENA (FASE 2) — PvP Multijugador
+// ═══════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════
+
+const AW = 460, AH = 280;
+const arenaCanvas = document.getElementById('arena-canvas');
+const actx = arenaCanvas.getContext('2d');
+arenaCanvas.width = AW; arenaCanvas.height = AH;
+
+// Arena layout — simple flat room with platforms
+const ARENA_FLOOR = AH - 30;
+const ARENA_PLATS = [
+  { x:0,   y:ARENA_FLOOR, w:AW,  h:30  }, // floor
+  { x:0,   y:0,           w:12,  h:AH  }, // left wall
+  { x:AW-12, y:0,         w:12,  h:AH  }, // right wall
+  { x:80,  y:180,         w:90,  h:12  }, // platform 1
+  { x:280, y:160,         w:90,  h:12  }, // platform 2
+  { x:170, y:110,         w:120, h:12  }, // platform 3 (top center)
+];
+
+let arenaPlayer = null;
+let arenaKeys = { left:false, right:false, jump:false, attack:false };
+let arenaJumpPressed = false, arenaAttackPressed = false;
+let otherPlayers = {}; // from Firebase
+let myDeaths = 0;
+let arenaSpear = null;
+let arenaParticles = [];
+let arenaRunning = false;
+let lastArena = 0;
+
+const PLAYER_COLORS = ['#4ef','#f84','#8f4','#f4f','#ff4','#4ff','#fa4','#a4f'];
+function colorForName(name) {
+  let h = 0;
+  for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) & 0xffff;
+  return PLAYER_COLORS[h % PLAYER_COLORS.length];
+}
+
+function initArenaPlayer() {
+  arenaPlayer = {
+    x: 50 + Math.random() * (AW - 100),
+    y: ARENA_FLOOR - 60,
+    w: 14, h: 18,
+    vx: 0, vy: 0,
+    onGround: false,
+    dead: false, deathTimer: 0,
+    invincible: 0,
+    facing: 1
+  };
+  arenaSpear = null;
+}
+
+function enterArena() {
+  show('arena-screen');
+  initArenaPlayer();
+  arenaRunning = true;
+
+  // Push initial position
+  pushArenaPos();
+
+  // Listen to all players in arena
+  playersRef.on('value', snap => {
+    const data = snap.val() || {};
+    otherPlayers = {};
+    Object.entries(data).forEach(([k, v]) => {
+      if (k !== myKey && v.status === 'arena') {
+        otherPlayers[k] = v;
+      }
+    });
+  });
+
+  // Listen to deaths board
+  deathsRef.on('value', snap => {
+    const data = snap.val() || {};
+    // Update teacher ranking card if teacher
+    if (isTeacher) {
+      const list = document.getElementById('teacher-deaths-list');
+      if (list) {
+        const entries = Object.entries(data).sort((a,b)=>(b[1].count||0)-(a[1].count||0));
+        list.innerHTML = entries.map(([k,v],i)=>
+          `<div class="rank-row">
+            <span style="color:#888;width:20px">${i+1}</span>
+            <span style="flex:1">${v.name}</span>
+            <span style="color:#f44;font-weight:bold">${v.count} 💀</span>
+          </div>`
+        ).join('');
+      }
+    }
+  });
+
+  requestAnimationFrame(arenaLoop);
+}
+
+let pushTimer = 0;
+function pushArenaPos() {
+  if (!myKey) return;
+  playersRef.child(myKey).update({
+    ax: Math.round(arenaPlayer.x),
+    ay: Math.round(arenaPlayer.y),
+    facing: arenaPlayer.facing,
+    dead: arenaPlayer.dead,
+    aSpearAngle: arenaSpear ? arenaSpear.angle : null,
+    aSpearReach: arenaSpear ? arenaSpear.reach : null,
+  });
+}
+
+function arenaLoop(ts) {
+  const dt = Math.min((ts - lastArena) / 1000, 0.05);
+  lastArena = ts;
+  if (arenaRunning) {
+    updateArena(dt);
+    pushTimer += dt;
+    if (pushTimer > 0.05) { pushArenaPos(); pushTimer = 0; }
+  }
+  drawArena();
+  requestAnimationFrame(arenaLoop);
+}
+
+function arenaOverlap(a,b) { return a.x<b.x+b.w&&a.x+a.w>b.x&&a.y<b.y+b.h&&a.y+a.h>b.y; }
+
+function updateArena(dt) {
+  const p = arenaPlayer;
+
+  if (p.dead) {
+    p.deathTimer -= dt;
+    if (p.deathTimer <= 0) {
+      initArenaPlayer();
+    }
+    return;
+  }
+
+  if (p.invincible > 0) p.invincible -= dt;
+
+  // Spear
+  if (arenaSpear) {
+    arenaSpear.timer -= dt;
+    const progress = 1 - arenaSpear.timer / arenaSpear.duration;
+    arenaSpear.reach = Math.sin(progress * Math.PI) * arenaSpear.maxReach;
+    const tipX = p.x + p.w/2 + Math.cos(arenaSpear.angle) * arenaSpear.reach;
+    const tipY = p.y + p.h/2 + Math.sin(arenaSpear.angle) * arenaSpear.reach;
+
+    // Hit other players
+    Object.entries(otherPlayers).forEach(([k, v]) => {
+      if (!v.ax || v.dead) return;
+      const ob = { x: v.ax, y: v.ay, w: 14, h: 18 };
+      if (arenaOverlap({ x:tipX-5, y:tipY-5, w:10, h:10 }, ob)) {
+        // Record hit in Firebase
+        db.ref('game/hits').push({ victim: k, attacker: myKey, t: Date.now() });
+        arenaSpear = null;
+      }
+    });
+    if (arenaSpear && arenaSpear.timer <= 0) arenaSpear = null;
+  }
+
+  // Launch spear
+  if (arenaKeys.attack && !arenaAttackPressed && !p.dead && !arenaSpear) {
+    arenaAttackPressed = true;
+    const angle = p.facing === 1 ? Math.PI * 0.15 : Math.PI * 0.85;
+    arenaSpear = { angle, reach: 0, maxReach: 40, timer: 0.35, duration: 0.35 };
+  }
+  if (!arenaKeys.attack) arenaAttackPressed = false;
+
+  // Listen for hits on me
+  // (handled in separate listener below)
+
+  // Movement
+  const spd = 2.2;
+  if (arenaKeys.left) { p.vx = -spd; p.facing = -1; }
+  else if (arenaKeys.right) { p.vx = spd; p.facing = 1; }
+  else p.vx *= 0.75;
+
+  p.vy += 0.32; if (p.vy > 9) p.vy = 9;
+  if (arenaKeys.jump && p.onGround && !arenaJumpPressed) {
+    p.vy = -6.5; p.onGround = false; arenaJumpPressed = true;
+  }
+  if (!arenaKeys.jump) arenaJumpPressed = false;
+
+  p.x += p.vx; p.onGround = false;
+  for (const pl of ARENA_PLATS) {
+    if (arenaOverlap({ x:p.x, y:p.y, w:p.w, h:p.h }, pl)) {
+      if (p.vx > 0) p.x = pl.x - p.w; else p.x = pl.x + pl.w;
+      p.vx = 0;
+    }
+  }
+  p.y += p.vy;
+  for (const pl of ARENA_PLATS) {
+    if (arenaOverlap({ x:p.x, y:p.y, w:p.w, h:p.h }, pl)) {
+      if (p.vy > 0) { p.y = pl.y - p.h; p.onGround = true; }
+      else p.y = pl.y + pl.h;
+      p.vy = 0;
+    }
+  }
+  if (p.y > AH + 40) { p.y = ARENA_FLOOR - 30; p.vy = 0; }
+
+  // Particles
+  arenaParticles = arenaParticles.filter(sp => {
+    sp.x += sp.vx; sp.y += sp.vy; sp.vy += 0.15; sp.life -= dt;
+    return sp.life > 0;
+  });
+}
+
+// Listen for hits on this player
+let hitListenerSet = false;
+function setupHitListener() {
+  if (hitListenerSet) return;
+  hitListenerSet = true;
+  db.ref('game/hits').on('child_added', snap => {
+    const hit = snap.val();
+    if (!hit || !myKey) return;
+    if (hit.victim === myKey && !isProf && arenaPlayer && !arenaPlayer.dead && arenaPlayer.invincible <= 0) {
+      // I got hit!
+      arenaPlayer.dead = true;
+      arenaPlayer.deathTimer = 1.5;
+      myDeaths++;
+      document.getElementById('my-deaths').textContent = myDeaths;
+      // Update deaths board
+      deathsRef.child(myKey).set({ name: myName, count: myDeaths });
+      // Particles
+      for (let i = 0; i < 12; i++) arenaParticles.push({
+        x: arenaPlayer.x + arenaPlayer.w/2, y: arenaPlayer.y + arenaPlayer.h/2,
+        vx: (Math.random()-0.5)*6, vy: -Math.random()*5-1, life: 0.9
+      });
     }
   });
 }
 
-function teacherStart(){
-  sessionRef.set({status:'active', startTime:Date.now()});
-}
+function drawArena() {
+  actx.clearRect(0, 0, AW, AH);
 
-function teacherShowRanking(){
-  sessionRef.update({status:'ranking'});
-  document.getElementById('teacher-ranking').style.display='block';
-  studentsRef.on('value', snap => {
-    const data = snap.val()||{};
-    const rows = Object.entries(data)
-      .filter(([k,v])=>v.status==='correct')
-      .sort((a,b)=>(a[1].time||999)-(b[1].time||999));
-    const medals=['🥇','🥈','🥉'];
-    document.getElementById('teacher-ranking-list').innerHTML=
-      rows.length
-        ? rows.map(([k,v],i)=>`
-          <div class="rank-row">
-            <span class="rank-pos">${medals[i]||i+1}</span>
-            <span class="rank-name">${v.name}</span>
-            <span class="rank-score">${v.time}s</span>
-          </div>`).join('')
-        : '<p style="color:#aaa;font-size:12px">Aún no hay respuestas correctas.</p>';
+  // Background — dark dungeon
+  actx.fillStyle = '#1a0a0a';
+  actx.fillRect(0, 0, AW, AH);
+
+  // Background grid
+  actx.strokeStyle = 'rgba(80,0,0,0.2)'; actx.lineWidth = 1;
+  for (let x = 0; x < AW; x += 40) { actx.beginPath(); actx.moveTo(x,0); actx.lineTo(x,AH); actx.stroke(); }
+  for (let y = 0; y < AH; y += 40) { actx.beginPath(); actx.moveTo(0,y); actx.lineTo(AW,y); actx.stroke(); }
+
+  // Platforms
+  ARENA_PLATS.forEach((pl, i) => {
+    if (i === 0) { // floor
+      actx.fillStyle = '#3a1a0a'; actx.fillRect(pl.x, pl.y, pl.w, pl.h);
+      actx.fillStyle = '#5a2a1a'; actx.fillRect(pl.x, pl.y, pl.w, 5);
+    } else if (i <= 2) { // walls
+      actx.fillStyle = '#2a0a0a'; actx.fillRect(pl.x, pl.y, pl.w, pl.h);
+    } else { // floating platforms
+      actx.fillStyle = '#5a2a1a'; actx.fillRect(pl.x, pl.y, pl.w, pl.h);
+      actx.fillStyle = '#7a4a2a'; actx.fillRect(pl.x, pl.y, pl.w, 4);
+    }
   });
-}
 
-function teacherReset(){
-  sessionRef.set({status:'idle'});
-  studentsRef.remove();
-  document.getElementById('teacher-ranking').style.display='none';
-}
+  // Deaths scoreboard on back wall
+  const deaths = Object.entries(otherPlayers)
+    .filter(([k,v]) => v.deaths > 0 || myDeaths > 0)
+    .map(([k,v]) => ({ name: v.name, deaths: v.deaths||0 }));
+  deaths.push({ name: myName, deaths: myDeaths });
+  deaths.sort((a,b) => b.deaths - a.deaths);
 
-// ── score & question state ──────────────────────────────
-let score = 0;
-let currentQ = 1;
-let treeSubmitted = false;
-let treeAnimId = null;
-let treeYear = 0;
-
-function updateScoreDisplay(){
-  document.getElementById('score-display').textContent = score;
-  document.getElementById('q-display').textContent = currentQ + ' / 2';
-}
-
-// ── tree animation ──────────────────────────────────────
-function drawTrees(animYear){
-  const c = document.getElementById('tree-canvas');
-  if(!c) return;
-  const dpr = window.devicePixelRatio||1;
-  c.width = c.offsetWidth*dpr; c.height = c.offsetHeight*dpr;
-  const ctx = c.getContext('2d'); ctx.scale(dpr,dpr);
-  const W = c.offsetWidth, H = c.offsetHeight;
-
-  // sky + ground
-  ctx.fillStyle = '#e8f5e1'; ctx.fillRect(0,0,W,H);
-  ctx.fillStyle = '#a8cc78'; ctx.fillRect(0,H*0.80,W,H*0.20);
-
-  // sun
-  ctx.fillStyle = '#FFD700';
-  ctx.beginPath(); ctx.arc(W*0.85, H*0.12, 18, 0, Math.PI*2); ctx.fill();
-
-  const hA_cur = 2 + 3*animYear;
-  const hB_cur = 14 + 1*animYear;
-  const maxH = Math.max(hA_cur, hB_cur) * 1.15 || 20;
-  const scaleY = H*0.68 / maxH;
-
-  function drawTree(x, heightM, color, label){
-    const px = x, baseY = H*0.80;
-    const treeH = heightM * scaleY;
-    const trunkW = Math.max(6, treeH*0.12);
-    const crownR = Math.max(10, treeH*0.38);
-
-    // trunk
-    ctx.fillStyle = '#8B5e10';
-    ctx.fillRect(px - trunkW/2, baseY - treeH*0.35, trunkW, treeH*0.35);
-
-    // crown layers
-    [1, 0.75, 0.5].forEach((scale, i) => {
-      ctx.fillStyle = i===0 ? color : (i===1 ? color+'cc' : color+'88');
-      ctx.beginPath();
-      ctx.moveTo(px, baseY - treeH*0.35 - crownR*scale*2.2 + i*crownR*0.5);
-      ctx.lineTo(px - crownR*scale*1.1, baseY - treeH*0.35 - i*crownR*0.3);
-      ctx.lineTo(px + crownR*scale*1.1, baseY - treeH*0.35 - i*crownR*0.3);
-      ctx.closePath(); ctx.fill();
+  if (deaths.length > 0) {
+    actx.fillStyle = 'rgba(0,0,0,0.5)';
+    actx.fillRect(AW/2 - 70, 8, 140, 10 + deaths.length * 13);
+    actx.fillStyle = '#f44'; actx.font = 'bold 8px monospace'; actx.textAlign = 'center';
+    actx.fillText('💀 MUERTES', AW/2, 17);
+    deaths.forEach((d, i) => {
+      actx.fillStyle = d.name === myName ? '#ff8' : '#ccc';
+      actx.font = '8px monospace';
+      actx.fillText(d.name + ': ' + d.deaths, AW/2, 28 + i*13);
     });
-
-    // height label
-    ctx.fillStyle = '#333'; ctx.font = 'bold 11px monospace'; ctx.textAlign = 'center';
-    ctx.fillText(heightM.toFixed(1)+' m', px, baseY - treeH*0.35 - crownR*2.4 - 6);
-
-    // name label
-    ctx.fillStyle = '#555'; ctx.font = '11px system-ui'; ctx.textAlign = 'center';
-    ctx.fillText(label, px, baseY + 16);
   }
 
-  const hA = 2 + 3*animYear;
-  const hB = 14 + 1*animYear;
+  // Draw other players
+  Object.entries(otherPlayers).forEach(([k, v]) => {
+    if (!v.ax || v.dead) return;
+    const col = v.isProf ? '#f84' : colorForName(v.name);
+    actx.save();
+    actx.translate(v.ax + 7, v.ay + 9);
+    if ((v.facing||1) === -1) actx.scale(-1,1);
+    // Body
+    actx.fillStyle = col; actx.fillRect(-7,-7,14,10);
+    actx.fillStyle = '#4ef'; actx.fillRect(-5,-15,10,9);
+    actx.fillStyle = '#fdd'; actx.fillRect(-4,-6,8,6);
+    actx.fillStyle = '#164'; actx.fillRect(-6,3,5,7); actx.fillRect(2,3,5,7);
+    // Spear
+    if (v.aSpearAngle !== null && v.aSpearReach) {
+      const ox=0, oy=0, reach=v.aSpearReach, angle=v.aSpearAngle;
+      const tipX=ox+Math.cos(angle)*reach, tipY=oy+Math.sin(angle)*reach;
+      actx.strokeStyle='#8B4513';actx.lineWidth=3;actx.lineCap='round';
+      actx.beginPath();actx.moveTo(ox-Math.cos(angle)*10,oy-Math.sin(angle)*10);actx.lineTo(tipX,tipY);actx.stroke();
+    }
+    actx.restore();
+    // Name
+    actx.fillStyle = v.isProf ? '#f84' : '#fff';
+    actx.font = 'bold 8px monospace'; actx.textAlign = 'center';
+    actx.fillText(v.name, v.ax + 7, v.ay - 2);
+    if (v.isProf) { actx.fillStyle='#f84'; actx.fillText('👑', v.ax+7, v.ay-10); }
+  });
 
-  drawTree(W*0.3, hA, '#2d8a4e', 'Árbol A');
-  drawTree(W*0.7, hB, '#1a5c8a', 'Árbol B');
+  // Draw my player
+  const p = arenaPlayer;
+  if (!p) return;
 
-  // year label
-  ctx.fillStyle = '#444'; ctx.font = 'bold 13px monospace'; ctx.textAlign = 'center';
-  ctx.fillText('Año: ' + animYear.toFixed(1), W/2, H*0.92);
+  if (p.dead) {
+    actx.globalAlpha = 0.3;
+  }
 
-  // equal height line
-  if(Math.abs(hA - hB) < 0.3){
-    ctx.strokeStyle = 'rgba(255,100,0,0.6)'; ctx.lineWidth = 1.5; ctx.setLineDash([4,3]);
-    const eqY = H*0.80 - hA*scaleY*0.35;
-    ctx.beginPath(); ctx.moveTo(W*0.15, eqY); ctx.lineTo(W*0.85, eqY); ctx.stroke();
-    ctx.setLineDash([]);
-    ctx.fillStyle = '#d45a00'; ctx.font = 'bold 11px system-ui'; ctx.textAlign = 'center';
-    ctx.fillText('¡Misma altura!', W/2, eqY - 6);
+  if (p.invincible > 0 && Math.floor(Date.now()/100)%2===0) {
+    actx.globalAlpha = 0.5;
+  }
+
+  actx.save();
+  actx.translate(p.x + p.w/2, p.y + p.h/2);
+  if (p.facing === -1) actx.scale(-1, 1);
+  const myCol = isProf ? '#f84' : colorForName(myName);
+  actx.fillStyle = myCol; actx.fillRect(-7,-7,14,10);
+  actx.fillStyle = '#4ef'; actx.fillRect(-5,-15,10,9);
+  actx.fillStyle = '#fdd'; actx.fillRect(-4,-6,8,6);
+  actx.fillStyle = '#164'; actx.fillRect(-6,3,5,7); actx.fillRect(2,3,5,7);
+  actx.restore();
+
+  // My spear
+  if (arenaSpear) {
+    const ox=p.x+p.w/2, oy=p.y+p.h/2, reach=arenaSpear.reach, angle=arenaSpear.angle;
+    const tipX=ox+Math.cos(angle)*reach, tipY=oy+Math.sin(angle)*reach;
+    actx.save();
+    actx.strokeStyle='#8B4513';actx.lineWidth=3;actx.lineCap='round';
+    actx.beginPath();actx.moveTo(ox-Math.cos(angle)*14,oy-Math.sin(angle)*14);actx.lineTo(tipX,tipY);actx.stroke();
+    actx.translate(tipX,tipY);actx.rotate(angle);
+    actx.fillStyle='#ddd';actx.beginPath();actx.moveTo(0,0);actx.lineTo(-7,-4);actx.lineTo(10,0);actx.lineTo(-7,4);actx.closePath();actx.fill();
+    actx.restore();
+  }
+
+  // My name
+  actx.globalAlpha = 1;
+  actx.fillStyle = isProf ? '#f84' : '#fff';
+  actx.font = 'bold 9px monospace'; actx.textAlign = 'center';
+  actx.fillText(myName, p.x+p.w/2, p.y-3);
+  if (isProf) { actx.fillStyle='#f84'; actx.fillText('👑PROF', p.x+p.w/2, p.y-11); }
+
+  // Particles
+  arenaParticles.forEach(sp => {
+    actx.globalAlpha = Math.max(0, sp.life);
+    actx.fillStyle = '#f84';
+    actx.beginPath(); actx.arc(sp.x, sp.y, 3, 0, Math.PI*2); actx.fill();
+  });
+  actx.globalAlpha = 1;
+
+  // Dead overlay
+  if (p.dead) {
+    actx.fillStyle = 'rgba(0,0,0,0.5)';
+    actx.fillRect(0,0,AW,AH);
+    actx.fillStyle = '#f44'; actx.font = 'bold 18px monospace'; actx.textAlign = 'center';
+    actx.fillText('💀 MUERTO', AW/2, AH/2);
+    actx.fillStyle = '#888'; actx.font = '12px monospace';
+    actx.fillText('Reapareciendo...', AW/2, AH/2+20);
   }
 }
 
-function animateTrees(targetYear, onDone){
-  let yr = 0;
-  const step = targetYear / 60;
-  function frame(){
-    yr = Math.min(yr + step, targetYear);
-    drawTrees(yr);
-    if(yr < targetYear) treeAnimId = requestAnimationFrame(frame);
-    else if(onDone) onDone();
-  }
-  frame();
+// ── Arena controls
+function bindArenaBtn(id, key) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.addEventListener('touchstart', e=>{e.preventDefault();arenaKeys[key]=true;},{passive:false});
+  el.addEventListener('touchend',   e=>{e.preventDefault();arenaKeys[key]=false;arenaJumpPressed=false;},{passive:false});
+  el.addEventListener('mousedown', ()=>arenaKeys[key]=true);
+  el.addEventListener('mouseup',   ()=>{arenaKeys[key]=false;arenaJumpPressed=false;});
+}
+bindArenaBtn('a-leftBtn','left');
+bindArenaBtn('a-rightBtn','right');
+bindArenaBtn('a-jumpBtn','jump');
+bindArenaBtn('a-attackBtn','attack');
+
+document.addEventListener('keydown', e => {
+  const k = arenaKeys;
+  if(e.key==='ArrowLeft'||e.key==='a')  k.left=true;
+  if(e.key==='ArrowRight'||e.key==='d') k.right=true;
+  if(e.key===' '||e.key==='ArrowUp'||e.key==='w') k.jump=true;
+  if(e.key==='z'||e.key==='x') k.attack=true;
+  // Also handle puzzle keys
+  if(e.key==='ArrowLeft'||e.key==='a')  keys.left=true;
+  if(e.key==='ArrowRight'||e.key==='d') keys.right=true;
+  if(e.key===' '||e.key==='ArrowUp'||e.key==='w') keys.jump=true;
+  if(e.key==='z'||e.key==='x'||e.key==='ArrowDown') keys.attack=true;
+});
+document.addEventListener('keyup', e => {
+  const k = arenaKeys;
+  if(e.key==='ArrowLeft'||e.key==='a')  k.left=false;
+  if(e.key==='ArrowRight'||e.key==='d') k.right=false;
+  if(e.key===' '||e.key==='ArrowUp'||e.key==='w') k.jump=false;
+  if(e.key==='z'||e.key==='x') k.attack=false;
+  if(e.key==='ArrowLeft'||e.key==='a')  keys.left=false;
+  if(e.key==='ArrowRight'||e.key==='d') keys.right=false;
+  if(e.key===' '||e.key==='ArrowUp'||e.key==='w') keys.jump=false;
+  if(e.key==='z'||e.key==='x'||e.key==='ArrowDown') keys.attack=false;
+});
+
+// ── Puzzle controls
+function bindBtn(id,key){
+  const el=document.getElementById(id);
+  if(!el)return;
+  el.addEventListener('touchstart',e=>{e.preventDefault();keys[key]=true;},{passive:false});
+  el.addEventListener('touchend',  e=>{e.preventDefault();keys[key]=false;jumpPressed=false;},{passive:false});
+  el.addEventListener('mousedown', ()=>keys[key]=true);
+  el.addEventListener('mouseup',   ()=>{keys[key]=false;jumpPressed=false;});
+}
+bindBtn('leftBtn','left');bindBtn('rightBtn','right');bindBtn('jumpBtn','jump');bindBtn('attackBtn','attack');
+
+document.getElementById('valveSlider').oninput=function(){
+  document.getElementById('valveTimeLabel').textContent=this.value+'s';
+};
+document.getElementById('valveBtn').onclick=function(){
+  if(state.valveUsed||!gameRunning)return;
+  const t=parseInt(document.getElementById('valveSlider').value);
+  state.valveUsed=true;state.valveActive=true;state.valveTimer=t;
+  this.disabled=true;document.getElementById('valveSlider').disabled=true;
+  setStatus('Válvula abierta por '+t+'s...');
+};
+
+// Setup hit listener when entering arena
+function enterArenaFull() {
+  setupHitListener();
+  enterArena();
 }
 
-function checkTree(){
-  if(treeSubmitted) return;
-  const val = parseInt(document.getElementById('tree-answer').value);
-  const res = document.getElementById('tree-result');
-  res.style.display = 'block';
-
-  if(isNaN(val)){
-    res.className = 'tree-result err';
-    res.textContent = 'Ingresa un número entero.';
-    return;
-  }
-
-  if(val === 6){
-    treeSubmitted = true;
-    score += 2;
-    updateScoreDisplay();
-    studentsRef.child(myKey).update({score, treeStatus:'correct'});
-    res.className = 'tree-result ok';
-    res.textContent = '✓ ¡Correcto! t = 6 años. +2 puntos 🎉';
-    animateTrees(6, ()=>{
-      setTimeout(()=>goToQ2(), 1500);
+// Override enterArena to also setup hit listener
+const _enterArena = enterArena;
+// patch
+function enterArena() {
+  setupHitListener();
+  show('arena-screen');
+  initArenaPlayer();
+  arenaRunning = true;
+  pushArenaPos();
+  playersRef.on('value', snap => {
+    const data = snap.val() || {};
+    otherPlayers = {};
+    Object.entries(data).forEach(([k, v]) => {
+      if (k !== myKey && v.status === 'arena') otherPlayers[k] = v;
     });
-  } else {
-    score = Math.max(0, score - 1);
-    updateScoreDisplay();
-    studentsRef.child(myKey).update({score, treeStatus:'wrong'});
-    res.className = 'tree-result err';
-    res.textContent = `✗ Incorrecto (t ≠ ${val}). -1 punto. Intenta de nuevo.`;
-    animateTrees(val > 0 ? Math.min(val, 20) : 0, null);
-  }
+  });
+  deathsRef.on('value', snap => {
+    const data = snap.val() || {};
+    const card = document.getElementById('teacher-ranking-card');
+    const list = document.getElementById('teacher-deaths-list');
+    if (card && list) {
+      const entries = Object.entries(data).sort((a,b)=>(b[1].count||0)-(a[1].count||0));
+      if (entries.length) {
+        card.style.display = 'block';
+        list.innerHTML = entries.map(([k,v],i)=>
+          `<div class="rank-row">
+            <span style="color:#888;width:20px">${i+1}</span>
+            <span style="flex:1">${v.name}</span>
+            <span style="color:#f44;font-weight:bold">${v.count} 💀</span>
+          </div>`
+        ).join('');
+      }
+    }
+  });
+  requestAnimationFrame(arenaLoop);
 }
-
-function goToQ2(){
-  currentQ = 2;
-  updateScoreDisplay();
-  document.getElementById('q1-panel').style.display = 'none';
-  document.getElementById('q2-panel').style.display = 'block';
-  renderBlocks();
-}
-
-// draw trees on load when activity starts
-
-
-// ── PRACTICE MODE ──────────────────────────────────────
-let pracScore = 0;
-let pracFilled = [[null,null,null],[null,null,null]];
-let pracSelected = null;
-let pracTreeDone = false;
-let pracMixDone = false;
-
-function startPractice(){
-  pracScore = 0; pracTreeDone = false; pracMixDone = false;
-  pracFilled = [[null,null,null],[null,null,null]];
-  pracSelected = null;
-  document.getElementById('prac-score').textContent = '0';
-  document.getElementById('prac-q').textContent = '1 / 2';
-  document.getElementById('prac-q1').style.display = 'block';
-  document.getElementById('prac-q2').style.display = 'none';
-  document.getElementById('prac-next-1').style.display = 'none';
-  document.getElementById('ptree-result').style.display = 'none';
-  document.getElementById('ptree-answer').value = '';
-  showScreen('practice');
-  setTimeout(()=>drawPracTrees(0), 100);
-}
-
-function drawPracTrees(yr){
-  const c = document.getElementById('ptree-canvas');
-  if(!c) return;
-  const dpr = window.devicePixelRatio||1;
-  c.width = c.offsetWidth*dpr; c.height = c.offsetHeight*dpr;
-  const ctx = c.getContext('2d'); ctx.scale(dpr,dpr);
-  const W = c.offsetWidth, H = c.offsetHeight;
-  ctx.fillStyle = '#e8f5e1'; ctx.fillRect(0,0,W,H);
-  ctx.fillStyle = '#a8cc78'; ctx.fillRect(0,H*0.80,W,H*0.20);
-  ctx.fillStyle = '#FFD700'; ctx.beginPath(); ctx.arc(W*0.85,H*0.12,18,0,Math.PI*2); ctx.fill();
-  const hA_cur=2+3*yr, hB_cur=14+1*yr;
-  const maxH=Math.max(hA_cur,hB_cur)*1.15||20, scaleY=H*0.68/maxH;
-  function drawT(x,hM,col,lbl){
-    const baseY=H*0.80, tH=hM*scaleY, tW=Math.max(6,tH*0.12), cR=Math.max(10,tH*0.38);
-    ctx.fillStyle='#8B5e10'; ctx.fillRect(x-tW/2,baseY-tH*0.35,tW,tH*0.35);
-    [1,0.75,0.5].forEach((sc,i)=>{
-      ctx.fillStyle=i===0?col:(i===1?col+'cc':col+'88');
-      ctx.beginPath(); ctx.moveTo(x,baseY-tH*0.35-cR*sc*2.2+i*cR*0.5);
-      ctx.lineTo(x-cR*sc*1.1,baseY-tH*0.35-i*cR*0.3);
-      ctx.lineTo(x+cR*sc*1.1,baseY-tH*0.35-i*cR*0.3);
-      ctx.closePath(); ctx.fill();
-    });
-    ctx.fillStyle='#333'; ctx.font='bold 11px monospace'; ctx.textAlign='center';
-    ctx.fillText(hM.toFixed(1)+' m',x,baseY-tH*0.35-cR*2.4-6);
-    ctx.fillStyle='#555'; ctx.font='11px system-ui';
-    ctx.fillText(lbl,x,baseY+16);
-  }
-  const hA=2+3*yr, hB=14+1*yr;
-  drawT(W*0.3,hA,'#2d8a4e','Árbol A');
-  drawT(W*0.7,hB,'#1a5c8a','Árbol B');
-  ctx.fillStyle='#444'; ctx.font='bold 13px monospace'; ctx.textAlign='center';
-  ctx.fillText('Año: '+yr.toFixed(1),W/2,H*0.94);
-  if(Math.abs(hA-hB)<0.3){
-    ctx.strokeStyle='rgba(255,100,0,0.6)'; ctx.lineWidth=1.5; ctx.setLineDash([4,3]);
-    const eqY=H*0.80-hA*scaleY*0.35;
-    ctx.beginPath(); ctx.moveTo(W*0.15,eqY); ctx.lineTo(W*0.85,eqY); ctx.stroke();
-    ctx.setLineDash([]);
-    ctx.fillStyle='#d45a00'; ctx.font='bold 11px system-ui'; ctx.textAlign='center';
-    ctx.fillText('¡Misma altura!',W/2,eqY-6);
-  }
-}
-
-function animPracTrees(target, onDone){
-  let yr=0; const step=target/60;
-  function frame(){
-    yr=Math.min(yr+step,target); drawPracTrees(yr);
-    if(yr<target) requestAnimationFrame(frame);
-    else if(onDone) onDone();
-  }
-  frame();
-}
-
-function checkPracTree(){
-  if(pracTreeDone) return;
-  const val=parseInt(document.getElementById('ptree-answer').value);
-  const res=document.getElementById('ptree-result');
-  res.style.display='block';
-  if(isNaN(val)){res.className='tree-result err';res.textContent='Ingresa un número entero.';return;}
-  if(val===6){
-    pracTreeDone=true; pracScore+=2;
-    document.getElementById('prac-score').textContent=pracScore;
-    res.className='tree-result ok';
-    res.innerHTML='✓ ¡Correcto! t = 6 años. +2 puntos 🎉';
-    animPracTrees(6,()=>{document.getElementById('prac-next-1').style.display='block';});
-  } else {
-    pracScore=Math.max(0,pracScore-1);
-    document.getElementById('prac-score').textContent=pracScore;
-    res.className='tree-result err';
-    res.textContent='✗ Incorrecto. -1 punto. Intenta de nuevo.';
-    animPracTrees(Math.min(Math.max(val,0),20),null);
-  }
-}
-
-function pracGoQ2(){
-  document.getElementById('prac-q').textContent='2 / 2';
-  document.getElementById('prac-q1').style.display='none';
-  document.getElementById('prac-q2').style.display='block';
-  renderPracBlocks();
-}
-
-function renderPracBlocks(){
-  const usedMap={};
-  pracFilled.forEach(row=>row.forEach(v=>{if(v)usedMap[v]=(usedMap[v]||0)+1;}));
-  const countMap={};
-  BLOCKS.forEach(b=>countMap[b.label]=(countMap[b.label]||0)+1);
-  document.getElementById('pblocks-area').innerHTML=BLOCKS.map(b=>{
-    const used=(usedMap[b.label]||0)>=(countMap[b.label]);
-    const sel=pracSelected===b.label;
-    return `<div class="block ${b.type} ${used?'used':''} ${sel?'selected':''}"
-      style="${sel?'outline:2.5px solid #185FA5;transform:translateY(-2px)':''}"
-      onclick="selectPracBlock('${b.label}')">${b.label}</div>`;
-  }).join('');
-}
-
-function selectPracBlock(label){pracSelected=pracSelected===label?null:label;renderPracBlocks();}
-
-function clickPracSlot(eq,sl){
-  if(pracMixDone) return;
-  if(pracSelected){pracFilled[eq][sl]=pracSelected;pracSelected=null;}
-  else if(pracFilled[eq][sl]) pracFilled[eq][sl]=null;
-  updatePracSlots(); renderPracBlocks();
-}
-
-function updatePracSlots(){
-  for(let e=0;e<2;e++) for(let s=0;s<3;s++){
-    const el=document.getElementById(`pslot-${e}-${s}`);
-    const v=pracFilled[e][s];
-    el.textContent=v||'?'; el.className='slot'+(v?' filled':'');
-  }
-}
-
-function checkPracMix(){
-  if(pracMixDone) return;
-  let allFilled=true, allCorrect=true;
-  for(let e=0;e<2;e++) for(let s=0;s<3;s++){
-    if(!pracFilled[e][s]){allFilled=false;continue;}
-    const el=document.getElementById(`pslot-${e}-${s}`);
-    if(pracFilled[e][s]===CORRECT[e][s]) el.className='slot correct';
-    else{el.className='slot wrong';allCorrect=false;setTimeout(()=>el.className='slot filled',600);}
-  }
-  const res=document.getElementById('presult');
-  res.style.display='block';
-  if(!allFilled){res.className='result err';res.textContent='¡Faltan bloques!';return;}
-  if(allCorrect){
-    pracMixDone=true; pracScore+=2;
-    document.getElementById('prac-score').textContent=pracScore;
-    res.className='result ok';
-    res.innerHTML='✓ ¡Correcto! +2 puntos 🎉<br><strong>Solución:</strong> A = 80 g, B = 60 g';
-    document.getElementById('prac-next-2').style.display='block';
-  } else {
-    pracScore=Math.max(0,pracScore-1);
-    document.getElementById('prac-score').textContent=pracScore;
-    res.className='result err';
-    res.textContent='✗ Hay bloques incorrectos. -1 punto.';
-  }
-}
-
-function resetPracMix(){
-  pracFilled=[[null,null,null],[null,null,null]]; pracSelected=null;
-  updatePracSlots(); renderPracBlocks();
-  document.getElementById('presult').style.display='none';
-}
-
-function togglePracHint(){
-  const h=document.getElementById('phint-box');
-  h.style.display=h.style.display==='block'?'none':'block';
-}
-
-function pracDone(){
-  document.getElementById('final-score').textContent=pracScore;
-  const msgs=['¡Sigue practicando, puedes mejorar! 💪','¡Buen intento! Revisa las pistas. 📖','¡Muy bien! Casi perfecto. 🌟','¡Perfecto! Dominaste ambos problemas. 🏆'];
-  document.getElementById('final-msg').textContent=msgs[Math.min(pracScore,4)-1]||msgs[0];
-  showScreen('practicdone');
-}
-
-function restartPractice(){ startPractice(); }
-
 </script>
 </body>
 </html>
