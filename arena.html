@@ -164,8 +164,9 @@ canvas { display: block; width: 100%; image-rendering: pixelated; }
     </div>
     <div style="display:flex;gap:8px;margin-top:8px">
       <button class="tc-btn" style="background:#744;border-color:#f44;color:#faa;flex:1" onclick="teacherEndGame()">🏁 Terminar juego</button>
+      <button class="tc-btn" style="background:#2a4a1a;border-color:#4a0;color:#af8;flex:1" onclick="teacherAcid()">☣️ Inundar ácido</button>
     </div>
-    <div style="display:flex;gap:8px">
+    <div style="display:flex;gap:8px;margin-top:8px">
       <button class="tc-btn tc-arena" onclick="teacherClearDeaths()">🗑 Borrar muertes</button>
       <button class="tc-btn" style="background:#222;border-color:#555;color:#aaa" onclick="joinAsTeacherPlayer()">🎮 Entrar a jugar</button>
     </div>
@@ -247,6 +248,7 @@ canvas { display: block; width: 100%; image-rendering: pixelated; }
     </div>
     <div class="btn" id="a-jumpBtn" style="background:rgba(255,80,80,0.35);border-color:rgba(255,80,80,0.6);font-size:24px;width:64px;height:64px;">&#8679;</div>
     <div class="btn" id="a-attackBtn" style="background:rgba(255,180,0,0.35);border-color:rgba(255,180,0,0.7);font-size:18px;">&#9876;</div>
+    <div class="btn" id="a-acidBtn" style="display:none;background:rgba(60,200,40,0.35);border-color:rgba(60,200,40,0.7);font-size:18px;" onclick="playerAcid()">☣️</div>
   </div>
 </div>
 
@@ -271,6 +273,19 @@ const playersRef = db.ref('game/players');
 const arenaRef   = db.ref('game/arena');
 const deathsRef  = db.ref('game/deaths');
 const killsRef   = db.ref('game/kills');
+
+// On load: if status is 'ended' and no active session, clean it up automatically
+db.ref('game/status').once('value', snap => {
+  if (snap.val() === 'ended') {
+    // Check if there are active players — if not, reset stale state
+    playersRef.once('value', pSnap => {
+      if (!pSnap.val()) {
+        db.ref('game/status').remove();
+        db.ref('game/hits').remove();
+      }
+    });
+  }
+});
 
 // ═══════════════════════════════════════════════════════
 // GLOBAL STATE
@@ -316,6 +331,7 @@ function joinAsTeacherPlayer() {
   isProf = true;
   myKey = playersRef.push({ name: 'Profesor', status: 'arena', deaths: 0, isProf: true }).key;
   playersRef.child(myKey).onDisconnect().remove();
+  document.getElementById('a-acidBtn').style.display = 'flex';
   enterArena();
 }
 
@@ -339,8 +355,25 @@ function teacherReset() {
   playersRef.remove();
   arenaRef.remove();
   deathsRef.remove();
+  killsRef.remove();
+  db.ref('game/status').remove();
+  db.ref('game/acid').remove();
+  db.ref('game/hits').remove();
   document.getElementById('teacher-students').innerHTML = '<p style="color:#555;font-size:12px">Ningún jugador aún.</p>';
   document.getElementById('teacher-ranking-card').style.display = 'none';
+}
+
+function teacherAcid() {
+  db.ref('game/acid').set({ active: true, t: Date.now() });
+}
+
+function playerAcid() {
+  if (!isProf) return;
+  // Send warning then acid after 5s
+  db.ref('game/acid').set({ warning: true, active: false, t: Date.now(), attacker: myName });
+  setTimeout(() => {
+    db.ref('game/acid').set({ warning: false, active: true, t: Date.now(), attacker: myName });
+  }, 5000);
 }
 
 function teacherEndGame() {
@@ -814,6 +847,11 @@ let myDeaths = 0;
 let myKills = 0;
 let myHp = 3;
 let arenaSpear = null;
+let acidLevel = AH; // starts off screen (high Y = below canvas)
+let acidDir = 0;    // 0=off, -1=rising, 1=falling
+const ACID_MIN_Y = 200; // lowest platform Y (can't go higher than this)
+const ACID_MAX_Y = AH + 20; // fully off screen
+let acidWarning = 0; // countdown seconds before acid rises
 let arenaParticles = [];
 let arenaRunning = false;
 let lastArena = 0;
@@ -826,14 +864,15 @@ function colorForName(name) {
 }
 
 function initArenaPlayer(respawn) {
+  // Spawn at secret high platform (x:30 y:40 w:100)
   arenaPlayer = {
-    x: 80 + Math.random() * (AW - 160),
-    y: ARENA_FLOOR - 30,
+    x: 35 + Math.random() * 88,
+    y: 22,
     w: 14, h: 18,
     vx: 0, vy: 0,
     onGround: false,
     dead: false, deathTimer: 0,
-    invincible: respawn ? 2.5 : 0,
+    invincible: respawn ? 3.0 : 0,
     facing: 1,
     climbing: false
   };
@@ -885,9 +924,10 @@ function enterArena() {
     }
   });
 
-  // Listen for game end
+  // Listen for game end — only act if we are in the arena
+  let inArena = true;
   db.ref('game/status').on('value', snap => {
-    if (snap.val() === 'ended') showEndScreen();
+    if (snap.val() === 'ended' && inArena) showEndScreen();
   });
   requestAnimationFrame(arenaLoop);
 }
@@ -900,6 +940,7 @@ function pushArenaPos() {
     ay: Math.round(arenaPlayer.y),
     facing: arenaPlayer.facing,
     dead: arenaPlayer.dead,
+    aHp: myHp,
     aSpearAngle: arenaSpear ? arenaSpear.angle : null,
     aSpearReach: arenaSpear ? arenaSpear.reach : null,
   });
@@ -914,9 +955,10 @@ function arenaLoop(ts) {
     if (pushTimer > 0.05) { pushArenaPos(); pushTimer = 0; }
   }
   drawArena();
-  // Listen for game end
+  // Listen for game end — only act if we are in the arena
+  let inArena = true;
   db.ref('game/status').on('value', snap => {
-    if (snap.val() === 'ended') showEndScreen();
+    if (snap.val() === 'ended' && inArena) showEndScreen();
   });
   requestAnimationFrame(arenaLoop);
 }
@@ -950,8 +992,10 @@ function updateArena(dt) {
       if (!v.ax || v.dead) return;
       const ob = { x: v.ax, y: v.ay, w: 14, h: 18 };
       if (arenaOverlap({ x:tipX-5, y:tipY-5, w:10, h:10 }, ob)) {
-        // Record hit in Firebase
-        db.ref('game/hits').push({ victim: k, attacker: myKey, t: Date.now() });
+        // Record hit in Firebase — check if this will be a killing blow
+        const victimHp = (otherPlayers[k] && otherPlayers[k].aHp != null) ? otherPlayers[k].aHp : 3;
+        const wasKill = (victimHp - 1) <= 0;
+        db.ref('game/hits').push({ victim: k, attacker: myKey, t: Date.now(), wasKill });
         arenaSpear = null;
       }
     });
@@ -1007,6 +1051,37 @@ function updateArena(dt) {
   }
   if (p.y > AH + 40) { p.y = ARENA_FLOOR - 30; p.vy = 0; }
 
+  // Acid warning countdown
+  if (acidWarning > 0) {
+    acidWarning -= dt;
+    if (acidWarning < 0) acidWarning = 0;
+  }
+
+  // Acid level update
+  if (acidDir === -1) { // rising
+    acidLevel -= 18 * dt;
+    if (acidLevel <= ACID_MIN_Y) { acidLevel = ACID_MIN_Y; acidDir = 1; }
+  } else if (acidDir === 1) { // falling
+    acidLevel += 22 * dt;
+    if (acidLevel >= ACID_MAX_Y) { acidLevel = ACID_MAX_Y; acidDir = 0; }
+  }
+  // Acid kills player
+  if (!isProf && !p.dead && acidDir !== 0 && p.y + p.h > acidLevel) {
+    if (p.invincible <= 0) {
+      myHp = 0;
+      p.dead = true;
+      p.deathTimer = 5.0;
+      myDeaths++;
+      document.getElementById('my-deaths').textContent = myDeaths;
+      deathsRef.child(myKey).set({ name: myName, count: myDeaths });
+      updateArenaHpDisplay();
+      for (let i=0;i<14;i++) arenaParticles.push({
+        x:p.x+p.w/2, y:p.y+p.h/2,
+        vx:(Math.random()-0.5)*7, vy:-Math.random()*6-2, life:1.0, col:'#4f4'
+      });
+    }
+  }
+
   // Particles
   arenaParticles = arenaParticles.filter(sp => {
     sp.x += sp.vx; sp.y += sp.vy; sp.vy += 0.15; sp.life -= dt;
@@ -1032,7 +1107,7 @@ function setupHitListener() {
       });
       if (myHp <= 0) {
         arenaPlayer.dead = true;
-        arenaPlayer.deathTimer = 1.8;
+        arenaPlayer.deathTimer = 5.0;
         myDeaths++;
         myHp = 3;
         document.getElementById('my-deaths').textContent = myDeaths;
@@ -1043,7 +1118,7 @@ function setupHitListener() {
         });
       }
     }
-    if (hit.attacker === myKey) {
+    if (hit.attacker === myKey && hit.wasKill) {
       myKills++;
       killsRef.child(myKey).set({ name: myName, count: myKills });
       document.getElementById('my-kills').textContent = myKills;
@@ -1087,38 +1162,64 @@ function drawArena() {
     }
   });
 
-  // Scoreboards (left=kills, right=deaths)
-  const allNames = new Set([myName, ...Object.values(otherPlayers).map(v=>v.name)]);
-  const scoreData = Array.from(allNames).map(n => {
-    const isMe = n === myName;
-    const k = isMe ? myKills : (Object.values(otherPlayers).find(v=>v.name===n)||{}).kills||0;
-    const d = isMe ? myDeaths : (Object.values(otherPlayers).find(v=>v.name===n)||{}).deaths||0;
-    return { name: n, kills: k, deaths: d };
-  });
+  // (scoreboards shown at end screen only)
 
-  // Left scoreboard — kills
-  const byKills = [...scoreData].sort((a,b)=>b.kills-a.kills);
-  if (byKills.length) {
-    actx.fillStyle='rgba(0,0,0,0.55)'; actx.fillRect(14,8,90,12+byKills.length*12);
-    actx.fillStyle='#ff8'; actx.font='bold 7px monospace'; actx.textAlign='left';
-    actx.fillText('⚔ KILLS',16,18);
-    byKills.forEach((d,i)=>{
-      actx.fillStyle = d.name===myName?'#ff8':'#ccc';
-      actx.font='7px monospace';
-      actx.fillText(d.name+': '+d.kills, 16, 28+i*12);
-    });
+  // Draw acid warning countdown
+  if (acidWarning > 0) {
+    const secs = Math.ceil(acidWarning);
+    // Big pulsing countdown
+    const pulse = 0.7 + 0.3 * Math.sin(Date.now() * 0.01);
+    actx.globalAlpha = pulse;
+    actx.fillStyle = '#0f0';
+    actx.font = 'bold 36px monospace';
+    actx.textAlign = 'center';
+    actx.fillText('☣ ' + secs, AW/2, AH/2 - 10);
+    actx.font = 'bold 13px monospace';
+    actx.fillStyle = '#afa';
+    actx.fillText('¡ÁCIDO! ¡SUBE!', AW/2, AH/2 + 16);
+    // Who's attacking
+    actx.font = '10px monospace';
+    actx.fillStyle = '#f84';
+    actx.fillText('👑 Profesor activa el ácido', AW/2, AH/2 + 32);
+    actx.globalAlpha = 1;
+    // Also flash screen border green
+    actx.strokeStyle = `rgba(80,220,60,${pulse * 0.6})`;
+    actx.lineWidth = 8;
+    actx.strokeRect(0, 0, AW, AH);
   }
-  // Right scoreboard — deaths
-  const byDeaths = [...scoreData].sort((a,b)=>b.deaths-a.deaths);
-  if (byDeaths.length) {
-    actx.fillStyle='rgba(0,0,0,0.55)'; actx.fillRect(AW-104,8,90,12+byDeaths.length*12);
-    actx.fillStyle='#f44'; actx.font='bold 7px monospace'; actx.textAlign='left';
-    actx.fillText('💀 MUERTES',AW-102,18);
-    byDeaths.forEach((d,i)=>{
-      actx.fillStyle = d.name===myName?'#ff8':'#ccc';
-      actx.font='7px monospace';
-      actx.fillText(d.name+': '+d.deaths, AW-102, 28+i*12);
-    });
+
+  // Draw acid
+  if (acidDir !== 0 || acidLevel < ACID_MAX_Y) {
+    const t = Date.now() / 400;
+    const grad = actx.createLinearGradient(0, acidLevel, 0, AH);
+    grad.addColorStop(0, 'rgba(80,220,60,0.85)');
+    grad.addColorStop(1, 'rgba(40,180,20,0.95)');
+    actx.fillStyle = grad;
+    actx.fillRect(0, acidLevel, AW, AH - acidLevel);
+    // Animated bubbles on surface
+    for (let bx = 0; bx < AW; bx += 18) {
+      const wave = Math.sin(t + bx * 0.15) * 2.5;
+      actx.fillStyle = 'rgba(160,255,100,0.5)';
+      actx.beginPath();
+      actx.arc(bx + 9, acidLevel + wave, 2 + Math.sin(t*2+bx)*1, 0, Math.PI*2);
+      actx.fill();
+    }
+    // Surface line
+    actx.strokeStyle = 'rgba(140,255,80,0.9)'; actx.lineWidth = 2;
+    actx.beginPath();
+    for (let bx = 0; bx <= AW; bx += 6) {
+      const wave = Math.sin(t + bx * 0.12) * 2;
+      bx === 0 ? actx.moveTo(bx, acidLevel + wave) : actx.lineTo(bx, acidLevel + wave);
+    }
+    actx.stroke();
+    // Warning text
+    if (acidDir === -1) {
+      const pulse = 0.6 + 0.4 * Math.sin(Date.now() * 0.006);
+      actx.globalAlpha = pulse;
+      actx.fillStyle = '#afa'; actx.font = 'bold 10px monospace'; actx.textAlign = 'center';
+      actx.fillText('☣ ÁCIDO SUBIENDO', AW/2, acidLevel - 6);
+      actx.globalAlpha = 1;
+    }
   }
 
   // Draw other players
@@ -1141,10 +1242,14 @@ function drawArena() {
       actx.beginPath();actx.moveTo(ox-Math.cos(angle)*10,oy-Math.sin(angle)*10);actx.lineTo(tipX,tipY);actx.stroke();
     }
     actx.restore();
-    // Name
+    // Name + HP
     actx.fillStyle = v.isProf ? '#f84' : '#fff';
     actx.font = 'bold 8px monospace'; actx.textAlign = 'center';
     actx.fillText(v.name, v.ax + 7, v.ay - 2);
+    if (!v.isProf && v.aHp != null) {
+      actx.font = '8px monospace';
+      actx.fillText('❤️'.repeat(Math.max(0,v.aHp))+'🖤'.repeat(Math.max(0,3-v.aHp)), v.ax+7, v.ay-11);
+    }
     if (v.isProf) { actx.fillStyle='#f84'; actx.fillText('👑', v.ax+7, v.ay-10); }
   });
 
@@ -1201,14 +1306,17 @@ function drawArena() {
   });
   actx.globalAlpha = 1;
 
-  // Dead overlay
+  // Dead overlay with countdown
   if (p.dead) {
-    actx.fillStyle = 'rgba(0,0,0,0.5)';
+    actx.fillStyle = 'rgba(0,0,0,0.6)';
     actx.fillRect(0,0,AW,AH);
-    actx.fillStyle = '#f44'; actx.font = 'bold 18px monospace'; actx.textAlign = 'center';
-    actx.fillText('💀 MUERTO', AW/2, AH/2);
-    actx.fillStyle = '#888'; actx.font = '12px monospace';
-    actx.fillText('Reapareciendo...', AW/2, AH/2+20);
+    actx.fillStyle = '#f44'; actx.font = 'bold 20px monospace'; actx.textAlign = 'center';
+    actx.fillText('💀 MUERTO', AW/2, AH/2-10);
+    const secs = Math.ceil(Math.max(0, p.deathTimer));
+    actx.fillStyle = '#ff8'; actx.font = 'bold 28px monospace';
+    actx.fillText(secs + 's', AW/2, AH/2+22);
+    actx.fillStyle = '#888'; actx.font = '11px monospace';
+    actx.fillText('Reapareciendo en el trono alto...', AW/2, AH/2+42);
   }
 }
 
@@ -1300,6 +1408,10 @@ function enterArena() {
       if (otherPlayers[k]) otherPlayers[k].kills = v.count;
     });
   });
+  // Reset acid on new session
+  db.ref('game/acid').once('value', snap => {
+    if (!snap.val()) { acidLevel = ACID_MAX_Y; acidDir = 0; }
+  });
   deathsRef.on('value', snap => {
     const data = snap.val() || {};
     const card = document.getElementById('teacher-ranking-card');
@@ -1318,9 +1430,10 @@ function enterArena() {
       }
     }
   });
-  // Listen for game end
+  // Listen for game end — only act if we are in the arena
+  let inArena = true;
   db.ref('game/status').on('value', snap => {
-    if (snap.val() === 'ended') showEndScreen();
+    if (snap.val() === 'ended' && inArena) showEndScreen();
   });
   requestAnimationFrame(arenaLoop);
 }
@@ -1349,12 +1462,7 @@ function showEndScreen() {
   });
 }
 
-// Also listen for game end from teacher screen
-db.ref('game/status').on('value', snap => {
-  if (snap.val() === 'ended' && document.getElementById('arena-screen').style.display !== 'none') {
-    showEndScreen();
-  }
-});
+// Game end is handled inside enterArena listener only
 </script>
 </body>
 </html>
