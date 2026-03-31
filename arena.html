@@ -3,9 +3,6 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-<meta http-equiv="Pragma" content="no-cache">
-<meta http-equiv="Expires" content="0">
 <title>Arena de Caudaleros</title>
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; -webkit-user-select: none; }
@@ -275,10 +272,7 @@ const db = firebase.database();
 const playersRef = db.ref('game/players');
 const arenaRef   = db.ref('game/arena');
 const deathsRef  = db.ref('game/deaths');
-const killsRef     = db.ref('game/kills');
-
-
-
+const killsRef   = db.ref('game/kills');
 
 // On load: if status is 'ended' and no active session, clean it up automatically
 db.ref('game/status').once('value', snap => {
@@ -368,7 +362,6 @@ function teacherReset() {
   document.getElementById('teacher-students').innerHTML = '<p style="color:#555;font-size:12px">Ningún jugador aún.</p>';
   document.getElementById('teacher-ranking-card').style.display = 'none';
 }
-
 
 function teacherAcid() {
   db.ref('game/acid').set({ state: 'warning', countdown: 5, t: Date.now(), attacker: 'Profesor' });
@@ -825,7 +818,7 @@ const ARENA_PLATS = [
   { x:0,     y:0,           w:12,  h:AH  }, // 1: left wall
   { x:AW-12, y:0,           w:12,  h:AH  }, // 2: right wall
   { x:60,    y:200,         w:100, h:12  }, // 3: platform left-low
-  { x:280,   y:185,         w:100, h:12  }, // 4: platform right-low
+  { x:300,   y:185,         w:100, h:12  }, // 4: platform right-low
   { x:170,   y:155,         w:120, h:12  }, // 5: platform mid
   { x:30,    y:40,          w:100, h:12  }, // 6: SECRET high platform (ladder only)
 ];
@@ -833,7 +826,7 @@ const ARENA_PLATS = [
 // Arena ladders: {x, top, bot, w}
 const ARENA_LADDERS = [
   { x:12,  top:40, bot:ARENA_FLOOR, w:14 }, // left wall ladder to secret platform
-  { x:408, top:155, bot:ARENA_FLOOR, w:14 }, // right ladder — outside right edge of platform right-low
+  { x:390, top:185, bot:ARENA_FLOOR, w:14 }, // right ladder to right-low platform
 ];
 
 function onArenaLadder(p) {
@@ -891,7 +884,51 @@ function updateArenaHpDisplay() {
     '❤️'.repeat(Math.max(0,myHp)) + '🖤'.repeat(Math.max(0,3-myHp));
 }
 
+function enterArena() {
+  show('arena-screen');
+  initArenaPlayer();
+  arenaRunning = true;
 
+  // Push initial position
+  pushArenaPos();
+
+  // Listen to all players in arena
+  playersRef.on('value', snap => {
+    const data = snap.val() || {};
+    otherPlayers = {};
+    Object.entries(data).forEach(([k, v]) => {
+      if (k !== myKey && v.status === 'arena') {
+        otherPlayers[k] = v;
+      }
+    });
+  });
+
+  // Listen to deaths board
+  deathsRef.on('value', snap => {
+    const data = snap.val() || {};
+    // Update teacher ranking card if teacher
+    if (isTeacher) {
+      const list = document.getElementById('teacher-deaths-list');
+      if (list) {
+        const entries = Object.entries(data).sort((a,b)=>(b[1].count||0)-(a[1].count||0));
+        list.innerHTML = entries.map(([k,v],i)=>
+          `<div class="rank-row">
+            <span style="color:#888;width:20px">${i+1}</span>
+            <span style="flex:1">${v.name}</span>
+            <span style="color:#f44;font-weight:bold">${v.count} 💀</span>
+          </div>`
+        ).join('');
+      }
+    }
+  });
+
+  // Listen for game end — only act if we are in the arena
+  let inArena = true;
+  db.ref('game/status').on('value', snap => {
+    if (snap.val() === 'ended' && inArena) showEndScreen();
+  });
+  requestAnimationFrame(arenaLoop);
+}
 
 let pushTimer = 0;
 function pushArenaPos() {
@@ -916,7 +953,11 @@ function arenaLoop(ts) {
     if (pushTimer > 0.05) { pushArenaPos(); pushTimer = 0; }
   }
   drawArena();
-
+  // Listen for game end — only act if we are in the arena
+  let inArena = true;
+  db.ref('game/status').on('value', snap => {
+    if (snap.val() === 'ended' && inArena) showEndScreen();
+  });
   requestAnimationFrame(arenaLoop);
 }
 
@@ -969,11 +1010,6 @@ function updateArena(dt) {
   // (handled in separate listener below)
 
   // Movement
-  if (powerAnnouncement) {
-    powerAnnouncement.timer -= dt;
-    if (powerAnnouncement.timer <= 0) powerAnnouncement = null;
-  }
-
   const spd = 2.2;
   const onLad = onArenaLadder(p);
   p.climbing = onLad;
@@ -985,6 +1021,7 @@ function updateArena(dt) {
   if (onLad) {
     p.vy = 0; p.vx *= 0.5;
     if (arenaKeys.jump) p.vy = -2.5;
+    else if (arenaKeys.left || arenaKeys.right) {} // allow lateral exit
   } else {
     p.vy += 0.32; if (p.vy > 9) p.vy = 9;
     if (arenaKeys.jump && p.onGround && !arenaJumpPressed) {
@@ -1393,11 +1430,17 @@ document.getElementById('valveBtn').onclick=function(){
 };
 
 // Setup hit listener when entering arena
+function enterArenaFull() {
+  setupHitListener();
+  enterArena();
+}
+
+// Override enterArena to also setup hit listener
+const _enterArena = enterArena;
+// patch
 function enterArena() {
   setupHitListener();
   show('arena-screen');
-  // Re-set canvas dimensions in case it was hidden when page loaded
-  arenaCanvas.width = AW; arenaCanvas.height = AH;
   initArenaPlayer();
   arenaRunning = true;
   pushArenaPos();
@@ -1445,7 +1488,6 @@ function enterArena() {
       }
     }
   });
-
   // Listen for game end — only act if we are in the arena
   let inArena = true;
   db.ref('game/status').on('value', snap => {
