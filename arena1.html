@@ -3,144 +3,73 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <title>Arena de Caudaleros</title>
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; -webkit-user-select: none; }
 body { background: #111; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; font-family: monospace; }
 
-/* ── LOGIN SCREEN ── */
-#login-screen {
-  display: flex; flex-direction: column; align-items: center; justify-content: center;
-  min-height: 100vh; width: 100%; padding: 20px;
-}
-.login-card {
-  background: #1a1a1a; border: 1px solid #333; border-radius: 16px;
-  padding: 32px 24px; width: 100%; max-width: 360px; text-align: center;
-}
+/* LOGIN */
+#login-screen { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; width: 100%; padding: 20px; }
+.login-card { background: #1a1a1a; border: 1px solid #333; border-radius: 16px; padding: 32px 24px; width: 100%; max-width: 360px; text-align: center; }
 .login-card h1 { color: #4ef; font-size: 22px; margin-bottom: 4px; }
 .login-card p { color: #888; font-size: 12px; margin-bottom: 20px; }
-.login-card input {
-  width: 100%; background: #111; border: 1px solid #444; border-radius: 8px;
-  color: #fff; font-size: 18px; font-family: monospace; padding: 10px 14px;
-  text-align: center; margin-bottom: 10px; outline: none;
-}
+.login-card input { width: 100%; background: #111; border: 1px solid #444; border-radius: 8px; color: #fff; font-size: 18px; font-family: monospace; padding: 10px 14px; text-align: center; margin-bottom: 10px; outline: none; }
 .login-card input:focus { border-color: #4ef; }
-.btn-play {
-  width: 100%; padding: 12px; font-size: 15px; font-weight: bold;
-  border: none; border-radius: 8px; cursor: pointer; font-family: monospace;
-  margin-bottom: 8px; transition: opacity 0.15s;
-}
-.btn-play:hover { opacity: 0.85; }
+.btn-play { width: 100%; padding: 12px; font-size: 15px; font-weight: bold; border: none; border-radius: 8px; cursor: pointer; font-family: monospace; margin-bottom: 8px; }
 .btn-student { background: #1a8; color: #fff; }
 .btn-teacher { background: #555; color: #ccc; font-size: 12px; padding: 8px; }
 
-/* ── WAITING SCREEN ── */
-#waiting-screen {
-  display: none; flex-direction: column; align-items: center; justify-content: center;
-  min-height: 100vh; width: 100%; padding: 20px; color: #fff; text-align: center;
-}
-#waiting-screen h2 { color: #4ef; font-size: 20px; margin-bottom: 8px; }
-#waiting-screen p { color: #888; font-size: 13px; }
-.pulse { animation: pulse 1.5s infinite; }
-@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+/* GAME SCREENS */
+#game-screen, #arena-screen, #teacher-screen, #end-screen { display: none; width: 100%; max-width: 520px; margin: 0 auto; }
 
-/* ── GAME WRAPPER ── */
-#game-screen { display: none; width: 100%; max-width: 520px; margin: 0 auto; }
-#ui {
-  display: flex; justify-content: space-between; align-items: center;
-  padding: 6px 12px; background: #000; color: #fff; font-size: 12px; gap: 4px;
-}
-#ui span { flex: 1; text-align: center; }
+/* PUZZLE UI */
+#puzzle-ui { display: flex; justify-content: space-between; align-items: center; padding: 6px 12px; background: #000; color: #fff; font-size: 12px; gap: 4px; }
+#puzzle-ui span { flex: 1; text-align: center; }
 #gameWrap { position: relative; width: 100%; overflow: hidden; background: #c8e8c8; }
 canvas { display: block; width: 100%; image-rendering: pixelated; }
-#valve-panel {
-  background: #1a1a1a; padding: 8px 14px; display: flex;
-  align-items: center; gap: 8px; flex-wrap: wrap;
-}
+#valve-panel { background: #1a1a1a; padding: 8px 14px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 #valve-panel label { color: #aaa; font-size: 11px; white-space: nowrap; }
 #valve-panel input[type=range] { flex: 1; min-width: 80px; }
 #valve-panel span { color: #fff; font-size: 12px; min-width: 32px; text-align: right; }
-#valveBtn {
-  background: #c44; border: none; color: #fff; font-family: monospace;
-  font-size: 12px; padding: 7px 12px; border-radius: 5px; cursor: pointer; white-space: nowrap;
-}
+#valveBtn { background: #c44; border: none; color: #fff; font-family: monospace; font-size: 12px; padding: 7px 12px; border-radius: 5px; cursor: pointer; white-space: nowrap; }
 #valveBtn:disabled { background: #555; cursor: not-allowed; }
-#controls {
-  display: flex; justify-content: space-between; align-items: center;
-  padding: 10px 16px; background: #111;
-}
-.btn {
-  background: rgba(255,255,255,0.15); border: 2px solid rgba(255,255,255,0.3);
-  border-radius: 50%; color: #fff; font-size: 20px; width: 56px; height: 56px;
-  display: flex; align-items: center; justify-content: center; cursor: pointer;
-  -webkit-tap-highlight-color: transparent; touch-action: manipulation;
-}
+#puzzle-controls { display: flex; justify-content: space-between; align-items: center; padding: 10px 16px; background: #111; }
+.btn { background: rgba(255,255,255,0.15); border: 2px solid rgba(255,255,255,0.3); border-radius: 50%; color: #fff; font-size: 20px; width: 56px; height: 56px; display: flex; align-items: center; justify-content: center; cursor: pointer; -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
 .btn:active { background: rgba(255,255,255,0.35); }
 #dpad { display: flex; gap: 4px; }
 #jumpBtn { background: rgba(255,80,80,0.35); border-color: rgba(255,80,80,0.6); font-size: 24px; width: 64px; height: 64px; }
-#overlay {
-  position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-  background: rgba(0,0,0,0.75); display: flex; flex-direction: column;
-  align-items: center; justify-content: center; color: #fff;
-  font-family: monospace; text-align: center; padding: 20px;
-}
+#overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.75); display: flex; flex-direction: column; align-items: center; justify-content: center; color: #fff; font-family: monospace; text-align: center; padding: 20px; }
 #overlay h2 { font-size: 18px; margin-bottom: 8px; }
-#overlay p { font-size: 12px; color: #ccc; margin-bottom: 14px; line-height: 1.8; }
-#overlay button {
-  background: #2a8; border: none; color: #fff; font-family: monospace;
-  font-size: 14px; padding: 9px 24px; border-radius: 6px; cursor: pointer;
-}
+#overlay p { font-size: 11px; color: #aef; margin-bottom: 14px; }
+#overlay button { background: #2a8; border: none; color: #fff; font-family: monospace; font-size: 14px; padding: 9px 24px; border-radius: 6px; cursor: pointer; }
 
-/* ── ARENA SCREEN ── */
-#arena-screen { display: none; width: 100%; max-width: 520px; margin: 0 auto; }
-#arena-ui {
-  display: flex; justify-content: space-between; align-items: center;
-  padding: 6px 12px; background: #1a0000; color: #fff; font-size: 12px; gap: 4px;
-}
-#arena-canvas-wrap { position: relative; width: 100%; overflow: hidden; background: #2a1a1a; }
+/* ARENA UI */
+#arena-ui { display: flex; justify-content: space-between; align-items: center; padding: 6px 12px; background: #1a0000; color: #fff; font-size: 12px; gap: 4px; }
+#arena-canvas-wrap { position: relative; width: 100%; overflow: hidden; background: #1a0a0a; }
 #arena-canvas { display: block; width: 100%; image-rendering: pixelated; }
-#arena-controls {
-  display: flex; justify-content: space-between; align-items: center;
-  padding: 10px 16px; background: #111;
-}
+#arena-controls { display: flex; justify-content: space-between; align-items: center; padding: 10px 16px; background: #111; }
 
-/* ── TEACHER PANEL ── */
-#teacher-screen {
-  display: none; width: 100%; max-width: 520px; margin: 0 auto;
-  padding: 16px; color: #fff;
-}
-.teacher-card {
-  background: #1a1a1a; border: 1px solid #333; border-radius: 12px;
-  padding: 16px; margin-bottom: 12px;
-}
+/* TEACHER */
+#teacher-screen { padding: 16px; color: #fff; }
+.teacher-card { background: #1a1a1a; border: 1px solid #333; border-radius: 12px; padding: 16px; margin-bottom: 12px; }
 .teacher-card h2 { color: #4ef; font-size: 14px; margin-bottom: 12px; }
-.tc-btn {
-  flex: 1; padding: 10px; font-size: 13px; border-radius: 8px;
-  cursor: pointer; border: 1px solid; font-family: monospace; font-weight: bold;
-}
-.tc-start { background: #1a4; border-color: #1a4; color: #fff; }
-.tc-reset { background: #a22; border-color: #a22; color: #fff; }
-.tc-arena { background: #225; border-color: #44f; color: #aaf; }
-.student-row {
-  display: flex; justify-content: space-between; align-items: center;
-  padding: 6px 8px; border-radius: 6px; margin-bottom: 4px; background: #111;
-  font-size: 12px;
-}
-.badge-done { background: #1a4; color: #8f8; padding: 2px 6px; border-radius: 4px; font-size: 10px; }
-.badge-wait { background: #333; color: #888; padding: 2px 6px; border-radius: 4px; font-size: 10px; }
+.tc-btn { flex: 1; padding: 10px; font-size: 13px; border-radius: 8px; cursor: pointer; border: 1px solid; font-family: monospace; font-weight: bold; }
+.student-row { display: flex; justify-content: space-between; align-items: center; padding: 6px 8px; border-radius: 6px; margin-bottom: 4px; background: #111; font-size: 12px; }
 .badge-arena { background: #225; color: #aaf; padding: 2px 6px; border-radius: 4px; font-size: 10px; }
-.rank-row {
-  display: flex; align-items: center; gap: 10px; padding: 6px 8px;
-  border-radius: 8px; margin-bottom: 4px; background: #111; font-size: 12px;
-}
+.badge-wait { background: #333; color: #888; padding: 2px 6px; border-radius: 4px; font-size: 10px; }
+.rank-row { display: flex; align-items: center; gap: 10px; padding: 6px 8px; border-radius: 8px; margin-bottom: 4px; background: #111; font-size: 12px; }
+
+/* END SCREEN */
+#end-screen { padding: 16px; color: #fff; }
 </style>
 </head>
 <body>
 
-<!-- ── LOGIN ── -->
+<!-- LOGIN -->
 <div id="login-screen">
   <div class="login-card">
-    <h1>⚔ Arena de Caudaleros</h1>
+    <h1>💧 Arena de Caudaleros</h1>
     <p>Multijugador Online</p>
     <input type="text" id="name-input" placeholder="Tu nombre" maxlength="16" autocomplete="off">
     <button class="btn-play btn-student" onclick="joinAsStudent()">🎮 Jugar</button>
@@ -148,26 +77,20 @@ canvas { display: block; width: 100%; image-rendering: pixelated; }
   </div>
 </div>
 
-<!-- ── WAITING ── -->
-<div id="waiting-screen">
-  <h2>¡Listo, <span id="waiting-name"></span>!</h2>
-  <p class="pulse" style="margin-top:16px">Completando el nivel para entrar a la arena... 🎯</p>
-</div>
-
-<!-- ── TEACHER ── -->
+<!-- TEACHER -->
 <div id="teacher-screen">
   <div class="teacher-card">
     <h2>👨‍🏫 Panel del Profesor</h2>
-    <div style="display:flex;gap:8px;margin-bottom:10px">
-      <button class="tc-btn tc-start" onclick="teacherOpenArena()">⚔ Abrir Arena</button>
-      <button class="tc-btn tc-reset" onclick="teacherReset()">↺ Resetear todo</button>
+    <div style="display:flex;gap:8px;margin-bottom:8px">
+      <button class="tc-btn" style="background:#1a4;border-color:#1a4;color:#fff" onclick="teacherOpenArena()">⚔ Abrir Arena</button>
+      <button class="tc-btn" style="background:#a22;border-color:#a22;color:#fff" onclick="teacherReset()">↺ Resetear</button>
     </div>
-    <div style="display:flex;gap:8px;margin-top:8px">
-      <button class="tc-btn" style="background:#744;border-color:#f44;color:#faa;flex:1" onclick="teacherEndGame()">🏁 Terminar juego</button>
-      <button class="tc-btn" style="background:#2a4a1a;border-color:#4a0;color:#af8;flex:1" onclick="teacherAcid()">☣️ Inundar ácido</button>
+    <div style="display:flex;gap:8px;margin-bottom:8px">
+      <button class="tc-btn" style="background:#744;border-color:#f44;color:#faa" onclick="teacherEndGame()">🏁 Terminar juego</button>
+      <button class="tc-btn" style="background:#2a4a1a;border-color:#4a0;color:#af8" onclick="teacherAcid()">☣️ Ácido</button>
     </div>
-    <div style="display:flex;gap:8px;margin-top:8px">
-      <button class="tc-btn tc-arena" onclick="teacherClearDeaths()">🗑 Borrar muertes</button>
+    <div style="display:flex;gap:8px">
+      <button class="tc-btn" style="background:#333;border-color:#555;color:#aaa" onclick="teacherClearDeaths()">🗑 Borrar muertes</button>
       <button class="tc-btn" style="background:#222;border-color:#555;color:#aaa" onclick="joinAsTeacherPlayer()">🎮 Entrar a jugar</button>
     </div>
   </div>
@@ -175,15 +98,63 @@ canvas { display: block; width: 100%; image-rendering: pixelated; }
     <h2>Jugadores</h2>
     <div id="teacher-students"><p style="color:#555;font-size:12px">Ningún jugador aún.</p></div>
   </div>
-  <div class="teacher-card" id="teacher-ranking-card" style="display:none">
-    <h2>📊 Muertes en la Arena</h2>
-    <div id="teacher-deaths-list"></div>
+</div>
+
+<!-- PUZZLE GAME -->
+<div id="game-screen">
+  <div id="puzzle-ui">
+    <span>VIDAS: <span id="livesEl">3</span></span>
+    <span id="statusEl">Abre la válvula</span>
+    <span>EL PEZ VENENOSO<br><span id="fishHpEl" style="font-size:14px;">❤️❤️❤️</span></span>
+  </div>
+  <div id="gameWrap">
+    <canvas id="c"></canvas>
+    <div id="overlay">
+      <h2>Nivel 1 — El Pez Venenoso</h2>
+      <p>Jugando como: <span id="overlay-name" style="color:#4ef;font-weight:bold"></span></p>
+      <button id="startBtn">JUGAR</button>
+    </div>
+  </div>
+  <div id="valve-panel">
+    <label>Válvula — tiempo:</label>
+    <input type="range" id="valveSlider" min="1" max="60" value="20" step="1">
+    <span id="valveTimeLabel">20s</span>
+    <button id="valveBtn">Abrir válvula</button>
+  </div>
+  <div id="puzzle-controls">
+    <div id="dpad">
+      <div class="btn" id="leftBtn">&#8592;</div>
+      <div class="btn" id="rightBtn">&#8594;</div>
+    </div>
+    <div class="btn" id="jumpBtn">&#8679;</div>
+    <div class="btn" id="attackBtn" style="background:rgba(255,180,0,0.35);border-color:rgba(255,180,0,0.7);font-size:18px;">&#9876;</div>
   </div>
 </div>
 
+<!-- ARENA -->
+<div id="arena-screen">
+  <div id="arena-ui">
+    <span style="color:#4ef">⚔ Arena</span>
+    <span id="arena-hp" style="font-size:14px">❤️❤️❤️</span>
+    <span style="color:#ff8">Kills: <span id="my-kills">0</span></span>
+    <span style="color:#f44">Muertes: <span id="my-deaths">0</span></span>
+  </div>
+  <div id="arena-canvas-wrap">
+    <canvas id="arena-canvas"></canvas>
+  </div>
+  <div id="arena-controls">
+    <div style="display:flex;gap:4px">
+      <div class="btn" id="a-leftBtn">&#8592;</div>
+      <div class="btn" id="a-rightBtn">&#8594;</div>
+    </div>
+    <div class="btn" id="a-jumpBtn" style="background:rgba(255,80,80,0.35);border-color:rgba(255,80,80,0.6);font-size:24px;width:64px;height:64px;">&#8679;</div>
+    <div class="btn" id="a-attackBtn" style="background:rgba(255,180,0,0.35);border-color:rgba(255,180,0,0.7);font-size:18px;">&#9876;</div>
+    <div class="btn" id="a-acidBtn" style="display:none;background:rgba(60,200,40,0.4);border-color:rgba(60,200,40,0.8);font-size:18px;" onclick="playerAcid()">☣️</div>
+  </div>
+</div>
 
-<!-- ── END GAME SCREEN ── -->
-<div id="end-screen" style="display:none;width:100%;max-width:520px;margin:0 auto;padding:16px;color:#fff">
+<!-- END SCREEN -->
+<div id="end-screen">
   <div style="background:#1a0a0a;border:1px solid #5a2a1a;border-radius:14px;padding:20px;text-align:center;margin-bottom:12px">
     <h2 style="color:#f84;font-size:20px;margin-bottom:4px">⚔ Fin de la Arena</h2>
     <p style="color:#888;font-size:12px">Resultados finales</p>
@@ -199,65 +170,11 @@ canvas { display: block; width: 100%; image-rendering: pixelated; }
     </div>
   </div>
 </div>
-<!-- ── PUZZLE GAME ── -->
-<div id="game-screen">
-  <div id="ui">
-    <span>VIDAS: <span id="livesEl">3</span></span>
-    <span id="statusEl">Abre la válvula</span>
-    <span>EL PEZ VENENOSO<br><span id="fishHpEl" style="font-size:14px;">❤️❤️❤️</span></span>
-  </div>
-  <div id="gameWrap">
-    <canvas id="c"></canvas>
-    <div id="overlay">
-      <h2>Nivel 1 — El Pez Venenoso</h2>
-      <p style="font-size:11px;color:#aef">Jugando como: <span id="overlay-name" style="color:#4ef;font-weight:bold"></span></p>
-      <button id="startBtn">JUGAR</button>
-    </div>
-  </div>
-  <div id="valve-panel">
-    <label>Válvula — tiempo:</label>
-    <input type="range" id="valveSlider" min="1" max="60" value="20" step="1">
-    <span id="valveTimeLabel">20s</span>
-    <button id="valveBtn">Abrir válvula</button>
-  </div>
-  <div id="controls">
-    <div id="dpad">
-      <div class="btn" id="leftBtn">&#8592;</div>
-      <div class="btn" id="rightBtn">&#8594;</div>
-    </div>
-    <div class="btn" id="jumpBtn">&#8679;</div>
-    <div class="btn" id="attackBtn" style="background:rgba(255,180,0,0.35);border-color:rgba(255,180,0,0.7);font-size:18px;">&#9876;</div>
-  </div>
-</div>
 
-<!-- ── ARENA ── -->
-<div id="arena-screen">
-  <div id="arena-ui">
-    <span id="arena-status" style="color:#4ef">⚔ Arena de Caudaleros</span>
-    <span id="arena-hp" style="font-size:14px">❤️❤️❤️</span>
-    <span style="color:#ff8">Kills: <span id="my-kills">0</span></span>
-    <span style="color:#f44">Muertes: <span id="my-deaths">0</span></span>
-  </div>
-  <div id="arena-canvas-wrap">
-    <canvas id="arena-canvas"></canvas>
-  </div>
-  <div id="arena-controls">
-    <div style="display:flex;gap:4px">
-      <div class="btn" id="a-leftBtn">&#8592;</div>
-      <div class="btn" id="a-rightBtn">&#8594;</div>
-    </div>
-    <div class="btn" id="a-jumpBtn" style="background:rgba(255,80,80,0.35);border-color:rgba(255,80,80,0.6);font-size:24px;width:64px;height:64px;">&#8679;</div>
-    <div class="btn" id="a-attackBtn" style="background:rgba(255,180,0,0.35);border-color:rgba(255,180,0,0.7);font-size:18px;">&#9876;</div>
-  </div>
-</div>
-
-<!-- Firebase -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 <script>
-// ═══════════════════════════════════════════════════════
-// FIREBASE
-// ═══════════════════════════════════════════════════════
+// ═══════════════ FIREBASE ═══════════════
 firebase.initializeApp({
   apiKey: "AIzaSyBRlYXe71cyD-pxrxN5ay1AsAPkVXYoDPQ",
   authDomain: "icb1121.firebaseapp.com",
@@ -269,29 +186,26 @@ firebase.initializeApp({
 });
 const db = firebase.database();
 const playersRef = db.ref('game/players');
-const arenaRef   = db.ref('game/arena');
 const deathsRef  = db.ref('game/deaths');
 const killsRef   = db.ref('game/kills');
 
-// ═══════════════════════════════════════════════════════
-// GLOBAL STATE
-// ═══════════════════════════════════════════════════════
-let myName = '';
-let myKey  = '';
-let isTeacher = false;
-let isProf = false; // profesor jugando
+// Clean stale ended state on load
+db.ref('game/status').once('value', snap => {
+  if (snap.val() === 'ended') {
+    playersRef.once('value', ps => { if (!ps.val()) db.ref('game').remove(); });
+  }
+});
 
-// ═══════════════════════════════════════════════════════
-// LOGIN
-// ═══════════════════════════════════════════════════════
+// ═══════════════ GLOBAL ═══════════════
+let myName = '', myKey = '', isTeacher = false, isProf = false;
+
 function show(id) {
-  ['login-screen','waiting-screen','game-screen','arena-screen','teacher-screen']
+  ['login-screen','game-screen','arena-screen','teacher-screen','end-screen']
     .forEach(s => document.getElementById(s).style.display = 'none');
-  const el = document.getElementById(id);
-  el.style.display = id === 'game-screen' || id === 'arena-screen' || id === 'teacher-screen'
-    ? 'block' : 'flex';
+  document.getElementById(id).style.display = 'block';
 }
 
+// ═══════════════ LOGIN ═══════════════
 function joinAsStudent() {
   const name = document.getElementById('name-input').value.trim();
   if (!name) { alert('Escribe tu nombre'); return; }
@@ -301,7 +215,6 @@ function joinAsStudent() {
   document.getElementById('overlay-name').textContent = name;
   show('game-screen');
   startPuzzle();
-  listenArenaOpen();
 }
 
 function joinAsTeacher() {
@@ -317,1118 +230,535 @@ function joinAsTeacherPlayer() {
   isProf = true;
   myKey = playersRef.push({ name: 'Profesor', status: 'arena', deaths: 0, isProf: true }).key;
   playersRef.child(myKey).onDisconnect().remove();
+  document.getElementById('a-acidBtn').style.display = 'flex';
   enterArena();
 }
 
-// Listen for arena opening (for students still in puzzle)
-function listenArenaOpen() {
-  arenaRef.child('open').on('value', snap => {
-    // Only redirect after puzzle is done — puzzle completion handles it
-  });
-}
-
-// ═══════════════════════════════════════════════════════
-// TEACHER PANEL
-// ═══════════════════════════════════════════════════════
-function teacherOpenArena() {
-  arenaRef.child('open').set(true);
-  alert('Arena abierta. Los jugadores que completen el puzzle entrarán automáticamente.');
-}
-
+// ═══════════════ TEACHER ═══════════════
+function teacherOpenArena() { db.ref('game/status').set('active'); }
 function teacherReset() {
   if (!confirm('¿Resetear todo?')) return;
-  playersRef.remove();
-  arenaRef.remove();
-  deathsRef.remove();
+  db.ref('game').remove();
   document.getElementById('teacher-students').innerHTML = '<p style="color:#555;font-size:12px">Ningún jugador aún.</p>';
-  document.getElementById('teacher-ranking-card').style.display = 'none';
 }
-
-function teacherAcid() {
-  db.ref('game/acid').set({ active: true, t: Date.now() });
-}
-
 function teacherEndGame() {
-  if (!confirm('¿Terminar el juego y mostrar resultados finales a todos?')) return;
+  if (!confirm('¿Terminar el juego?')) return;
   db.ref('game/status').set('ended');
 }
-
+function teacherAcid() {
+  db.ref('game/acid').set({ state: 'warning', t: Date.now() });
+}
 function teacherClearDeaths() {
-  deathsRef.remove();
-  // Also reset deaths counter for all players
+  deathsRef.remove(); killsRef.remove();
   playersRef.once('value', snap => {
-    const data = snap.val() || {};
-    Object.keys(data).forEach(k => playersRef.child(k).update({ deaths: 0 }));
+    const d = snap.val() || {};
+    Object.keys(d).forEach(k => playersRef.child(k).update({ deaths: 0 }));
   });
 }
-
 function listenTeacher() {
   playersRef.on('value', snap => {
     const data = snap.val() || {};
     const entries = Object.entries(data);
     const list = document.getElementById('teacher-students');
-    if (!entries.length) {
-      list.innerHTML = '<p style="color:#555;font-size:12px">Ningún jugador aún.</p>';
-      return;
-    }
-    list.innerHTML = entries.map(([k, v]) => {
+    if (!entries.length) { list.innerHTML = '<p style="color:#555;font-size:12px">Ningún jugador aún.</p>'; return; }
+    list.innerHTML = entries.map(([k,v]) => {
       const badge = v.status === 'arena'
         ? `<span class="badge-arena">⚔ Arena</span>`
-        : v.status === 'done'
-        ? `<span class="badge-done">✓ Listo</span>`
         : `<span class="badge-wait">Puzzle…</span>`;
       return `<div class="student-row"><span>${v.name}</span>${badge}</div>`;
     }).join('');
   });
-
-  deathsRef.on('value', snap => {
-    const data = snap.val() || {};
-    const entries = Object.entries(data).sort((a,b) => (b[1].count||0) - (a[1].count||0));
-    const card = document.getElementById('teacher-ranking-card');
-    const list = document.getElementById('teacher-deaths-list');
-    if (!entries.length) { card.style.display = 'none'; return; }
-    card.style.display = 'block';
-    list.innerHTML = entries.map(([k,v], i) =>
-      `<div class="rank-row">
-        <span style="color:#888;width:20px">${i+1}</span>
-        <span style="flex:1">${v.name}</span>
-        <span style="color:#f44;font-weight:bold">${v.count} 💀</span>
-      </div>`
-    ).join('');
-  });
+}
+function playerAcid() {
+  db.ref('game/acid').set({ state: 'warning', t: Date.now() });
 }
 
-// ═══════════════════════════════════════════════════════
-// ═══════════════════════════════════════════════════════
-// PUZZLE GAME (FASE 1)
-// ═══════════════════════════════════════════════════════
-// ═══════════════════════════════════════════════════════
+// ═══════════════════════════════════════
+// PUZZLE (FASE 1)
+// ═══════════════════════════════════════
 const canvas = document.getElementById('c');
 const ctx = canvas.getContext('2d');
 const W = 460, H = 280;
 canvas.width = W; canvas.height = H;
 
-const PLAT_L_Y = 160, PLAT_R_Y = 40, PIT_L = 130, PIT_R = 310, PIT_BOT = 260, WALL_W = 12;
-const FLOW_RATE = 5;
-const DOOR_W = 22, DOOR_H = 36;
-const FLAG_X = W - WALL_W - DOOR_W - 10, FLAG_Y = PLAT_R_Y - DOOR_H;
-const PIT_VOLUME = PIT_BOT - 55, WATER_START = PIT_BOT - 40;
-const LADDER_X = PIT_R - 18, LADDER_TOP = PLAT_R_Y - 16, LADDER_BOT = PLAT_L_Y + 22, LADDER_W = 14;
+const PLAT_L_Y=160,PLAT_R_Y=40,PIT_L=130,PIT_R=310,PIT_BOT=260,WALL_W=12,FLOW_RATE=5;
+const DOOR_W=22,DOOR_H=36,FLAG_X=W-WALL_W-DOOR_W-10,FLAG_Y=PLAT_R_Y-DOOR_H;
+const PIT_VOLUME=PIT_BOT-55,WATER_START=PIT_BOT-40;
+const LADDER_X=PIT_R-18,LADDER_TOP=PLAT_R_Y-16,LADDER_BOT=PLAT_L_Y+22,LADDER_W=14;
 
-let lives = 3, gameRunning = false;
-let keys = { left:false, right:false, jump:false, attack:false };
-let jumpPressed = false, attackPressed = false;
-let player, state;
+let lives=3,gameRunning=false;
+let keys={left:false,right:false,jump:false,attack:false};
+let jumpPressed=false,attackPressed=false;
+let player,state;
 
-function onLadder(p) {
-  return p.x+p.w>LADDER_X && p.x<LADDER_X+LADDER_W && p.y+p.h>LADDER_TOP && p.y<LADDER_BOT;
-}
-function onLadderEntry(p) {
-  return p.x+p.w>LADDER_X-2 && p.x<LADDER_X+LADDER_W+2 && p.y+p.h>LADDER_TOP && p.y<LADDER_BOT+10;
-}
-function platforms() {
-  return [
-    {x:0,       y:PLAT_L_Y, w:PIT_L,       h:H-PLAT_L_Y},
-    {x:PIT_R,   y:PLAT_R_Y, w:W-PIT_R,     h:H-PLAT_R_Y},
-    {x:PIT_L,   y:PIT_BOT,  w:PIT_R-PIT_L, h:H-PIT_BOT },
-    {x:0,       y:0,        w:WALL_W,       h:H          },
-    {x:W-WALL_W,y:0,        w:WALL_W,       h:H          },
-  ];
-}
-function overlap(a,b) { return a.x<b.x+b.w&&a.x+a.w>b.x&&a.y<b.y+b.h&&a.y+a.h>b.y; }
+function onLadderEntry(p){return p.x+p.w>LADDER_X-2&&p.x<LADDER_X+LADDER_W+2&&p.y+p.h>LADDER_TOP&&p.y<LADDER_BOT+10;}
+function platforms(){return[
+  {x:0,y:PLAT_L_Y,w:PIT_L,h:H-PLAT_L_Y},{x:PIT_R,y:PLAT_R_Y,w:W-PIT_R,h:H-PLAT_R_Y},
+  {x:PIT_L,y:PIT_BOT,w:PIT_R-PIT_L,h:H-PIT_BOT},{x:0,y:0,w:WALL_W,h:H},{x:W-WALL_W,y:0,w:WALL_W,h:H}
+];}
+function overlap(a,b){return a.x<b.x+b.w&&a.x+a.w>b.x&&a.y<b.y+b.h&&a.y+a.h>b.y;}
+function setStatus(t){document.getElementById('statusEl').textContent=t;}
+function setFishHp(hp){const el=document.getElementById('fishHpEl');if(el)el.textContent='❤️'.repeat(Math.max(0,hp))+'🖤'.repeat(Math.max(0,3-hp));}
+function updateUI(){document.getElementById('livesEl').textContent=lives;}
 
-function setStatus(t) { document.getElementById('statusEl').textContent = t; }
-function setFishHp(hp) {
-  const el = document.getElementById('fishHpEl');
-  if(el) el.textContent = '❤️'.repeat(Math.max(0,hp)) + '🖤'.repeat(Math.max(0,3-hp));
-}
-function updateUI() { document.getElementById('livesEl').textContent = lives; }
-
-function initGame() {
-  player = { x:WALL_W+8, y:PLAT_L_Y-20, w:14, h:18, vx:0, vy:0, onGround:false,
-             dead:false, deathTimer:0, invincible:0, facing:1, swimming:false };
-  state = { waterLevel:WATER_START, valveUsed:false, valveActive:false, valveTimer:0,
-            fishAlive:true, fishCaught:false, fishHp:3, fishX:210, fishY:0, fishDir:1, fishAnim:0,
-            spear:null, particles:[], waterDrops:[], outcome:null, outcomeTimer:0 };
-  document.getElementById('valveBtn').disabled = false;
-  document.getElementById('valveSlider').disabled = false;
-  setFishHp(3);
-  setStatus('Abre la válvula para subir el agua');
+function initGame(){
+  player={x:WALL_W+8,y:PLAT_L_Y-20,w:14,h:18,vx:0,vy:0,onGround:false,dead:false,deathTimer:0,invincible:0,facing:1,swimming:false};
+  state={waterLevel:WATER_START,valveUsed:false,valveActive:false,valveTimer:0,
+    fishAlive:true,fishCaught:false,fishHp:3,fishX:210,fishY:0,fishDir:1,fishAnim:0,
+    spear:null,particles:[],waterDrops:[],outcome:null,outcomeTimer:0};
+  document.getElementById('valveBtn').disabled=false;
+  document.getElementById('valveSlider').disabled=false;
+  setFishHp(3); setStatus('Abre la válvula para subir el agua');
 }
 
-function startPuzzle() {
-  lives = 3; updateUI();
-  initGame();
-  document.getElementById('overlay').style.display = 'flex';
-  document.getElementById('startBtn').onclick = () => {
-    initGame();
-    document.getElementById('overlay').style.display = 'none';
-    gameRunning = true;
-  };
+function startPuzzle(){
+  lives=3; updateUI(); initGame();
+  document.getElementById('overlay').style.display='flex';
+  document.getElementById('startBtn').onclick=()=>{initGame();document.getElementById('overlay').style.display='none';gameRunning=true;};
   requestAnimationFrame(puzzleLoop);
 }
 
-let lastPuzzle = 0;
-function puzzleLoop(ts) {
-  const dt = Math.min((ts-lastPuzzle)/1000, 0.05); lastPuzzle = ts;
-  if (player && state && gameRunning) { updatePuzzle(dt); drawPuzzle(); }
-  else if (player && state) drawPuzzle();
+let lastP=0;
+function puzzleLoop(ts){
+  const dt=Math.min((ts-lastP)/1000,0.05); lastP=ts;
+  if(gameRunning){updatePuzzle(dt);drawPuzzle();}else if(player&&state)drawPuzzle();
   requestAnimationFrame(puzzleLoop);
 }
 
-function updatePuzzle(dt) {
-  const p = player, s = state;
-  if (p.dead) {
-    p.deathTimer -= dt;
-    if (p.deathTimer <= 0) {
-      lives--; updateUI();
-      if (lives <= 0) { showPuzzleOverlay('GAME OVER','Sin más vidas.','REINICIAR',true); gameRunning=false; return; }
-      initGame();
-    }
-    return;
-  }
-  if (s.outcome) {
-    s.outcomeTimer -= dt;
-    if (s.outcomeTimer <= 0) {
-      if (s.outcome==='win') {
-        gameRunning = false;
-        puzzleComplete();
-      } else { p.dead=true; p.deathTimer=1.0; }
-      s.outcome=null;
-    }
-    return;
-  }
-  if (s.valveActive) {
-    s.valveTimer -= dt * 3;
-    s.waterLevel = Math.max(s.waterLevel - FLOW_RATE*dt, 55);
-    if (s.valveTimer<=0 || s.waterLevel<=55) s.valveActive=false;
-    const numDrops = Math.floor(2+Math.random()*3);
-    for (let i=0;i<numDrops;i++) s.waterDrops.push({
-      x:PIT_L+2+Math.random()*3, y:PLAT_R_Y+10+Math.random()*10,
-      vx:1.5+Math.random()*2, vy:-1+Math.random()*2, life:1
-    });
+function updatePuzzle(dt){
+  const p=player,s=state;
+  if(p.dead){p.deathTimer-=dt;if(p.deathTimer<=0){lives--;updateUI();if(lives<=0){showPuzzleOverlay('GAME OVER','Sin más vidas.','REINICIAR',true);gameRunning=false;return;}initGame();}return;}
+  if(s.outcome){s.outcomeTimer-=dt;if(s.outcomeTimer<=0){if(s.outcome==='win'){gameRunning=false;puzzleComplete();}else{p.dead=true;p.deathTimer=1.0;}s.outcome=null;}return;}
+  if(s.valveActive){
+    s.valveTimer-=dt*3; s.waterLevel=Math.max(s.waterLevel-FLOW_RATE*dt,55);
+    if(s.valveTimer<=0||s.waterLevel<=55)s.valveActive=false;
+    const n=Math.floor(2+Math.random()*3);
+    for(let i=0;i<n;i++)s.waterDrops.push({x:PIT_L+2+Math.random()*3,y:PLAT_R_Y+10+Math.random()*10,vx:1.5+Math.random()*2,vy:-1+Math.random()*2,life:1});
     setStatus('Llenando... '+Math.max(0,s.valveTimer).toFixed(1)+'s');
   }
-
-  const wY = s.waterLevel;
-  s.waterDrops = s.waterDrops.filter(d => {
-    d.x+=d.vx*dt*60; d.y+=d.vy*dt*60; d.vy+=0.5; if(d.vy>12)d.vy=12;
-    d.life-=dt*0.8; if(d.y>s.waterLevel)d.life=0;
-    if(d.x>PIT_R-4){d.vx*=-0.5;d.x=PIT_R-4;}
-    return d.life>0&&d.y<s.waterLevel+2;
-  });
-
-  if (s.spear) {
-    s.spear.timer -= dt;
-    const progress = 1 - s.spear.timer / s.spear.duration;
-    s.spear.reach = Math.sin(progress*Math.PI) * s.spear.maxReach;
-    const tipX = p.x+p.w/2 + Math.cos(s.spear.angle)*s.spear.reach;
-    const tipY = p.y+p.h/2 + Math.sin(s.spear.angle)*s.spear.reach;
-    if (s.fishAlive) {
-      const fd={x:s.fishX-14,y:s.fishY-10,w:28,h:20};
-      if(overlap({x:tipX-4,y:tipY-4,w:8,h:8},fd)){
-        s.fishHp--; setFishHp(s.fishHp);
-        for(let i=0;i<6;i++) s.particles.push({x:s.fishX,y:s.fishY,vx:(Math.random()-0.5)*5,vy:-Math.random()*4-1,life:0.7});
-        s.spear=null;
-        if(s.fishHp<=0){
-          s.fishAlive=false; s.fishCaught=true;
-          setStatus('¡Pescado! Sube y llega a la puerta.');
-          for(let i=0;i<14;i++) s.particles.push({x:s.fishX,y:s.fishY,vx:(Math.random()-0.5)*5,vy:-Math.random()*4-1,life:0.9});
-        } else setStatus('¡Golpe! Le quedan '+s.fishHp+' vida'+(s.fishHp>1?'s':'')+' al pez.');
-      }
-    }
-    if(s.spear&&s.spear.timer<=0) s.spear=null;
+  const wY=s.waterLevel;
+  s.waterDrops=s.waterDrops.filter(d=>{d.x+=d.vx*dt*60;d.y+=d.vy*dt*60;d.vy+=0.5;if(d.vy>12)d.vy=12;d.life-=dt*0.8;if(d.y>s.waterLevel)d.life=0;if(d.x>PIT_R-4){d.vx*=-0.5;d.x=PIT_R-4;}return d.life>0&&d.y<s.waterLevel+2;});
+  if(s.spear){
+    s.spear.timer-=dt;const prog=1-s.spear.timer/s.spear.duration;s.spear.reach=Math.sin(prog*Math.PI)*s.spear.maxReach;
+    const tipX=p.x+p.w/2+Math.cos(s.spear.angle)*s.spear.reach,tipY=p.y+p.h/2+Math.sin(s.spear.angle)*s.spear.reach;
+    if(s.fishAlive){const fd={x:s.fishX-14,y:s.fishY-10,w:28,h:20};if(overlap({x:tipX-4,y:tipY-4,w:8,h:8},fd)){
+      s.fishHp--;setFishHp(s.fishHp);for(let i=0;i<6;i++)s.particles.push({x:s.fishX,y:s.fishY,vx:(Math.random()-0.5)*5,vy:-Math.random()*4-1,life:0.7});
+      s.spear=null;
+      if(s.fishHp<=0){s.fishAlive=false;s.fishCaught=true;setStatus('¡Pescado! Sube y llega a la puerta.');for(let i=0;i<14;i++)s.particles.push({x:s.fishX,y:s.fishY,vx:(Math.random()-0.5)*5,vy:-Math.random()*4-1,life:0.9});}
+      else setStatus('¡Golpe! Le quedan '+s.fishHp+' vida'+(s.fishHp>1?'s':'')+' al pez.');
+    }}
+    if(s.spear&&s.spear.timer<=0)s.spear=null;
   }
-  if (keys.attack&&!attackPressed&&!p.swimming&&!p.climbing&&!s.spear) {
-    attackPressed=true;
-    const angle=p.facing===1?Math.PI*0.2:Math.PI*0.8;
-    const duration=0.35;
-    s.spear={angle,reach:0,maxReach:38,timer:duration,duration};
+  if(keys.attack&&!attackPressed&&!p.swimming&&!p.climbing&&!s.spear){attackPressed=true;const angle=p.facing===1?Math.PI*0.2:Math.PI*0.8;const dur=0.35;s.spear={angle,reach:0,maxReach:38,timer:dur,duration:dur};}
+  if(!keys.attack)attackPressed=false;
+  if(s.fishAlive){
+    const waterOver=wY<PLAT_L_Y,waterBot=PIT_BOT,playerForcedSwim=wY<p.y+p.h/2;
+    const waterMid=playerForcedSwim?wY+(waterBot-wY)*0.55:wY+6;
+    const fishCanCrossLeft=s.fishY<PLAT_L_Y,fishMinX=fishCanCrossLeft?WALL_W+4:PIT_L+12,fishMaxX=PIT_R-18;
+    if(p.swimming){const dx=(p.x+p.w/2)-s.fishX,dy=(p.y+p.h/2)-s.fishY,dist=Math.sqrt(dx*dx+dy*dy)||1;s.fishDir=dx>0?1:-1;s.fishX+=dx/dist*140*dt;s.fishY+=dy/dist*140*dt;s.fishX=Math.max(fishMinX,Math.min(fishMaxX,s.fishX));s.fishY=Math.max(wY+4,Math.min(waterBot-8,s.fishY));}
+    else if(waterOver){s.fishX+=s.fishDir*100*dt;if(s.fishX<fishMinX){s.fishX=fishMinX;s.fishDir=1;}if(s.fishX>fishMaxX){s.fishX=fishMaxX;s.fishDir=-1;}s.fishY+=(waterMid-s.fishY)*3*dt;}
+    else{s.fishX+=s.fishDir*100*dt;if(s.fishX<PIT_L+12){s.fishX=PIT_L+12;s.fishDir=1;}if(s.fishX>PIT_R-22){s.fishX=PIT_R-22;s.fishDir=-1;}s.fishY+=(waterMid-s.fishY)*3*dt;}
+    s.fishY=Math.max(wY+4,Math.min(waterBot-8,s.fishY));s.fishAnim+=dt*6;
+    if(p.invincible<=0&&overlap({x:p.x,y:p.y,w:p.w,h:p.h},{x:s.fishX-12,y:s.fishY-8,w:24,h:16}))
+      if(!s.outcome){s.outcome='die';s.outcomeTimer=0.5;setStatus('¡El pez te comió!');}
   }
-  if(!keys.attack) attackPressed=false;
-
-  if (s.fishAlive) {
-    const waterOver=wY<PLAT_L_Y;
-    const playerForcedSwim=wY<p.y+p.h/2;
-    const waterMid=playerForcedSwim?wY+(PIT_BOT-wY)*0.55:wY+6;
-    const fishCanCrossLeft=s.fishY<PLAT_L_Y;
-    const fishMinX=fishCanCrossLeft?WALL_W+4:PIT_L+12;
-    const fishMaxX=PIT_R-18;
-    if(p.swimming){
-      const dx=(p.x+p.w/2)-s.fishX, dy=(p.y+p.h/2)-s.fishY;
-      const dist=Math.sqrt(dx*dx+dy*dy)||1;
-      s.fishDir=dx>0?1:-1;
-      s.fishX+=dx/dist*140*dt; s.fishY+=dy/dist*140*dt;
-      s.fishX=Math.max(fishMinX,Math.min(fishMaxX,s.fishX));
-      s.fishY=Math.max(wY+4,Math.min(PIT_BOT-8,s.fishY));
-    } else if(waterOver){
-      s.fishX+=s.fishDir*100*dt;
-      if(s.fishX<fishMinX){s.fishX=fishMinX;s.fishDir=1;}
-      if(s.fishX>fishMaxX){s.fishX=fishMaxX;s.fishDir=-1;}
-      s.fishY+=(waterMid-s.fishY)*3*dt;
-    } else {
-      s.fishX+=s.fishDir*100*dt;
-      if(s.fishX<PIT_L+12){s.fishX=PIT_L+12;s.fishDir=1;}
-      if(s.fishX>PIT_R-22){s.fishX=PIT_R-22;s.fishDir=-1;}
-      s.fishY+=(waterMid-s.fishY)*3*dt;
-    }
-    s.fishY=Math.max(wY+4,Math.min(PIT_BOT-8,s.fishY));
-    s.fishAnim+=dt*6;
-    if(p.invincible<=0){
-      if(overlap({x:p.x,y:p.y,w:p.w,h:p.h},{x:s.fishX-12,y:s.fishY-8,w:24,h:16}))
-        if(!s.outcome){s.outcome='die';s.outcomeTimer=0.5;setStatus('¡El pez te comió!');}
-    }
-  }
-
   s.particles=s.particles.filter(sp=>{sp.x+=sp.vx;sp.y+=sp.vy;sp.vy+=0.18;sp.life-=dt;return sp.life>0;});
-  if(s.fishCaught&&p.x+p.w>FLAG_X&&p.x<FLAG_X+DOOR_W&&p.y+p.h>FLAG_Y&&p.y<FLAG_Y+DOOR_H)
-    if(!s.outcome){s.outcome='win';s.outcomeTimer=0.4;}
+  // Hidden trap: opens when player walks over it after catching fish
+  if(s.fishCaught && !s.trapTriggered) {
+    const overTrap = p.x+p.w > TRAP_X && p.x < TRAP_X+TRAP_W;
+    const onPlat = p.onGround && p.y+p.h <= PLAT_R_Y+4;
+    if(overTrap && onPlat) s.trapTriggered = true;
+  }
+  s.trapAnim = s.trapTriggered ? Math.min(1, s.trapAnim + dt*5) : 0;
 
-  if(p.invincible>0) p.invincible-=dt;
+  if(s.fishCaught&&p.x+p.w>FLAG_X&&p.x<FLAG_X+DOOR_W&&p.y+p.h>FLAG_Y&&p.y<FLAG_Y+DOOR_H)if(!s.outcome){s.outcome='win';s.outcomeTimer=0.4;}
+  if(p.invincible>0)p.invincible-=dt;
   const spd=1.9;
-  if(keys.left){p.vx=-spd;p.facing=-1;}
-  else if(keys.right){p.vx=spd;p.facing=1;}
-  else p.vx*=0.72;
-
-  const inPitX=p.x+p.w>PIT_L&&p.x<PIT_R;
-  const inWaterPit=inPitX&&p.y+p.h>wY;
-  const onLeftPlat=!inPitX&&p.x<PIT_L;
-  const floodOnLeft=wY<PLAT_L_Y&&wY<p.y+p.h/2;
-  const climbing=onLadderEntry(p);
-  const swimming=inWaterPit&&!climbing;
-  p.swimming=swimming||(onLeftPlat&&floodOnLeft);
-  p.climbing=climbing;
-
+  if(keys.left){p.vx=-spd;p.facing=-1;}else if(keys.right){p.vx=spd;p.facing=1;}else p.vx*=0.72;
+  const inPitX=p.x+p.w>PIT_L&&p.x<PIT_R,inWaterPit=inPitX&&p.y+p.h>wY;
+  const onLeftPlat=!inPitX&&p.x<PIT_L,floodOnLeft=wY<PLAT_L_Y&&wY<p.y+p.h/2;
+  const climbing=onLadderEntry(p),swimming=inWaterPit&&!climbing;
+  p.swimming=swimming||(onLeftPlat&&floodOnLeft);p.climbing=climbing;
   if(swimming){p.vy+=0.12;if(p.vy>1.5)p.vy=1.5;if(keys.jump)p.vy=-1.5;}
   else if(climbing){p.vy=0;p.vx=0;if(keys.jump)p.vy=-2;if(keys.left){p.vx=-1.9;p.facing=-1;}if(keys.right){p.vx=1.9;p.facing=1;}p.onGround=false;}
   else{p.vy+=0.32;if(p.vy>9)p.vy=9;if(keys.jump&&p.onGround&&!jumpPressed){p.vy=-6.2;p.onGround=false;jumpPressed=true;}}
   if(!keys.jump)jumpPressed=false;
-
   const prevY=p.y;
-  p.x+=p.vx; p.onGround=false;
-  for(const pl of platforms()){
-    if(!overlap({x:p.x,y:p.y,w:p.w,h:p.h},pl))continue;
-    const isLP=pl.x===0&&pl.y===PLAT_L_Y;
-    if(isLP&&p.vx>0)continue;
-    if(p.vx>0)p.x=pl.x-p.w;else if(p.vx<0)p.x=pl.x+pl.w;
-    p.vx=0;
-  }
+  p.x+=p.vx;p.onGround=false;
+  for(const pl of platforms()){if(!overlap({x:p.x,y:p.y,w:p.w,h:p.h},pl))continue;const isLP=pl.x===0&&pl.y===PLAT_L_Y;if(isLP&&p.vx>0)continue;if(p.vx>0)p.x=pl.x-p.w;else if(p.vx<0)p.x=pl.x+pl.w;p.vx=0;}
   p.y+=p.vy;
-  for(const pl of platforms()){
-    if(overlap({x:p.x,y:p.y,w:p.w,h:p.h},pl)){
-      if(p.vy>0){p.y=pl.y-p.h;p.onGround=true;}else p.y=pl.y+pl.h;
-      p.vy=0;
-    }
-  }
-  if(p.x<PIT_L&&p.x+p.w>PIT_L&&p.y+p.h>wY&&p.y>PLAT_L_Y-p.h){p.x=PIT_L-p.w;p.vx=0;}
-  if(p.x+p.w>WALL_W&&p.x<PIT_L&&prevY+p.h<=PLAT_L_Y&&p.y+p.h>=PLAT_L_Y){p.y=PLAT_L_Y-p.h;p.onGround=true;p.vy=0;}
+  for(const pl of platforms()){if(overlap({x:p.x,y:p.y,w:p.w,h:p.h},pl)){if(p.vy>0){p.y=pl.y-p.h;p.onGround=true;}else p.y=pl.y+pl.h;p.vy=0;}}
   if(p.x<WALL_W){p.x=WALL_W;p.vx=0;}
   if(inWaterPit&&!climbing&&p.y<wY){p.y=wY;p.vy=0;}
+  if(p.x<PIT_L&&p.x+p.w>PIT_L&&p.y+p.h>wY&&p.y>PLAT_L_Y-p.h){p.x=PIT_L-p.w;p.vx=0;}
+  if(p.x+p.w>WALL_W&&p.x<PIT_L&&prevY+p.h<=PLAT_L_Y&&p.y+p.h>=PLAT_L_Y){p.y=PLAT_L_Y-p.h;p.onGround=true;p.vy=0;}
   if(p.x<0)p.x=0;
   if(p.y>H+30){p.dead=true;p.deathTimer=0.8;}
 }
 
-function drawPuzzle() {
+function drawPuzzle(){
   const p=player,s=state,wY=s.waterLevel;
   ctx.clearRect(0,0,W,H);
   ctx.fillStyle='#d4ecd4';ctx.fillRect(0,0,W,H);
-  ctx.fillStyle='#b8d8b8';
-  for(let i=0;i<W;i+=40)ctx.fillRect(i,0,20,H);
-  ctx.fillStyle='#7a5c2e';
-  ctx.fillRect(WALL_W,PLAT_L_Y,PIT_L-WALL_W,H-PLAT_L_Y);
-  ctx.fillRect(PIT_R,PLAT_R_Y,W-WALL_W-PIT_R,H-PLAT_R_Y);
-  ctx.fillStyle='#9a7a3e';
-  ctx.fillRect(WALL_W,PLAT_L_Y,PIT_L-WALL_W,7);
-  ctx.fillRect(PIT_R,PLAT_R_Y,W-WALL_W-PIT_R,7);
+  ctx.fillStyle='#b8d8b8';for(let i=0;i<W;i+=40)ctx.fillRect(i,0,20,H);
+  ctx.fillStyle='#7a5c2e';ctx.fillRect(WALL_W,PLAT_L_Y,PIT_L-WALL_W,H-PLAT_L_Y);ctx.fillRect(PIT_R,PLAT_R_Y,W-WALL_W-PIT_R,H-PLAT_R_Y);
+  ctx.fillStyle='#9a7a3e';ctx.fillRect(WALL_W,PLAT_L_Y,PIT_L-WALL_W,7);ctx.fillRect(PIT_R,PLAT_R_Y,W-WALL_W-PIT_R,7);
   ctx.fillStyle='#444';ctx.fillRect(PIT_L,PIT_BOT,PIT_R-PIT_L,H-PIT_BOT);
   ctx.fillStyle='#5a3a1a';ctx.fillRect(0,0,WALL_W,H);ctx.fillRect(W-WALL_W,0,WALL_W,H);
-
   ctx.fillStyle='rgba(70,150,220,0.7)';ctx.fillRect(PIT_L,wY,PIT_R-PIT_L,PIT_BOT-wY);
   if(wY<PLAT_L_Y){ctx.fillStyle='rgba(70,150,220,0.65)';ctx.fillRect(WALL_W,wY,PIT_L-WALL_W,PLAT_L_Y-wY);}
-
   // Pipe
-  {
-    const px=PIT_L+1,py=PLAT_R_Y+20;
-    ctx.fillStyle='#555';ctx.fillRect(px,py-5,16,10);
-    ctx.fillStyle='#111';ctx.fillRect(px+14,py-3,4,6);
-    if(state.valveActive){
-      const sx=px+16,st=py,sb=state.waterLevel,t=Date.now()/120;
-      for(let i=0;i<10;i++){
-        const sy=st+(sb-st)*i/10,sy2=st+(sb-st)*(i+1)/10,wb=Math.sin(t+i*1.2)*1.2;
-        ctx.strokeStyle=`rgba(80,170,255,${0.5+0.4*Math.sin(t*2+i)})`;
-        ctx.lineWidth=3+Math.sin(t+i)*0.8;ctx.lineCap='round';
-        ctx.beginPath();ctx.moveTo(sx+wb,sy);ctx.lineTo(sx+wb,sy2);ctx.stroke();
-      }
-    }
-  }
-
+  {const px=PIT_L+1,py=PLAT_R_Y+20;ctx.fillStyle='#555';ctx.fillRect(px,py-5,16,10);ctx.fillStyle='#111';ctx.fillRect(px+14,py-3,4,6);
+  if(s.valveActive){const sx=px+16,st2=py,sb=s.waterLevel,t=Date.now()/120;for(let i=0;i<10;i++){const sy=st2+(sb-st2)*i/10,sy2=st2+(sb-st2)*(i+1)/10,wb=Math.sin(t+i*1.2)*1.2;ctx.strokeStyle=`rgba(80,170,255,${0.5+0.4*Math.sin(t*2+i)})`;ctx.lineWidth=3+Math.sin(t+i)*0.8;ctx.lineCap='round';ctx.beginPath();ctx.moveTo(sx+wb,sy);ctx.lineTo(sx+wb,sy2);ctx.stroke();}}}
   // Water surface
-  ctx.strokeStyle='rgba(140,210,255,0.9)';ctx.lineWidth=1.5;
-  ctx.beginPath();
+  ctx.strokeStyle='rgba(140,210,255,0.9)';ctx.lineWidth=1.5;ctx.beginPath();
   const le=wY<PLAT_L_Y?WALL_W:PIT_L,re=wY<PLAT_R_Y?W-WALL_W:PIT_R;
-  for(let wx=le;wx<=re;wx+=5){
-    const wo=Math.sin(wx*0.18+Date.now()*0.003)*1.8;
-    wx===le?ctx.moveTo(wx,wY+wo):ctx.lineTo(wx,wY+wo);
-  }
-  ctx.stroke();
-
+  for(let wx=le;wx<=re;wx+=5){const wo=Math.sin(wx*0.18+Date.now()*0.003)*1.8;wx===le?ctx.moveTo(wx,wY+wo):ctx.lineTo(wx,wY+wo);}ctx.stroke();
   // Ladder
-  ctx.strokeStyle='#7a5c2e';ctx.lineWidth=2.5;
-  ctx.beginPath();ctx.moveTo(LADDER_X+2,LADDER_TOP);ctx.lineTo(LADDER_X+2,LADDER_BOT);ctx.stroke();
-  ctx.beginPath();ctx.moveTo(LADDER_X+LADDER_W-2,LADDER_TOP);ctx.lineTo(LADDER_X+LADDER_W-2,LADDER_BOT);ctx.stroke();
-  ctx.strokeStyle='#9a7a3e';ctx.lineWidth=2;
-  for(let ry=LADDER_TOP+8;ry<LADDER_BOT;ry+=12){ctx.beginPath();ctx.moveTo(LADDER_X+2,ry);ctx.lineTo(LADDER_X+LADDER_W-2,ry);ctx.stroke();}
-
+  ctx.strokeStyle='#7a5c2e';ctx.lineWidth=2.5;ctx.beginPath();ctx.moveTo(LADDER_X+2,LADDER_TOP);ctx.lineTo(LADDER_X+2,LADDER_BOT);ctx.stroke();ctx.beginPath();ctx.moveTo(LADDER_X+LADDER_W-2,LADDER_TOP);ctx.lineTo(LADDER_X+LADDER_W-2,LADDER_BOT);ctx.stroke();
+  ctx.strokeStyle='#9a7a3e';ctx.lineWidth=2;for(let ry=LADDER_TOP+8;ry<LADDER_BOT;ry+=12){ctx.beginPath();ctx.moveTo(LADDER_X+2,ry);ctx.lineTo(LADDER_X+LADDER_W-2,ry);ctx.stroke();}
   // Door
   const dX=FLAG_X,dY=FLAG_Y,dW=DOOR_W,dH=DOOR_H;
-  ctx.fillStyle='#5a3010';ctx.fillRect(dX,dY,dW,dH);
-  ctx.fillStyle='#7a4820';ctx.fillRect(dX+2,dY+2,dW-4,dH-4);
-  if(!s.fishCaught){
-    ctx.fillStyle='rgba(200,0,0,0.8)';ctx.font='bold 8px monospace';ctx.textAlign='center';
-    ctx.fillText('(atrapa el pez!)',dX+dW/2,dY-4);
-  } else {
-    const pulse=0.7+0.3*Math.sin(Date.now()*0.006);
-    ctx.globalAlpha=pulse;ctx.fillStyle='#0f0';ctx.font='bold 8px monospace';ctx.textAlign='center';
-    ctx.fillText('¡ABIERTA!',dX+dW/2,dY-4);ctx.globalAlpha=1;
-    ctx.strokeStyle='#0f0';ctx.lineWidth=1.5;ctx.strokeRect(dX-1,dY-1,dW+2,dH+2);
+  ctx.fillStyle='#5a3010';ctx.fillRect(dX,dY,dW,dH);ctx.fillStyle='#7a4820';ctx.fillRect(dX+2,dY+2,dW-4,dH-4);
+  if(!s.fishCaught){ctx.fillStyle='rgba(200,0,0,0.8)';ctx.font='bold 8px monospace';ctx.textAlign='center';ctx.fillText('(atrapa el pez!)',dX+dW/2,dY-4);}
+  else{const pulse=0.7+0.3*Math.sin(Date.now()*0.006);ctx.globalAlpha=pulse;ctx.fillStyle='#0f0';ctx.font='bold 8px monospace';ctx.textAlign='center';ctx.fillText('¡ABIERTA!',dX+dW/2,dY-4);ctx.globalAlpha=1;ctx.strokeStyle='#0f0';ctx.lineWidth=1.5;ctx.strokeRect(dX-1,dY-1,dW+2,dH+2);}
+  // Trap hole — hidden until player steps on it
+  if(s.fishCaught) {
+    const ta = s.trapAnim;
+    if(ta < 1) {
+      // Looks like normal platform but cracking
+      ctx.fillStyle = '#7a5c2e';
+      ctx.fillRect(TRAP_X, PLAT_R_Y, TRAP_W, 7);
+      if(ta > 0.1) {
+        // Crack lines appear
+        ctx.strokeStyle = `rgba(0,0,0,${ta*0.9})`; ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.moveTo(TRAP_X+4, PLAT_R_Y); ctx.lineTo(TRAP_X+2, PLAT_R_Y+7); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(TRAP_X+14, PLAT_R_Y); ctx.lineTo(TRAP_X+16, PLAT_R_Y+7); ctx.stroke();
+        // Darken as it opens
+        ctx.fillStyle = `rgba(0,0,0,${ta*0.7})`;
+        ctx.fillRect(TRAP_X, PLAT_R_Y, TRAP_W, 7);
+      }
+    } else {
+      // Hole fully open
+      ctx.fillStyle = '#0a0505';
+      ctx.fillRect(TRAP_X, PLAT_R_Y, TRAP_W, 20);
+      ctx.strokeStyle = '#3a1a0a'; ctx.lineWidth = 1.5;
+      ctx.strokeRect(TRAP_X, PLAT_R_Y, TRAP_W, 20);
+    }
   }
 
   // Fish
-  if(s.fishAlive){
-    if(s.fishY===0)s.fishY=s.waterLevel+(PIT_BOT-s.waterLevel)*0.55;
-    const wb=Math.sin(s.fishAnim)*2;
-    ctx.save();ctx.translate(s.fishX,s.fishY);
-    if(s.fishDir<0)ctx.scale(-1,1);
-    ctx.fillStyle='#c00';ctx.beginPath();ctx.ellipse(0,0,11,7,0,0,Math.PI*2);ctx.fill();
-    ctx.fillStyle='#e00';ctx.beginPath();ctx.moveTo(-11,-5+wb);ctx.lineTo(-18,-10+wb);ctx.lineTo(-18,5+wb);ctx.closePath();ctx.fill();
-    ctx.fillStyle='#ffd';ctx.beginPath();ctx.arc(6,-2,2.5,0,Math.PI*2);ctx.fill();
-    ctx.fillStyle='#000';ctx.beginPath();ctx.arc(6,-2,1,0,Math.PI*2);ctx.fill();
-    ctx.restore();
-  }
-
+  if(s.fishAlive){if(s.fishY===0)s.fishY=s.waterLevel+(PIT_BOT-s.waterLevel)*0.55;const wb=Math.sin(s.fishAnim)*2;ctx.save();ctx.translate(s.fishX,s.fishY);if(s.fishDir<0)ctx.scale(-1,1);ctx.fillStyle='#c00';ctx.beginPath();ctx.ellipse(0,0,11,7,0,0,Math.PI*2);ctx.fill();ctx.fillStyle='#e00';ctx.beginPath();ctx.moveTo(-11,-5+wb);ctx.lineTo(-18,-10+wb);ctx.lineTo(-18,5+wb);ctx.closePath();ctx.fill();ctx.fillStyle='#ffd';ctx.beginPath();ctx.arc(6,-2,2.5,0,Math.PI*2);ctx.fill();ctx.restore();}
   // Spear
-  if(s.spear){
-    const ox=p.x+p.w/2,oy=p.y+p.h/2,reach=s.spear.reach,angle=s.spear.angle;
-    const shaftLen=14,tipX=ox+Math.cos(angle)*reach,tipY=oy+Math.sin(angle)*reach;
-    ctx.save();
-    ctx.strokeStyle='#8B4513';ctx.lineWidth=3;ctx.lineCap='round';
-    ctx.beginPath();ctx.moveTo(ox-Math.cos(angle)*shaftLen,oy-Math.sin(angle)*shaftLen);ctx.lineTo(tipX,tipY);ctx.stroke();
-    ctx.translate(tipX,tipY);ctx.rotate(angle);
-    ctx.fillStyle='#ddd';ctx.beginPath();ctx.moveTo(0,0);ctx.lineTo(-7,-4);ctx.lineTo(10,0);ctx.lineTo(-7,4);ctx.closePath();ctx.fill();
-    ctx.restore();
-  }
-
+  if(s.spear){const ox=p.x+p.w/2,oy=p.y+p.h/2,reach=s.spear.reach,angle=s.spear.angle,tipX=ox+Math.cos(angle)*reach,tipY=oy+Math.sin(angle)*reach;ctx.save();ctx.strokeStyle='#8B4513';ctx.lineWidth=3;ctx.lineCap='round';ctx.beginPath();ctx.moveTo(ox-Math.cos(angle)*14,oy-Math.sin(angle)*14);ctx.lineTo(tipX,tipY);ctx.stroke();ctx.translate(tipX,tipY);ctx.rotate(angle);ctx.fillStyle='#ddd';ctx.beginPath();ctx.moveTo(0,0);ctx.lineTo(-7,-4);ctx.lineTo(10,0);ctx.lineTo(-7,4);ctx.closePath();ctx.fill();ctx.restore();}
   // Particles
-  s.particles.forEach(sp=>{ctx.globalAlpha=Math.max(0,sp.life);ctx.fillStyle='#88ccff';ctx.beginPath();ctx.arc(sp.x,sp.y,2.5,0,Math.PI*2);ctx.fill();});
-  ctx.globalAlpha=1;
-
+  s.particles.forEach(sp=>{ctx.globalAlpha=Math.max(0,sp.life);ctx.fillStyle='#88ccff';ctx.beginPath();ctx.arc(sp.x,sp.y,2.5,0,Math.PI*2);ctx.fill();});ctx.globalAlpha=1;
   // Player
-  if(!p.dead){
-    ctx.save();ctx.translate(p.x+p.w/2,p.y+p.h/2);
-    if(p.facing===-1)ctx.scale(-1,1);
-    if(p.swimming){
-      ctx.fillStyle='#1a8';ctx.beginPath();ctx.ellipse(0,3,9,6,0,0,Math.PI*2);ctx.fill();
-      ctx.fillStyle='#4ef';ctx.beginPath();ctx.arc(0,-2,6,0,Math.PI*2);ctx.fill();
-      ctx.fillStyle='#fdd';ctx.beginPath();ctx.arc(0,-1,4,0,Math.PI*2);ctx.fill();
-    } else {
-      ctx.fillStyle='#1a6';ctx.fillRect(-7,-7,14,10);
-      ctx.fillStyle='#4ef';ctx.fillRect(-5,-15,10,9);
-      ctx.fillStyle='#fdd';ctx.fillRect(-4,-6,8,6);
-      ctx.fillStyle='#164';ctx.fillRect(-6,3,5,7);ctx.fillRect(2,3,5,7);
-    }
+  if(!p.dead){ctx.save();ctx.translate(p.x+p.w/2,p.y+p.h/2);if(p.facing===-1)ctx.scale(-1,1);
+    if(p.swimming){ctx.fillStyle='#1a8';ctx.beginPath();ctx.ellipse(0,3,9,6,0,0,Math.PI*2);ctx.fill();ctx.fillStyle='#4ef';ctx.beginPath();ctx.arc(0,-2,6,0,Math.PI*2);ctx.fill();ctx.fillStyle='#fdd';ctx.beginPath();ctx.arc(0,-1,4,0,Math.PI*2);ctx.fill();}
+    else{ctx.fillStyle='#1a6';ctx.fillRect(-7,-7,14,10);ctx.fillStyle='#4ef';ctx.fillRect(-5,-15,10,9);ctx.fillStyle='#fdd';ctx.fillRect(-4,-6,8,6);ctx.fillStyle='#164';ctx.fillRect(-6,3,5,7);ctx.fillRect(2,3,5,7);}
     ctx.restore();
-    // Name above player
-    ctx.fillStyle='#fff';ctx.font='bold 9px monospace';ctx.textAlign='center';
-    ctx.fillText(myName,p.x+p.w/2,p.y-4);
-  }
-
+    ctx.fillStyle='#fff';ctx.font='bold 9px monospace';ctx.textAlign='center';ctx.fillText(myName,p.x+p.w/2,p.y-4);}
   // Meter
-  const METER_TOTAL=PIT_BOT-PLAT_L_Y;
-  const pct=Math.min(100,Math.max(0,Math.round((PIT_BOT-wY)/METER_TOTAL*100)));
-  const mX=PIT_L-18,mY=PLAT_L_Y,mH=METER_TOTAL,mW=10;
+  const MT=PIT_BOT-PLAT_L_Y,pct=Math.min(100,Math.max(0,Math.round((PIT_BOT-wY)/MT*100)));
+  const mX=PIT_L-18,mY=PLAT_L_Y,mH=MT,mW=10;
   ctx.fillStyle='rgba(0,0,0,0.4)';ctx.fillRect(mX-1,mY-1,mW+2,mH+2);
-  const fH=Math.round(mH*pct/100);
-  ctx.fillStyle=pct<40?'#44aaff':pct<75?'#22cc66':pct<90?'#ffaa00':'#ff4444';
-  ctx.fillRect(mX,mY+mH-fH,mW,fH);
+  const fH=Math.round(mH*pct/100);ctx.fillStyle=pct<40?'#44aaff':pct<75?'#22cc66':pct<90?'#ffaa00':'#ff4444';ctx.fillRect(mX,mY+mH-fH,mW,fH);
   ctx.strokeStyle='rgba(255,255,255,0.6)';ctx.lineWidth=0.5;ctx.strokeRect(mX,mY,mW,mH);
-  ctx.fillStyle='#fff';ctx.font='bold 11px monospace';ctx.textAlign='right';
-  ctx.fillText(pct+'%',mX-3,mY+mH-fH+4);
+  ctx.fillStyle='#fff';ctx.font='bold 11px monospace';ctx.textAlign='right';ctx.fillText(pct+'%',mX-3,mY+mH-fH+4);
+  if(s.fishAlive&&!s.spear&&!p.swimming&&!p.climbing){const pulse=0.6+0.4*Math.sin(Date.now()*0.007);ctx.globalAlpha=pulse;ctx.fillStyle='#fc0';ctx.font='bold 9px monospace';ctx.textAlign='center';ctx.fillText('⚔ LANZA',p.x+p.w/2,p.y-6);ctx.globalAlpha=1;}
 }
 
 function showPuzzleOverlay(title,msg,btn,reset){
   const ov=document.getElementById('overlay');
-  ov.innerHTML=`<h2>${title}</h2><p>${msg.replace(/\n/g,'<br>')}</p><button id="startBtn">${btn}</button>`;
+  ov.innerHTML=`<h2>${title}</h2><p>${msg}</p><button id="startBtn">${btn}</button>`;
   ov.style.display='flex';
-  document.getElementById('startBtn').onclick=()=>{
-    if(reset){lives=3;updateUI();}
-    initGame();ov.style.display='none';gameRunning=true;
-  };
+  document.getElementById('startBtn').onclick=()=>{if(reset){lives=3;updateUI();}initGame();ov.style.display='none';gameRunning=true;};
+}
+function puzzleComplete(){
+  if(myKey)playersRef.child(myKey).update({status:'arena'});
+  const ov=document.getElementById('overlay');
+  ov.innerHTML=`<h2>🎉 ¡Nivel completado!</h2><p>Entrando a la arena...</p>`;
+  ov.style.display='flex';
+  setTimeout(()=>enterArena(),1800);
 }
 
-function puzzleComplete() {
-  // Mark player as done in Firebase
-  if (myKey) playersRef.child(myKey).update({ status: 'arena' });
-  // Show transition overlay
-  const ov = document.getElementById('overlay');
-  ov.innerHTML = `<h2>🎉 ¡Nivel completado!</h2><p>Entrando a la arena...</p>`;
-  ov.style.display = 'flex';
-  setTimeout(() => enterArena(), 1800);
-}
+// Puzzle controls
+document.getElementById('valveSlider').oninput=function(){document.getElementById('valveTimeLabel').textContent=this.value+'s';};
+document.getElementById('valveBtn').onclick=function(){if(state.valveUsed||!gameRunning)return;const t=parseInt(document.getElementById('valveSlider').value);state.valveUsed=true;state.valveActive=true;state.valveTimer=t;this.disabled=true;document.getElementById('valveSlider').disabled=true;setStatus('Válvula abierta por '+t+'s...');};
+function bindBtn(id,key){const el=document.getElementById(id);if(!el)return;el.addEventListener('touchstart',e=>{e.preventDefault();keys[key]=true;},{passive:false});el.addEventListener('touchend',e=>{e.preventDefault();keys[key]=false;jumpPressed=false;},{passive:false});el.addEventListener('mousedown',()=>keys[key]=true);el.addEventListener('mouseup',()=>{keys[key]=false;jumpPressed=false;});}
+bindBtn('leftBtn','left');bindBtn('rightBtn','right');bindBtn('jumpBtn','jump');bindBtn('attackBtn','attack');
 
-// ═══════════════════════════════════════════════════════
-// ═══════════════════════════════════════════════════════
-// ARENA (FASE 2) — PvP Multijugador
-// ═══════════════════════════════════════════════════════
-// ═══════════════════════════════════════════════════════
+// ═══════════════════════════════════════
+// ARENA (FASE 2)
+// ═══════════════════════════════════════
+const AW=460,AH=280;
+const arenaCanvas=document.getElementById('arena-canvas');
+const actx=arenaCanvas.getContext('2d');
 
-const AW = 460, AH = 280;
-const arenaCanvas = document.getElementById('arena-canvas');
-const actx = arenaCanvas.getContext('2d');
-arenaCanvas.width = AW; arenaCanvas.height = AH;
-
-// Arena layout
-const ARENA_FLOOR = AH - 30;
-const ARENA_PLATS = [
-  { x:0,     y:ARENA_FLOOR, w:AW,  h:30  }, // 0: floor
-  { x:0,     y:0,           w:12,  h:AH  }, // 1: left wall
-  { x:AW-12, y:0,           w:12,  h:AH  }, // 2: right wall
-  { x:60,    y:200,         w:100, h:12  }, // 3: platform left-low
-  { x:300,   y:185,         w:100, h:12  }, // 4: platform right-low
-  { x:170,   y:155,         w:120, h:12  }, // 5: platform mid
-  { x:30,    y:40,          w:100, h:12  }, // 6: SECRET high platform (ladder only)
+const ARENA_FLOOR=AH-30;
+const ARENA_PLATS=[
+  {x:0,y:ARENA_FLOOR,w:AW,h:30},   // 0 floor
+  {x:0,y:0,w:12,h:AH},             // 1 left wall
+  {x:AW-12,y:0,w:12,h:AH},         // 2 right wall
+  {x:60,y:200,w:100,h:12},          // 3 platform left-low
+  {x:280,y:185,w:100,h:12},         // 4 platform right-low
+  {x:170,y:155,w:120,h:12},         // 5 platform mid
+  {x:30,y:40,w:100,h:12},           // 6 SECRET high platform
+];
+const ARENA_LADDERS=[
+  {x:12,top:40,bot:ARENA_FLOOR,w:14},    // left wall → secret platform
+  {x:408,top:155,bot:ARENA_FLOOR,w:14},  // right → platforms
 ];
 
-// Arena ladders: {x, top, bot, w}
-const ARENA_LADDERS = [
-  { x:12,  top:40, bot:ARENA_FLOOR, w:14 }, // left wall ladder to secret platform
-  { x:390, top:185, bot:ARENA_FLOOR, w:14 }, // right ladder to right-low platform
-];
+function onArenaLadder(p){return ARENA_LADDERS.some(l=>p.x+p.w>l.x&&p.x<l.x+l.w&&p.y+p.h>l.top&&p.y<l.bot);}
+function aOverlap(a,b){return a.x<b.x+b.w&&a.x+a.w>b.x&&a.y<b.y+b.h&&a.y+a.h>b.y;}
 
-function onArenaLadder(p) {
-  return ARENA_LADDERS.some(l =>
-    p.x+p.w > l.x && p.x < l.x+l.w &&
-    p.y+p.h > l.top && p.y < l.bot
-  );
+const PLAYER_COLORS=['#4ef','#f84','#8f4','#f4f','#ff4','#4ff','#fa4','#a4f'];
+function colorForName(name){let h=0;for(let i=0;i<name.length;i++)h=(h*31+name.charCodeAt(i))&0xffff;return PLAYER_COLORS[h%PLAYER_COLORS.length];}
+
+let arenaPlayer=null;
+let arenaKeys={left:false,right:false,jump:false,attack:false};
+let arenaJumpPressed=false,arenaAttackPressed=false;
+let otherPlayers={};
+let myDeaths=0,myKills=0,myHp=3;
+let arenaSpear=null,arenaParticles=[];
+let arenaRunning=false,lastA=0,pushTimer=0;
+let acidLevel=AH+20,acidDir=0,acidWarning=0;
+const ACID_TOP=215,ACID_BOT=AH+20;
+
+function updateArenaHpDisplay(){
+  document.getElementById('arena-hp').textContent='❤️'.repeat(Math.max(0,myHp))+'🖤'.repeat(Math.max(0,3-myHp));
 }
 
-let arenaPlayer = null;
-let arenaKeys = { left:false, right:false, jump:false, attack:false };
-let arenaJumpPressed = false, arenaAttackPressed = false;
-let otherPlayers = {}; // from Firebase
-let myDeaths = 0;
-let myKills = 0;
-let myHp = 3;
-let arenaSpear = null;
-let acidLevel = AH; // starts off screen (high Y = below canvas)
-let acidDir = 0;    // 0=off, -1=rising, 1=falling
-const ACID_MIN_Y = 200; // lowest platform Y (can't go higher than this)
-const ACID_MAX_Y = AH + 20; // fully off screen
-let arenaParticles = [];
-let arenaRunning = false;
-let lastArena = 0;
-
-const PLAYER_COLORS = ['#4ef','#f84','#8f4','#f4f','#ff4','#4ff','#fa4','#a4f'];
-function colorForName(name) {
-  let h = 0;
-  for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) & 0xffff;
-  return PLAYER_COLORS[h % PLAYER_COLORS.length];
-}
-
-function initArenaPlayer(respawn) {
-  // Spawn at secret high platform (x:30 y:40 w:100)
-  arenaPlayer = {
-    x: 35 + Math.random() * 88,
-    y: 22,
-    w: 14, h: 18,
-    vx: 0, vy: 0,
-    onGround: false,
-    dead: false, deathTimer: 0,
-    invincible: respawn ? 3.0 : 0,
-    facing: 1,
-    climbing: false
+function initArenaPlayer(respawn){
+  arenaCanvas.width=AW; arenaCanvas.height=AH;
+  arenaPlayer={
+    x:35+Math.random()*88, y:22,
+    w:14,h:18,vx:0,vy:0,onGround:false,
+    dead:false,deathTimer:0,
+    invincible:respawn?3.0:0,
+    facing:1,climbing:false
   };
-  if (!respawn) myHp = 3;
-  arenaSpear = null;
+  if(!respawn)myHp=3;
+  arenaSpear=null;
   updateArenaHpDisplay();
 }
 
-function updateArenaHpDisplay() {
-  document.getElementById('arena-hp').textContent =
-    '❤️'.repeat(Math.max(0,myHp)) + '🖤'.repeat(Math.max(0,3-myHp));
+function pushArenaPos(){
+  if(!myKey)return;
+  playersRef.child(myKey).update({ax:Math.round(arenaPlayer.x),ay:Math.round(arenaPlayer.y),facing:arenaPlayer.facing,dead:arenaPlayer.dead,aHp:myHp,aSpearAngle:arenaSpear?arenaSpear.angle:null,aSpearReach:arenaSpear?arenaSpear.reach:null});
 }
 
-function enterArena() {
+function enterArena(){
+  arenaCanvas.width=AW; arenaCanvas.height=AH;
   show('arena-screen');
-  initArenaPlayer();
-  arenaRunning = true;
-
-  // Push initial position
+  initArenaPlayer(false);
+  arenaRunning=true;
   pushArenaPos();
 
-  // Listen to all players in arena
-  playersRef.on('value', snap => {
-    const data = snap.val() || {};
-    otherPlayers = {};
-    Object.entries(data).forEach(([k, v]) => {
-      if (k !== myKey && v.status === 'arena') {
-        otherPlayers[k] = v;
-      }
-    });
+  playersRef.on('value',snap=>{
+    const data=snap.val()||{};
+    otherPlayers={};
+    Object.entries(data).forEach(([k,v])=>{if(k!==myKey&&v.status==='arena')otherPlayers[k]=v;});
   });
+  killsRef.on('value',snap=>{
+    const data=snap.val()||{};
+    Object.entries(data).forEach(([k,v])=>{if(otherPlayers[k])otherPlayers[k].kills=v.count;});
+  });
+  db.ref('game/acid').on('value',snap=>{
+    const data=snap.val();
+    if(!data){if(acidDir===0)acidLevel=ACID_BOT;return;}
+    if(data.state==='warning'&&acidWarning===0&&acidDir===0){acidWarning=5;}
+  });
+  db.ref('game/status').on('value',snap=>{if(snap.val()==='ended')showEndScreen();});
 
-  // Listen to deaths board
-  deathsRef.on('value', snap => {
-    const data = snap.val() || {};
-    // Update teacher ranking card if teacher
-    if (isTeacher) {
-      const list = document.getElementById('teacher-deaths-list');
-      if (list) {
-        const entries = Object.entries(data).sort((a,b)=>(b[1].count||0)-(a[1].count||0));
-        list.innerHTML = entries.map(([k,v],i)=>
-          `<div class="rank-row">
-            <span style="color:#888;width:20px">${i+1}</span>
-            <span style="flex:1">${v.name}</span>
-            <span style="color:#f44;font-weight:bold">${v.count} 💀</span>
-          </div>`
-        ).join('');
+  // Hit listener
+  db.ref('game/hits').on('child_added',snap=>{
+    const hit=snap.val();
+    if(!hit||!myKey)return;
+    if(hit.victim===myKey&&!isProf&&arenaPlayer&&!arenaPlayer.dead&&arenaPlayer.invincible<=0){
+      myHp--;updateArenaHpDisplay();arenaPlayer.invincible=0.8;
+      for(let i=0;i<8;i++)arenaParticles.push({x:arenaPlayer.x+arenaPlayer.w/2,y:arenaPlayer.y+arenaPlayer.h/2,vx:(Math.random()-0.5)*6,vy:-Math.random()*5-1,life:0.7});
+      if(myHp<=0){
+        killsRef.child(hit.attacker).once('value',s=>{
+          const prev=s.val()||{name:'?',count:0};
+          playersRef.child(hit.attacker).once('value',ps=>{
+            const pd=ps.val()||{};
+            killsRef.child(hit.attacker).set({name:pd.name||prev.name,count:prev.count+1});
+          });
+        });
+        arenaPlayer.dead=true;arenaPlayer.deathTimer=5.0;
+        myDeaths++;myHp=3;
+        document.getElementById('my-deaths').textContent=myDeaths;
+        deathsRef.child(myKey).set({name:myName,count:myDeaths});
+        for(let i=0;i<14;i++)arenaParticles.push({x:arenaPlayer.x+arenaPlayer.w/2,y:arenaPlayer.y+arenaPlayer.h/2,vx:(Math.random()-0.5)*7,vy:-Math.random()*6-2,life:1.0});
       }
     }
+    // Update my kills from Firebase
+    killsRef.child(myKey).once('value',s=>{const d=s.val();if(d&&d.count!==myKills){myKills=d.count;document.getElementById('my-kills').textContent=myKills;}});
   });
 
-  // Listen for game end
-  db.ref('game/status').on('value', snap => {
-    if (snap.val() === 'ended') showEndScreen();
-  });
-  // Listen for acid event
-  db.ref('game/acid').on('value', snap => {
-    const data = snap.val();
-    if (data && data.active && acidDir === 0) {
-      acidLevel = ACID_MAX_Y;
-      acidDir = -1; // start rising
-    }
-  });
   requestAnimationFrame(arenaLoop);
 }
 
-let pushTimer = 0;
-function pushArenaPos() {
-  if (!myKey) return;
-  playersRef.child(myKey).update({
-    ax: Math.round(arenaPlayer.x),
-    ay: Math.round(arenaPlayer.y),
-    facing: arenaPlayer.facing,
-    dead: arenaPlayer.dead,
-    aHp: myHp,
-    aSpearAngle: arenaSpear ? arenaSpear.angle : null,
-    aSpearReach: arenaSpear ? arenaSpear.reach : null,
-  });
-}
-
-function arenaLoop(ts) {
-  const dt = Math.min((ts - lastArena) / 1000, 0.05);
-  lastArena = ts;
-  if (arenaRunning) {
-    updateArena(dt);
-    pushTimer += dt;
-    if (pushTimer > 0.05) { pushArenaPos(); pushTimer = 0; }
-  }
+function arenaLoop(ts){
+  const dt=Math.min((ts-lastA)/1000,0.05);lastA=ts;
+  if(arenaRunning){updateArena(dt);pushTimer+=dt;if(pushTimer>0.05){pushArenaPos();pushTimer=0;}}
   drawArena();
-  // Listen for game end
-  db.ref('game/status').on('value', snap => {
-    if (snap.val() === 'ended') showEndScreen();
-  });
-  // Listen for acid event
-  db.ref('game/acid').on('value', snap => {
-    const data = snap.val();
-    if (data && data.active && acidDir === 0) {
-      acidLevel = ACID_MAX_Y;
-      acidDir = -1; // start rising
-    }
-  });
   requestAnimationFrame(arenaLoop);
 }
 
-function arenaOverlap(a,b) { return a.x<b.x+b.w&&a.x+a.w>b.x&&a.y<b.y+b.h&&a.y+a.h>b.y; }
+function updateArena(dt){
+  const p=arenaPlayer;
+  if(p.dead){p.deathTimer-=dt;if(p.deathTimer<=0){myHp=3;initArenaPlayer(true);}return;}
+  if(p.invincible>0)p.invincible-=dt;
 
-function updateArena(dt) {
-  const p = arenaPlayer;
-
-  if (p.dead) {
-    p.deathTimer -= dt;
-    if (p.deathTimer <= 0) {
-      myHp = 3;
-      initArenaPlayer(true);
-    }
-    return;
+  // Acid warning countdown
+  if(acidWarning>0){acidWarning-=dt;if(acidWarning<=0){acidWarning=0;acidDir=-1;acidLevel=ACID_BOT;}}
+  // Acid movement
+  if(acidDir===-1){acidLevel-=30*dt;if(acidLevel<=ACID_TOP){acidLevel=ACID_TOP;acidDir=0;setTimeout(()=>{acidDir=1;},2000);}}
+  else if(acidDir===1){acidLevel+=35*dt;if(acidLevel>=ACID_BOT){acidLevel=ACID_BOT;acidDir=0;db.ref('game/acid').remove();}}
+  // Acid kills
+  if(!isProf&&!p.dead&&acidLevel<ACID_BOT&&p.y+p.h>acidLevel+4&&p.invincible<=0){
+    myHp=0;p.dead=true;p.deathTimer=5.0;myDeaths++;
+    document.getElementById('my-deaths').textContent=myDeaths;
+    deathsRef.child(myKey).set({name:myName,count:myDeaths});
+    updateArenaHpDisplay();
+    for(let i=0;i<14;i++)arenaParticles.push({x:p.x+p.w/2,y:p.y+p.h/2,vx:(Math.random()-0.5)*7,vy:-Math.random()*6-2,life:1.0});
   }
-
-  if (p.invincible > 0) p.invincible -= dt;
 
   // Spear
-  if (arenaSpear) {
-    arenaSpear.timer -= dt;
-    const progress = 1 - arenaSpear.timer / arenaSpear.duration;
-    arenaSpear.reach = Math.sin(progress * Math.PI) * arenaSpear.maxReach;
-    const tipX = p.x + p.w/2 + Math.cos(arenaSpear.angle) * arenaSpear.reach;
-    const tipY = p.y + p.h/2 + Math.sin(arenaSpear.angle) * arenaSpear.reach;
-
-    // Hit other players
-    Object.entries(otherPlayers).forEach(([k, v]) => {
-      if (!v.ax || v.dead) return;
-      const ob = { x: v.ax, y: v.ay, w: 14, h: 18 };
-      if (arenaOverlap({ x:tipX-5, y:tipY-5, w:10, h:10 }, ob)) {
-        // Record hit in Firebase — check if this will be a killing blow
-        const victimHp = (otherPlayers[k] && otherPlayers[k].aHp != null) ? otherPlayers[k].aHp : 3;
-        const wasKill = (victimHp - 1) <= 0;
-        db.ref('game/hits').push({ victim: k, attacker: myKey, t: Date.now(), wasKill });
-        arenaSpear = null;
+  if(arenaSpear){
+    arenaSpear.timer-=dt;const prog=1-arenaSpear.timer/arenaSpear.duration;arenaSpear.reach=Math.sin(prog*Math.PI)*arenaSpear.maxReach;
+    const tipX=p.x+p.w/2+Math.cos(arenaSpear.angle)*arenaSpear.reach,tipY=p.y+p.h/2+Math.sin(arenaSpear.angle)*arenaSpear.reach;
+    Object.entries(otherPlayers).forEach(([k,v])=>{
+      if(!v.ax||v.dead)return;
+      if(aOverlap({x:tipX-5,y:tipY-5,w:10,h:10},{x:v.ax,y:v.ay,w:14,h:18})){
+        db.ref('game/hits').push({victim:k,attacker:myKey,t:Date.now()});arenaSpear=null;
       }
     });
-    if (arenaSpear && arenaSpear.timer <= 0) arenaSpear = null;
+    if(arenaSpear&&arenaSpear.timer<=0)arenaSpear=null;
   }
-
-  // Launch spear
-  if (arenaKeys.attack && !arenaAttackPressed && !p.dead && !arenaSpear) {
-    arenaAttackPressed = true;
-    const angle = p.facing === 1 ? 0 : Math.PI;
-    arenaSpear = { angle, reach: 0, maxReach: 44, timer: 0.35, duration: 0.35 };
+  if(arenaKeys.attack&&!arenaAttackPressed&&!p.dead&&!arenaSpear){
+    arenaAttackPressed=true;const angle=p.facing===1?0:Math.PI;arenaSpear={angle,reach:0,maxReach:44,timer:0.35,duration:0.35};
   }
-  if (!arenaKeys.attack) arenaAttackPressed = false;
-
-  // Listen for hits on me
-  // (handled in separate listener below)
+  if(!arenaKeys.attack)arenaAttackPressed=false;
 
   // Movement
-  const spd = 2.2;
-  const onLad = onArenaLadder(p);
-  p.climbing = onLad;
-
-  if (arenaKeys.left) { p.vx = -spd; p.facing = -1; }
-  else if (arenaKeys.right) { p.vx = spd; p.facing = 1; }
-  else p.vx *= 0.75;
-
-  if (onLad) {
-    p.vy = 0; p.vx *= 0.5;
-    if (arenaKeys.jump) p.vy = -2.5;
-    else if (arenaKeys.left || arenaKeys.right) {} // allow lateral exit
-  } else {
-    p.vy += 0.32; if (p.vy > 9) p.vy = 9;
-    if (arenaKeys.jump && p.onGround && !arenaJumpPressed) {
-      p.vy = -6.5; p.onGround = false; arenaJumpPressed = true;
-    }
-  }
-  if (!arenaKeys.jump) arenaJumpPressed = false;
-
-  p.x += p.vx; p.onGround = false;
-  for (const pl of ARENA_PLATS) {
-    if (arenaOverlap({ x:p.x, y:p.y, w:p.w, h:p.h }, pl)) {
-      if (p.vx > 0) p.x = pl.x - p.w; else p.x = pl.x + pl.w;
-      p.vx = 0;
-    }
-  }
-  p.y += p.vy;
-  for (const pl of ARENA_PLATS) {
-    if (arenaOverlap({ x:p.x, y:p.y, w:p.w, h:p.h }, pl)) {
-      if (p.vy > 0) { p.y = pl.y - p.h; p.onGround = true; }
-      else p.y = pl.y + pl.h;
-      p.vy = 0;
-    }
-  }
-  if (p.y > AH + 40) { p.y = ARENA_FLOOR - 30; p.vy = 0; }
-
-  // Acid level update
-  if (acidDir === -1) { // rising
-    acidLevel -= 18 * dt;
-    if (acidLevel <= ACID_MIN_Y) { acidLevel = ACID_MIN_Y; acidDir = 1; }
-  } else if (acidDir === 1) { // falling
-    acidLevel += 22 * dt;
-    if (acidLevel >= ACID_MAX_Y) { acidLevel = ACID_MAX_Y; acidDir = 0; }
-  }
-  // Acid kills player
-  if (!isProf && !p.dead && acidDir !== 0 && p.y + p.h > acidLevel) {
-    if (p.invincible <= 0) {
-      myHp = 0;
-      p.dead = true;
-      p.deathTimer = 5.0;
-      myDeaths++;
-      document.getElementById('my-deaths').textContent = myDeaths;
-      deathsRef.child(myKey).set({ name: myName, count: myDeaths });
-      updateArenaHpDisplay();
-      for (let i=0;i<14;i++) arenaParticles.push({
-        x:p.x+p.w/2, y:p.y+p.h/2,
-        vx:(Math.random()-0.5)*7, vy:-Math.random()*6-2, life:1.0, col:'#4f4'
-      });
-    }
-  }
-
-  // Particles
-  arenaParticles = arenaParticles.filter(sp => {
-    sp.x += sp.vx; sp.y += sp.vy; sp.vy += 0.15; sp.life -= dt;
-    return sp.life > 0;
-  });
+  const spd=2.2,onLad=onArenaLadder(p);p.climbing=onLad;
+  if(arenaKeys.left){p.vx=-spd;p.facing=-1;}else if(arenaKeys.right){p.vx=spd;p.facing=1;}else p.vx*=0.75;
+  if(onLad){p.vy=0;p.vx*=0.5;if(arenaKeys.jump)p.vy=-2.5;}
+  else{p.vy+=0.32;if(p.vy>9)p.vy=9;if(arenaKeys.jump&&p.onGround&&!arenaJumpPressed){p.vy=-6.5;p.onGround=false;arenaJumpPressed=true;}}
+  if(!arenaKeys.jump)arenaJumpPressed=false;
+  p.x+=p.vx;p.onGround=false;
+  for(const pl of ARENA_PLATS){if(aOverlap({x:p.x,y:p.y,w:p.w,h:p.h},pl)){if(p.vx>0)p.x=pl.x-p.w;else p.x=pl.x+pl.w;p.vx=0;}}
+  p.y+=p.vy;
+  for(const pl of ARENA_PLATS){if(aOverlap({x:p.x,y:p.y,w:p.w,h:p.h},pl)){if(p.vy>0){p.y=pl.y-p.h;p.onGround=true;}else p.y=pl.y+pl.h;p.vy=0;}}
+  if(p.y>AH+40){p.y=ARENA_FLOOR-30;p.vy=0;}
+  arenaParticles=arenaParticles.filter(sp=>{sp.x+=sp.vx;sp.y+=sp.vy;sp.vy+=0.15;sp.life-=dt;return sp.life>0;});
 }
 
-// Listen for hits on this player
-let hitListenerSet = false;
-function setupHitListener() {
-  if (hitListenerSet) return;
-  hitListenerSet = true;
-  db.ref('game/hits').on('child_added', snap => {
-    const hit = snap.val();
-    if (!hit || !myKey) return;
-    if (hit.victim === myKey && !isProf && arenaPlayer && !arenaPlayer.dead && arenaPlayer.invincible <= 0) {
-      myHp--;
-      updateArenaHpDisplay();
-      arenaPlayer.invincible = 0.8;
-      for (let i = 0; i < 8; i++) arenaParticles.push({
-        x: arenaPlayer.x + arenaPlayer.w/2, y: arenaPlayer.y + arenaPlayer.h/2,
-        vx: (Math.random()-0.5)*6, vy: -Math.random()*5-1, life: 0.7
-      });
-      if (myHp <= 0) {
-        arenaPlayer.dead = true;
-        arenaPlayer.deathTimer = 5.0;
-        myDeaths++;
-        myHp = 3;
-        document.getElementById('my-deaths').textContent = myDeaths;
-        deathsRef.child(myKey).set({ name: myName, count: myDeaths });
-        for (let i = 0; i < 14; i++) arenaParticles.push({
-          x: arenaPlayer.x + arenaPlayer.w/2, y: arenaPlayer.y + arenaPlayer.h/2,
-          vx: (Math.random()-0.5)*7, vy: -Math.random()*6-2, life: 1.0
-        });
-      }
-    }
-    if (hit.attacker === myKey && hit.wasKill) {
-      myKills++;
-      killsRef.child(myKey).set({ name: myName, count: myKills });
-      document.getElementById('my-kills').textContent = myKills;
-    }
-  });
-}
-
-function drawArena() {
-  actx.clearRect(0, 0, AW, AH);
-
-  // Background — dark dungeon
-  actx.fillStyle = '#1a0a0a';
-  actx.fillRect(0, 0, AW, AH);
-
-  // Background grid
-  actx.strokeStyle = 'rgba(80,0,0,0.2)'; actx.lineWidth = 1;
-  for (let x = 0; x < AW; x += 40) { actx.beginPath(); actx.moveTo(x,0); actx.lineTo(x,AH); actx.stroke(); }
-  for (let y = 0; y < AH; y += 40) { actx.beginPath(); actx.moveTo(0,y); actx.lineTo(AW,y); actx.stroke(); }
-
+function drawArena(){
+  actx.clearRect(0,0,AW,AH);
+  actx.fillStyle='#1a0a0a';actx.fillRect(0,0,AW,AH);
+  actx.strokeStyle='rgba(80,0,0,0.2)';actx.lineWidth=1;
+  for(let x=0;x<AW;x+=40){actx.beginPath();actx.moveTo(x,0);actx.lineTo(x,AH);actx.stroke();}
+  for(let y=0;y<AH;y+=40){actx.beginPath();actx.moveTo(0,y);actx.lineTo(AW,y);actx.stroke();}
   // Platforms
-  ARENA_PLATS.forEach((pl, i) => {
-    if (i === 0) { // floor
-      actx.fillStyle = '#3a1a0a'; actx.fillRect(pl.x, pl.y, pl.w, pl.h);
-      actx.fillStyle = '#5a2a1a'; actx.fillRect(pl.x, pl.y, pl.w, 5);
-    } else if (i <= 2) { // walls
-      actx.fillStyle = '#2a0a0a'; actx.fillRect(pl.x, pl.y, pl.w, pl.h);
-    } else { // floating platforms
-      actx.fillStyle = '#5a2a1a'; actx.fillRect(pl.x, pl.y, pl.w, pl.h);
-      actx.fillStyle = '#7a4a2a'; actx.fillRect(pl.x, pl.y, pl.w, 4);
-    }
+  ARENA_PLATS.forEach((pl,i)=>{
+    if(i===0){actx.fillStyle='#3a1a0a';actx.fillRect(pl.x,pl.y,pl.w,pl.h);actx.fillStyle='#5a2a1a';actx.fillRect(pl.x,pl.y,pl.w,5);}
+    else if(i<=2){actx.fillStyle='#2a0a0a';actx.fillRect(pl.x,pl.y,pl.w,pl.h);}
+    else{actx.fillStyle='#5a2a1a';actx.fillRect(pl.x,pl.y,pl.w,pl.h);actx.fillStyle='#7a4a2a';actx.fillRect(pl.x,pl.y,pl.w,4);}
   });
-
-  // Draw ladders
-  ARENA_LADDERS.forEach(l => {
-    actx.strokeStyle = '#7a5c2e'; actx.lineWidth = 2.5;
-    actx.beginPath(); actx.moveTo(l.x+2, l.top); actx.lineTo(l.x+2, l.bot); actx.stroke();
-    actx.beginPath(); actx.moveTo(l.x+l.w-2, l.top); actx.lineTo(l.x+l.w-2, l.bot); actx.stroke();
-    actx.strokeStyle = '#9a7a3e'; actx.lineWidth = 2;
-    for (let ry = l.top+8; ry < l.bot; ry += 12) {
-      actx.beginPath(); actx.moveTo(l.x+2, ry); actx.lineTo(l.x+l.w-2, ry); actx.stroke();
-    }
+  // Ladders
+  ARENA_LADDERS.forEach(l=>{
+    actx.strokeStyle='#7a5c2e';actx.lineWidth=2.5;actx.beginPath();actx.moveTo(l.x+2,l.top);actx.lineTo(l.x+2,l.bot);actx.stroke();actx.beginPath();actx.moveTo(l.x+l.w-2,l.top);actx.lineTo(l.x+l.w-2,l.bot);actx.stroke();
+    actx.strokeStyle='#9a7a3e';actx.lineWidth=2;for(let ry=l.top+8;ry<l.bot;ry+=12){actx.beginPath();actx.moveTo(l.x+2,ry);actx.lineTo(l.x+l.w-2,ry);actx.stroke();}
   });
-
-  // (scoreboards shown at end screen only)
-
-  // Draw acid
-  if (acidDir !== 0 || acidLevel < ACID_MAX_Y) {
-    const t = Date.now() / 400;
-    const grad = actx.createLinearGradient(0, acidLevel, 0, AH);
-    grad.addColorStop(0, 'rgba(80,220,60,0.85)');
-    grad.addColorStop(1, 'rgba(40,180,20,0.95)');
-    actx.fillStyle = grad;
-    actx.fillRect(0, acidLevel, AW, AH - acidLevel);
-    // Animated bubbles on surface
-    for (let bx = 0; bx < AW; bx += 18) {
-      const wave = Math.sin(t + bx * 0.15) * 2.5;
-      actx.fillStyle = 'rgba(160,255,100,0.5)';
-      actx.beginPath();
-      actx.arc(bx + 9, acidLevel + wave, 2 + Math.sin(t*2+bx)*1, 0, Math.PI*2);
-      actx.fill();
-    }
-    // Surface line
-    actx.strokeStyle = 'rgba(140,255,80,0.9)'; actx.lineWidth = 2;
-    actx.beginPath();
-    for (let bx = 0; bx <= AW; bx += 6) {
-      const wave = Math.sin(t + bx * 0.12) * 2;
-      bx === 0 ? actx.moveTo(bx, acidLevel + wave) : actx.lineTo(bx, acidLevel + wave);
-    }
-    actx.stroke();
-    // Warning text
-    if (acidDir === -1) {
-      const pulse = 0.6 + 0.4 * Math.sin(Date.now() * 0.006);
-      actx.globalAlpha = pulse;
-      actx.fillStyle = '#afa'; actx.font = 'bold 10px monospace'; actx.textAlign = 'center';
-      actx.fillText('☣ ÁCIDO SUBIENDO', AW/2, acidLevel - 6);
-      actx.globalAlpha = 1;
-    }
+  // Acid
+  if(acidLevel<ACID_BOT){
+    const t=Date.now()/400;const grad=actx.createLinearGradient(0,acidLevel,0,AH);grad.addColorStop(0,'rgba(80,220,60,0.85)');grad.addColorStop(1,'rgba(40,180,20,0.95)');actx.fillStyle=grad;actx.fillRect(0,acidLevel,AW,AH-acidLevel);
+    actx.strokeStyle='rgba(140,255,80,0.9)';actx.lineWidth=2;actx.beginPath();for(let bx=0;bx<=AW;bx+=6){const wave=Math.sin(t+bx*0.12)*2;bx===0?actx.moveTo(bx,acidLevel+wave):actx.lineTo(bx,acidLevel+wave);}actx.stroke();
+    if(acidDir===-1){const pulse=0.6+0.4*Math.sin(Date.now()*0.006);actx.globalAlpha=pulse;actx.fillStyle='#afa';actx.font='bold 10px monospace';actx.textAlign='center';actx.fillText('☣ ÁCIDO SUBIENDO — ¡SUBE!',AW/2,acidLevel-6);actx.globalAlpha=1;}
   }
-
-  // Draw other players
-  Object.entries(otherPlayers).forEach(([k, v]) => {
-    if (!v.ax || v.dead) return;
-    const col = v.isProf ? '#f84' : colorForName(v.name);
-    actx.save();
-    actx.translate(v.ax + 7, v.ay + 9);
-    if ((v.facing||1) === -1) actx.scale(-1,1);
-    // Body
-    actx.fillStyle = col; actx.fillRect(-7,-7,14,10);
-    actx.fillStyle = '#4ef'; actx.fillRect(-5,-15,10,9);
-    actx.fillStyle = '#fdd'; actx.fillRect(-4,-6,8,6);
-    actx.fillStyle = '#164'; actx.fillRect(-6,3,5,7); actx.fillRect(2,3,5,7);
-    // Spear
-    if (v.aSpearAngle !== null && v.aSpearReach) {
-      const ox=0, oy=0, reach=v.aSpearReach, angle=v.aSpearAngle;
-      const tipX=ox+Math.cos(angle)*reach, tipY=oy+Math.sin(angle)*reach;
-      actx.strokeStyle='#8B4513';actx.lineWidth=3;actx.lineCap='round';
-      actx.beginPath();actx.moveTo(ox-Math.cos(angle)*10,oy-Math.sin(angle)*10);actx.lineTo(tipX,tipY);actx.stroke();
-    }
+  // Acid warning countdown
+  if(acidWarning>0){
+    const secs=Math.ceil(acidWarning),pulse=0.7+0.3*Math.sin(Date.now()*0.008);
+    // Find prof position for speech bubble
+    let profX=AW/2,profY=AH/2;
+    if(isProf&&arenaPlayer&&!arenaPlayer.dead){profX=arenaPlayer.x+arenaPlayer.w/2;profY=arenaPlayer.y;}
+    else Object.values(otherPlayers).forEach(v=>{if(v.isProf&&v.ax){profX=v.ax+7;profY=v.ay;}});
+    // Speech bubble
+    const bw=92,bh=28,bx2=profX-bw/2,by2=profY-bh-22;
+    actx.fillStyle='#fff';actx.beginPath();actx.rect(bx2,by2,bw,bh);actx.fill();actx.strokeStyle='#0c0';actx.lineWidth=2;actx.stroke();
+    actx.beginPath();actx.moveTo(profX-5,by2+bh);actx.lineTo(profX,by2+bh+10);actx.lineTo(profX+5,by2+bh);actx.closePath();actx.fillStyle='#fff';actx.fill();actx.strokeStyle='#0c0';actx.lineWidth=2;actx.stroke();
+    actx.fillStyle='#060';actx.font='bold 9px monospace';actx.textAlign='center';actx.fillText('☣ ¡ATAQUE DE ÁCIDO!',profX,by2+17);
+    // Big countdown
+    actx.globalAlpha=pulse;actx.fillStyle='#0f0';actx.font='bold 48px monospace';actx.textAlign='center';actx.fillText(secs,AW/2,AH/2+16);
+    actx.fillStyle='#afa';actx.font='bold 12px monospace';actx.fillText('¡SUBE A LA PLATAFORMA!',AW/2,AH/2+34);
+    actx.globalAlpha=1;actx.strokeStyle=`rgba(60,220,40,${pulse*0.8})`;actx.lineWidth=10;actx.strokeRect(0,0,AW,AH);
+  }
+  // Other players
+  Object.entries(otherPlayers).forEach(([k,v])=>{
+    if(!v.ax||v.dead)return;
+    const col=v.isProf?'#f84':colorForName(v.name);
+    actx.save();actx.translate(v.ax+7,v.ay+9);if((v.facing||1)===-1)actx.scale(-1,1);
+    actx.fillStyle=col;actx.fillRect(-7,-7,14,10);actx.fillStyle='#4ef';actx.fillRect(-5,-15,10,9);actx.fillStyle='#fdd';actx.fillRect(-4,-6,8,6);actx.fillStyle='#164';actx.fillRect(-6,3,5,7);actx.fillRect(2,3,5,7);
+    if(v.aSpearAngle!==null&&v.aSpearReach){const reach=v.aSpearReach,angle=v.aSpearAngle,tipX=Math.cos(angle)*reach,tipY=Math.sin(angle)*reach;actx.strokeStyle='#8B4513';actx.lineWidth=3;actx.lineCap='round';actx.beginPath();actx.moveTo(-Math.cos(angle)*10,-Math.sin(angle)*10);actx.lineTo(tipX,tipY);actx.stroke();}
     actx.restore();
-    // Name + HP
-    actx.fillStyle = v.isProf ? '#f84' : '#fff';
-    actx.font = 'bold 8px monospace'; actx.textAlign = 'center';
-    actx.fillText(v.name, v.ax + 7, v.ay - 2);
-    if (!v.isProf && v.aHp != null) {
-      actx.font = '8px monospace';
-      actx.fillText('❤️'.repeat(Math.max(0,v.aHp))+'🖤'.repeat(Math.max(0,3-v.aHp)), v.ax+7, v.ay-11);
-    }
-    if (v.isProf) { actx.fillStyle='#f84'; actx.fillText('👑', v.ax+7, v.ay-10); }
+    actx.fillStyle=v.isProf?'#f84':'#fff';actx.font='bold 8px monospace';actx.textAlign='center';actx.fillText(v.name,v.ax+7,v.ay-2);
+    if(!v.isProf&&v.aHp!=null){actx.font='8px monospace';actx.fillText('❤️'.repeat(Math.max(0,v.aHp))+'🖤'.repeat(Math.max(0,3-v.aHp)),v.ax+7,v.ay-11);}
+    if(v.isProf){actx.fillStyle='#f84';actx.fillText('👑',v.ax+7,v.ay-10);}
   });
-
-  // Draw my player
-  const p = arenaPlayer;
-  if (!p) return;
-
-  if (p.dead) {
-    actx.globalAlpha = 0.3;
-  }
-
-  if (p.invincible > 0 && Math.floor(Date.now()/100)%2===0) {
-    actx.globalAlpha = 0.5;
-  }
-
-  actx.save();
-  actx.translate(p.x + p.w/2, p.y + p.h/2);
-  if (p.facing === -1) actx.scale(-1, 1);
-  const myCol = isProf ? '#f84' : colorForName(myName);
-  actx.fillStyle = myCol; actx.fillRect(-7,-7,14,10);
-  actx.fillStyle = '#4ef'; actx.fillRect(-5,-15,10,9);
-  actx.fillStyle = '#fdd'; actx.fillRect(-4,-6,8,6);
-  actx.fillStyle = '#164'; actx.fillRect(-6,3,5,7); actx.fillRect(2,3,5,7);
+  // My player
+  const p=arenaPlayer;if(!p)return;
+  if(p.dead)actx.globalAlpha=0.3;
+  else if(p.invincible>0&&Math.floor(Date.now()/100)%2===0)actx.globalAlpha=0.5;
+  actx.save();actx.translate(p.x+p.w/2,p.y+p.h/2);if(p.facing===-1)actx.scale(-1,1);
+  const myCol=isProf?'#f84':colorForName(myName);
+  actx.fillStyle=myCol;actx.fillRect(-7,-7,14,10);actx.fillStyle='#4ef';actx.fillRect(-5,-15,10,9);actx.fillStyle='#fdd';actx.fillRect(-4,-6,8,6);actx.fillStyle='#164';actx.fillRect(-6,3,5,7);actx.fillRect(2,3,5,7);
   actx.restore();
-
-  // My spear
-  if (arenaSpear) {
-    const ox=p.x+p.w/2, oy=p.y+p.h/2, reach=arenaSpear.reach, angle=arenaSpear.angle;
-    const tipX=ox+Math.cos(angle)*reach, tipY=oy+Math.sin(angle)*reach;
-    actx.save();
-    actx.strokeStyle='#8B4513';actx.lineWidth=3;actx.lineCap='round';
-    actx.beginPath();actx.moveTo(ox-Math.cos(angle)*14,oy-Math.sin(angle)*14);actx.lineTo(tipX,tipY);actx.stroke();
-    actx.translate(tipX,tipY);actx.rotate(angle);
-    actx.fillStyle='#ddd';actx.beginPath();actx.moveTo(0,0);actx.lineTo(-7,-4);actx.lineTo(10,0);actx.lineTo(-7,4);actx.closePath();actx.fill();
-    actx.restore();
-  }
-
-  // My name + hearts
-  actx.globalAlpha = 1;
-  actx.fillStyle = isProf ? '#f84' : '#fff';
-  actx.font = 'bold 9px monospace'; actx.textAlign = 'center';
-  actx.fillText(myName, p.x+p.w/2, p.y-3);
-  if (!isProf) {
-    actx.font = '9px monospace';
-    actx.fillText('❤️'.repeat(Math.max(0,myHp))+'🖤'.repeat(Math.max(0,3-myHp)), p.x+p.w/2, p.y-13);
-  }
-  if (isProf) { actx.fillStyle='#f84'; actx.fillText('👑PROF', p.x+p.w/2, p.y-11); }
-
+  if(arenaSpear){const ox=p.x+p.w/2,oy=p.y+p.h/2,reach=arenaSpear.reach,angle=arenaSpear.angle,tipX=ox+Math.cos(angle)*reach,tipY=oy+Math.sin(angle)*reach;actx.save();actx.strokeStyle='#8B4513';actx.lineWidth=3;actx.lineCap='round';actx.beginPath();actx.moveTo(ox-Math.cos(angle)*14,oy-Math.sin(angle)*14);actx.lineTo(tipX,tipY);actx.stroke();actx.translate(tipX,tipY);actx.rotate(angle);actx.fillStyle='#ddd';actx.beginPath();actx.moveTo(0,0);actx.lineTo(-7,-4);actx.lineTo(10,0);actx.lineTo(-7,4);actx.closePath();actx.fill();actx.restore();}
+  actx.globalAlpha=1;
+  actx.fillStyle=isProf?'#f84':'#fff';actx.font='bold 9px monospace';actx.textAlign='center';actx.fillText(myName,p.x+p.w/2,p.y-3);
+  if(!isProf){actx.font='9px monospace';actx.fillText('❤️'.repeat(Math.max(0,myHp))+'🖤'.repeat(Math.max(0,3-myHp)),p.x+p.w/2,p.y-13);}
+  if(isProf){actx.fillStyle='#f84';actx.fillText('👑PROF',p.x+p.w/2,p.y-11);}
   // Particles
-  arenaParticles.forEach(sp => {
-    actx.globalAlpha = Math.max(0, sp.life);
-    actx.fillStyle = '#f84';
-    actx.beginPath(); actx.arc(sp.x, sp.y, 3, 0, Math.PI*2); actx.fill();
+  arenaParticles.forEach(sp=>{actx.globalAlpha=Math.max(0,sp.life);actx.fillStyle='#f84';actx.beginPath();actx.arc(sp.x,sp.y,3,0,Math.PI*2);actx.fill();});actx.globalAlpha=1;
+  // Dead overlay
+  if(p.dead){actx.fillStyle='rgba(0,0,0,0.6)';actx.fillRect(0,0,AW,AH);actx.fillStyle='#f44';actx.font='bold 20px monospace';actx.textAlign='center';actx.fillText('💀 MUERTO',AW/2,AH/2-10);actx.fillStyle='#ff8';actx.font='bold 28px monospace';actx.fillText(Math.ceil(Math.max(0,p.deathTimer))+'s',AW/2,AH/2+22);actx.fillStyle='#888';actx.font='11px monospace';actx.fillText('Reapareciendo arriba...',AW/2,AH/2+42);}
+}
+
+// End screen
+function showEndScreen(){
+  arenaRunning=false;show('end-screen');
+  Promise.all([killsRef.once('value'),deathsRef.once('value')]).then(([ks,ds])=>{
+    const kills=Object.values(ks.val()||{}).sort((a,b)=>b.count-a.count);
+    const deaths=Object.values(ds.val()||{}).sort((a,b)=>b.count-a.count);
+    const medals=['🥇','🥈','🥉'];
+    document.getElementById('end-kills-list').innerHTML=kills.length?kills.map((v,i)=>`<div style="display:flex;justify-content:space-between;padding:4px 0;font-size:12px;border-bottom:1px solid #3a1a0a"><span>${medals[i]||''} ${v.name}</span><span style="color:#ff8;font-weight:bold">${v.count}</span></div>`).join(''):'<p style="color:#555;font-size:11px">Sin kills</p>';
+    document.getElementById('end-deaths-list').innerHTML=deaths.length?deaths.map((v,i)=>`<div style="display:flex;justify-content:space-between;padding:4px 0;font-size:12px;border-bottom:1px solid #3a1a0a"><span>${medals[i]||''} ${v.name}</span><span style="color:#f44;font-weight:bold">${v.count}</span></div>`).join(''):'<p style="color:#555;font-size:11px">Sin muertes</p>';
   });
-  actx.globalAlpha = 1;
-
-  // Dead overlay with countdown
-  if (p.dead) {
-    actx.fillStyle = 'rgba(0,0,0,0.6)';
-    actx.fillRect(0,0,AW,AH);
-    actx.fillStyle = '#f44'; actx.font = 'bold 20px monospace'; actx.textAlign = 'center';
-    actx.fillText('💀 MUERTO', AW/2, AH/2-10);
-    const secs = Math.ceil(Math.max(0, p.deathTimer));
-    actx.fillStyle = '#ff8'; actx.font = 'bold 28px monospace';
-    actx.fillText(secs + 's', AW/2, AH/2+22);
-    actx.fillStyle = '#888'; actx.font = '11px monospace';
-    actx.fillText('Reapareciendo en el trono alto...', AW/2, AH/2+42);
-  }
 }
 
-// ── Arena controls
-function bindArenaBtn(id, key) {
-  const el = document.getElementById(id);
-  if (!el) return;
-  el.addEventListener('touchstart', e=>{e.preventDefault();arenaKeys[key]=true;},{passive:false});
-  el.addEventListener('touchend',   e=>{e.preventDefault();arenaKeys[key]=false;arenaJumpPressed=false;},{passive:false});
-  el.addEventListener('mousedown', ()=>arenaKeys[key]=true);
-  el.addEventListener('mouseup',   ()=>{arenaKeys[key]=false;arenaJumpPressed=false;});
-}
-bindArenaBtn('a-leftBtn','left');
-bindArenaBtn('a-rightBtn','right');
-bindArenaBtn('a-jumpBtn','jump');
-bindArenaBtn('a-attackBtn','attack');
+// Arena controls
+function bindArenaBtn(id,key){const el=document.getElementById(id);if(!el)return;el.addEventListener('touchstart',e=>{e.preventDefault();arenaKeys[key]=true;},{passive:false});el.addEventListener('touchend',e=>{e.preventDefault();arenaKeys[key]=false;arenaJumpPressed=false;},{passive:false});el.addEventListener('mousedown',()=>arenaKeys[key]=true);el.addEventListener('mouseup',()=>{arenaKeys[key]=false;arenaJumpPressed=false;});}
+bindArenaBtn('a-leftBtn','left');bindArenaBtn('a-rightBtn','right');bindArenaBtn('a-jumpBtn','jump');bindArenaBtn('a-attackBtn','attack');
 
-document.addEventListener('keydown', e => {
-  const k = arenaKeys;
-  if(e.key==='ArrowLeft'||e.key==='a')  k.left=true;
-  if(e.key==='ArrowRight'||e.key==='d') k.right=true;
-  if(e.key===' '||e.key==='ArrowUp'||e.key==='w') k.jump=true;
-  if(e.key==='z'||e.key==='x') k.attack=true;
-  // Also handle puzzle keys
-  if(e.key==='ArrowLeft'||e.key==='a')  keys.left=true;
-  if(e.key==='ArrowRight'||e.key==='d') keys.right=true;
-  if(e.key===' '||e.key==='ArrowUp'||e.key==='w') keys.jump=true;
-  if(e.key==='z'||e.key==='x'||e.key==='ArrowDown') keys.attack=true;
+document.addEventListener('keydown',e=>{
+  if(e.key==='ArrowLeft'||e.key==='a'){keys.left=true;arenaKeys.left=true;}
+  if(e.key==='ArrowRight'||e.key==='d'){keys.right=true;arenaKeys.right=true;}
+  if(e.key===' '||e.key==='ArrowUp'||e.key==='w'){keys.jump=true;arenaKeys.jump=true;}
+  if(e.key==='z'||e.key==='x'){keys.attack=true;arenaKeys.attack=true;}
+  if(e.key==='ArrowDown')keys.attack=true;
 });
-document.addEventListener('keyup', e => {
-  const k = arenaKeys;
-  if(e.key==='ArrowLeft'||e.key==='a')  k.left=false;
-  if(e.key==='ArrowRight'||e.key==='d') k.right=false;
-  if(e.key===' '||e.key==='ArrowUp'||e.key==='w') k.jump=false;
-  if(e.key==='z'||e.key==='x') k.attack=false;
-  if(e.key==='ArrowLeft'||e.key==='a')  keys.left=false;
-  if(e.key==='ArrowRight'||e.key==='d') keys.right=false;
-  if(e.key===' '||e.key==='ArrowUp'||e.key==='w') keys.jump=false;
-  if(e.key==='z'||e.key==='x'||e.key==='ArrowDown') keys.attack=false;
-});
-
-// ── Puzzle controls
-function bindBtn(id,key){
-  const el=document.getElementById(id);
-  if(!el)return;
-  el.addEventListener('touchstart',e=>{e.preventDefault();keys[key]=true;},{passive:false});
-  el.addEventListener('touchend',  e=>{e.preventDefault();keys[key]=false;jumpPressed=false;},{passive:false});
-  el.addEventListener('mousedown', ()=>keys[key]=true);
-  el.addEventListener('mouseup',   ()=>{keys[key]=false;jumpPressed=false;});
-}
-bindBtn('leftBtn','left');bindBtn('rightBtn','right');bindBtn('jumpBtn','jump');bindBtn('attackBtn','attack');
-
-document.getElementById('valveSlider').oninput=function(){
-  document.getElementById('valveTimeLabel').textContent=this.value+'s';
-};
-document.getElementById('valveBtn').onclick=function(){
-  if(state.valveUsed||!gameRunning)return;
-  const t=parseInt(document.getElementById('valveSlider').value);
-  state.valveUsed=true;state.valveActive=true;state.valveTimer=t;
-  this.disabled=true;document.getElementById('valveSlider').disabled=true;
-  setStatus('Válvula abierta por '+t+'s...');
-};
-
-// Setup hit listener when entering arena
-function enterArenaFull() {
-  setupHitListener();
-  enterArena();
-}
-
-// Override enterArena to also setup hit listener
-const _enterArena = enterArena;
-// patch
-function enterArena() {
-  setupHitListener();
-  show('arena-screen');
-  initArenaPlayer();
-  arenaRunning = true;
-  pushArenaPos();
-  playersRef.on('value', snap => {
-    const data = snap.val() || {};
-    otherPlayers = {};
-    Object.entries(data).forEach(([k, v]) => {
-      if (k !== myKey && v.status === 'arena') otherPlayers[k] = v;
-    });
-  });
-  killsRef.on('value', snap => {
-    const data = snap.val() || {};
-    Object.entries(data).forEach(([k,v]) => {
-      if (otherPlayers[k]) otherPlayers[k].kills = v.count;
-    });
-  });
-  // Reset acid on new session
-  db.ref('game/acid').once('value', snap => {
-    if (!snap.val()) { acidLevel = ACID_MAX_Y; acidDir = 0; }
-  });
-  deathsRef.on('value', snap => {
-    const data = snap.val() || {};
-    const card = document.getElementById('teacher-ranking-card');
-    const list = document.getElementById('teacher-deaths-list');
-    if (card && list) {
-      const entries = Object.entries(data).sort((a,b)=>(b[1].count||0)-(a[1].count||0));
-      if (entries.length) {
-        card.style.display = 'block';
-        list.innerHTML = entries.map(([k,v],i)=>
-          `<div class="rank-row">
-            <span style="color:#888;width:20px">${i+1}</span>
-            <span style="flex:1">${v.name}</span>
-            <span style="color:#f44;font-weight:bold">${v.count} 💀</span>
-          </div>`
-        ).join('');
-      }
-    }
-  });
-  // Listen for game end
-  db.ref('game/status').on('value', snap => {
-    if (snap.val() === 'ended') showEndScreen();
-  });
-  // Listen for acid event
-  db.ref('game/acid').on('value', snap => {
-    const data = snap.val();
-    if (data && data.active && acidDir === 0) {
-      acidLevel = ACID_MAX_Y;
-      acidDir = -1; // start rising
-    }
-  });
-  requestAnimationFrame(arenaLoop);
-}
-
-function showEndScreen() {
-  arenaRunning = false;
-  show('end-screen');
-  // Load kills and deaths from Firebase
-  Promise.all([
-    killsRef.once('value'),
-    deathsRef.once('value')
-  ]).then(([killsSnap, deathsSnap]) => {
-    const kills = Object.values(killsSnap.val()||{}).sort((a,b)=>b.count-a.count);
-    const deaths = Object.values(deathsSnap.val()||{}).sort((a,b)=>b.count-a.count);
-    const medals = ['🥇','🥈','🥉'];
-    document.getElementById('end-kills-list').innerHTML = kills.length
-      ? kills.map((v,i)=>`<div style="display:flex;justify-content:space-between;padding:4px 0;font-size:12px;border-bottom:1px solid #3a1a0a">
-          <span>${medals[i]||''} ${v.name}</span><span style="color:#ff8;font-weight:bold">${v.count}</span>
-        </div>`).join('')
-      : '<p style="color:#555;font-size:11px">Sin kills</p>';
-    document.getElementById('end-deaths-list').innerHTML = deaths.length
-      ? deaths.map((v,i)=>`<div style="display:flex;justify-content:space-between;padding:4px 0;font-size:12px;border-bottom:1px solid #3a1a0a">
-          <span>${medals[i]||''} ${v.name}</span><span style="color:#f44;font-weight:bold">${v.count}</span>
-        </div>`).join('')
-      : '<p style="color:#555;font-size:11px">Sin muertes</p>';
-  });
-}
-
-// Also listen for game end from teacher screen
-db.ref('game/status').on('value', snap => {
-  if (snap.val() === 'ended' && document.getElementById('arena-screen').style.display !== 'none') {
-    showEndScreen();
-  }
+document.addEventListener('keyup',e=>{
+  if(e.key==='ArrowLeft'||e.key==='a'){keys.left=false;arenaKeys.left=false;}
+  if(e.key==='ArrowRight'||e.key==='d'){keys.right=false;arenaKeys.right=false;}
+  if(e.key===' '||e.key==='ArrowUp'||e.key==='w'){keys.jump=false;arenaKeys.jump=false;}
+  if(e.key==='z'||e.key==='x'){keys.attack=false;arenaKeys.attack=false;}
+  if(e.key==='ArrowDown')keys.attack=false;
 });
 </script>
 </body>
