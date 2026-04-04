@@ -15,7 +15,7 @@
   *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
   body{background:var(--bg);color:var(--text);font-family:var(--body);
        min-height:100vh;display:flex;flex-direction:column;align-items:center;
-       overflow-x:hidden;touch-action:none;overscroll-behavior:none;}
+       overflow-x:hidden;overscroll-behavior-x:none;}
   header{width:100%;padding:.8rem 1.2rem .6rem;border-bottom:1px solid var(--border);background:var(--surface);}
   header h1{font-family:var(--mono);font-size:12px;color:var(--ok);letter-spacing:.08em;text-transform:uppercase;}
   header p{font-size:11px;color:var(--muted);margin-top:2px;}
@@ -291,21 +291,23 @@ function isTouchOnValve(x, y){
 }
 
 function onStart(e){
-  e.preventDefault();
   const p = canvasPoint(e);
   if(isTouchOnValve(p.x, p.y)){
+    e.preventDefault();
     toggleValve();
     return;
   }
   if(isTouchOnShaker(p.x, p.y)){
+    e.preventDefault();
     shaker.dragging = true;
     lastShakeX = p.x; lastShakeY = p.y; shakeVel = 0;
   }
+  // if not touching shaker or valve, don't preventDefault → scroll works
 }
 
 function onMove(e){
-  e.preventDefault();
   if(!shaker.dragging) return;
+  e.preventDefault();
   const p = canvasPoint(e);
 
   const dx = p.x - lastShakeX;
@@ -328,12 +330,9 @@ function onMove(e){
 }
 
 function onEnd(e){
-  e.preventDefault();
-  if(!shaker.dragging) return;
+  if(shaker.dragging) e.preventDefault();
   shaker.dragging = false;
   shakeVel = 0;
-  // snap back to home if not over beaker
-  // (let it stay wherever it was dropped)
 }
 
 canvas.addEventListener('touchstart', onStart, {passive:false});
