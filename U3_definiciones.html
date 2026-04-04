@@ -8,251 +8,93 @@
   @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@400;500;600&display=swap');
   :root{
     --bg:#0f1117;--surface:#1a1d27;--surface2:#22263a;--border:#2e3350;
-    --water:#4a9eff;--salt:#f5f0e0;--salt2:#c8b880;
-    --ok:#38d9a9;--warn:#f7a94a;--danger:#ff6b6b;
+    --water:#4a9eff;--ok:#38d9a9;--warn:#f7a94a;--danger:#ff6b6b;
     --text:#e8ecf4;--muted:#7a8099;--dim:#3a3f5a;
     --mono:'Space Mono',monospace;--body:'DM Sans',sans-serif;
   }
   *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
-  body{background:var(--bg);color:var(--text);font-family:var(--body);min-height:100vh;display:flex;flex-direction:column;align-items:center;overflow-x:hidden;}
+  body{background:var(--bg);color:var(--text);font-family:var(--body);
+       min-height:100vh;display:flex;flex-direction:column;align-items:center;
+       overflow-x:hidden;touch-action:none;overscroll-behavior:none;}
   header{width:100%;padding:.8rem 1.2rem .6rem;border-bottom:1px solid var(--border);background:var(--surface);}
   header h1{font-family:var(--mono);font-size:12px;color:var(--ok);letter-spacing:.08em;text-transform:uppercase;}
   header p{font-size:11px;color:var(--muted);margin-top:2px;}
   .main{width:100%;max-width:480px;padding:.8rem .8rem 2rem;display:flex;flex-direction:column;gap:.8rem;}
 
-  /* metrics */
   .metrics{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;}
   .metric{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:7px 10px;}
   .metric .ml{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px;}
   .metric .mv{font-family:var(--mono);font-size:17px;font-weight:700;line-height:1;}
   .metric .mu{font-size:9px;color:var(--muted);margin-left:1px;}
 
-  /* sim */
-  .sim{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:.8rem;display:flex;flex-direction:column;align-items:center;gap:.5rem;position:relative;user-select:none;}
-  .sim-svg{display:block;width:100%;max-width:340px;}
+  /* sim area holds the canvas */
+  .sim-area{background:var(--surface);border:1px solid var(--border);border-radius:14px;
+            padding:.5rem;position:relative;display:flex;flex-direction:column;align-items:center;gap:.5rem;}
+  #simCanvas{display:block;width:100%;max-width:380px;border-radius:8px;touch-action:none;}
 
-  /* salero táctil */
-  #shaker{cursor:grab;touch-action:none;}
-  #shaker:active{cursor:grabbing;}
-  @keyframes shk{0%,100%{transform:rotate(0deg)}25%{transform:rotate(-10deg)}75%{transform:rotate(10deg)}}
-  .shaking-anim{animation:shk .12s ease-in-out 4;}
+  .hint-box{background:rgba(56,217,169,.07);border:1px solid rgba(56,217,169,.2);border-radius:8px;
+            padding:8px 12px;font-size:11px;color:var(--ok);line-height:1.7;}
+  .hint-box strong{font-weight:600;}
 
-  /* streams */
-  @keyframes fd{to{stroke-dashoffset:-18}}
-  @keyframes fu{to{stroke-dashoffset:18}}
-  .jin {stroke-linecap:round;stroke-dasharray:7 8;fill:none;opacity:0;transition:opacity .25s;animation:fd .3s linear infinite;}
-  .jout{stroke-linecap:round;stroke-dasharray:7 8;fill:none;opacity:0;transition:opacity .25s;animation:fd .3s linear infinite;}
-  .jin.on,.jout.on{opacity:.9;}
-  .vh{transition:transform .35s cubic-bezier(.4,0,.2,1);}
-  .vtap{cursor:pointer;}
+  .status-bar{font-family:var(--mono);font-size:10px;color:var(--muted);text-align:center;min-height:16px;}
 
-  /* grains canvas */
-  #gc{position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:999;}
-
-  .status-row{display:flex;align-items:center;gap:6px;}
-  .sdot{width:7px;height:7px;border-radius:50%;background:var(--dim);flex-shrink:0;transition:background .3s;}
-  .sdot.on{background:var(--water);animation:pulse 1.4s ease-in-out infinite;}
-  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
-  .stxt{font-family:var(--mono);font-size:9px;color:var(--muted);}
-
-  /* answer */
   .answer-zone{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:.9rem;}
-  .az-h{font-size:12px;font-weight:600;color:var(--text);margin-bottom:3px;}
-  .az-hint{font-size:10px;color:var(--muted);margin-bottom:10px;line-height:1.5;}
-  .az-hint strong{color:var(--ok);}
+  .az-h{font-size:12px;font-weight:600;color:var(--text);margin-bottom:8px;}
   .az-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;}
   .az-field label{font-size:10px;color:var(--muted);display:block;margin-bottom:3px;}
-  .az-field input{width:100%;padding:8px 10px;background:var(--surface2);border:1px solid var(--border);border-radius:7px;color:var(--text);font-family:var(--mono);font-size:14px;outline:none;transition:border-color .2s;}
+  .az-field input{width:100%;padding:8px 10px;background:var(--surface2);border:1px solid var(--border);
+                  border-radius:7px;color:var(--text);font-family:var(--mono);font-size:14px;
+                  outline:none;transition:border-color .2s;}
   .az-field input:focus{border-color:var(--ok);}
   .az-field .unit{font-size:9px;color:var(--muted);margin-top:2px;}
-  .btn-check{width:100%;padding:10px;background:rgba(56,217,169,.1);border:1px solid var(--ok);border-radius:8px;color:var(--ok);font-family:var(--body);font-size:13px;font-weight:600;cursor:pointer;transition:background .2s;}
+  .btn-check{width:100%;padding:10px;background:rgba(56,217,169,.1);border:1px solid var(--ok);
+             border-radius:8px;color:var(--ok);font-family:var(--body);font-size:13px;
+             font-weight:600;cursor:pointer;transition:background .2s;}
   .btn-check:active{background:rgba(56,217,169,.2);}
   .feedback{margin-top:7px;font-size:12px;font-weight:500;min-height:18px;line-height:1.5;}
   .feedback.ok{color:var(--ok);}
   .feedback.err{color:var(--danger);}
-  .btn-reset{width:100%;padding:10px;background:transparent;border:1px solid var(--border);border-radius:10px;color:var(--muted);font-family:var(--body);font-size:12px;cursor:pointer;}
+  .btn-reset{width:100%;padding:10px;background:transparent;border:1px solid var(--border);
+             border-radius:10px;color:var(--muted);font-family:var(--body);font-size:12px;cursor:pointer;}
   .btn-reset:active{border-color:var(--muted);color:var(--text);}
-
-  /* salt counter badge */
-  .salt-badge{background:rgba(245,240,224,.1);border:1px solid var(--salt2);border-radius:8px;padding:6px 12px;display:flex;align-items:center;gap:8px;font-family:var(--mono);font-size:12px;}
-  .salt-badge .sb-val{font-size:18px;font-weight:700;color:var(--salt);}
-  .salt-badge .sb-lbl{font-size:9px;color:var(--muted);}
 </style>
 </head>
 <body>
-
 <header>
   <h1>Mezclas — Sal y Agua</h1>
-  <p>Toca o arrastra el salero · Abre la válvula · Calcula densidad y concentración</p>
+  <p>Arrastra el salero sobre el recipiente y agítalo para echar sal</p>
 </header>
 
-<canvas id="gc"></canvas>
-
 <div class="main">
-
-  <!-- METRICS -->
   <div class="metrics">
     <div class="metric">
       <div class="ml">Masa sal</div>
-      <div class="mv" style="color:#f5f0e0"><span id="m-sal">0</span><span class="mu">g</span></div>
+      <div class="mv" style="color:#f5f0e0"><span id="m-sal">0</span><span class="mu">mg</span></div>
     </div>
     <div class="metric">
       <div class="ml">Volumen agua</div>
-      <div class="mv" style="color:var(--water)"><span id="m-vol">0</span><span class="mu">mL</span></div>
+      <div class="mv" style="color:var(--water)"><span id="m-vol">0,0</span><span class="mu">mL</span></div>
     </div>
     <div class="metric">
       <div class="ml">Masa total</div>
-      <div class="mv" style="color:var(--warn)"><span id="m-tot">0</span><span class="mu">g</span></div>
+      <div class="mv" style="color:var(--warn)"><span id="m-tot">0,0</span><span class="mu">g</span></div>
     </div>
   </div>
 
-  <!-- SIM SVG UNIFICADO -->
-  <!--
-    Layout (viewBox 0 0 300 400):
-    - Salero: x≈20, y≈10  (izquierda arriba, táctil)
-    - Válvula agua: x≈200, y≈20 (derecha arriba)
-    - Recipiente: x=60..240, y=120..340
-    - Balanza (display): debajo del recipiente
-    - Sal cae desde salero directo al recipiente
-    - Agua cae desde válvula directo al recipiente
-  -->
-  <div class="sim">
-    <svg class="sim-svg" id="main-svg" viewBox="0 0 300 420" xmlns="http://www.w3.org/2000/svg">
-      <defs>
-        <clipPath id="bc"><path d="M62,125 L238,125 L250,330 L50,330 Z"/></clipPath>
-        <style>
-          @keyframes fd2{to{stroke-dashoffset:-18}}
-          .jin2{stroke-linecap:round;stroke-dasharray:7 8;fill:none;opacity:0;transition:opacity .25s;animation:fd2 .3s linear infinite;}
-          .jin2.on{opacity:.9;}
-          .vh2{transition:transform .4s cubic-bezier(.4,0,.2,1);}
-          /* salt grain fall */
-          @keyframes grain-fall{0%{transform:translateY(0);opacity:1}100%{transform:translateY(80px);opacity:0}}
-        </style>
-      </defs>
-
-      <!-- ══ SALERO (izquierda, táctil) ══ -->
-      <!-- hint arrow -->
-      <text x="15" y="12" font-family="'Space Mono',monospace" font-size="7" fill="#4a5070">↑ arrastra</text>
-      <text x="15" y="22" font-family="'Space Mono',monospace" font-size="7" fill="#4a5070">  o toca</text>
-
-      <g id="shaker" onclick="shakeSalt()" style="touch-action:none;">
-        <!-- cuerpo -->
-        <rect x="14" y="26" width="36" height="56" rx="7" fill="#e8dfc0" stroke="#c8b880" stroke-width="1.5"/>
-        <!-- tapa -->
-        <rect x="17" y="16" width="30" height="13" rx="5" fill="#d4c890" stroke="#b8a860" stroke-width="1"/>
-        <!-- agujeros -->
-        <circle cx="24" cy="22" r="2.2" fill="#0f1117"/>
-        <circle cx="32" cy="22" r="2.2" fill="#0f1117"/>
-        <circle cx="40" cy="22" r="2.2" fill="#0f1117"/>
-        <!-- etiqueta -->
-        <rect x="16" y="42" width="32" height="22" rx="3" fill="#fff" opacity=".55"/>
-        <text x="32" y="55" text-anchor="middle" font-family="'Space Mono',monospace" font-size="9" fill="#555" font-weight="700">SAL</text>
-        <!-- contenido -->
-        <rect x="15" y="67" width="34" height="12" rx="3" fill="#f5f0e0" opacity=".35"/>
-        <!-- granitos en tapa (visuales) -->
-        <g id="shaker-grains"></g>
-      </g>
-
-      <!-- línea que conecta salero con recipiente (canal de caída) -->
-      <line x1="32" y1="82" x2="95" y2="125" stroke="#2e3350" stroke-width="2" stroke-dasharray="3 3"/>
-
-      <!-- chorro de sal animado (cae desde salero al recipiente) -->
-      <line id="salt-stream" x1="32" y1="82" x2="95" y2="125"
-            stroke="#f5f0e0" stroke-width="4" stroke-linecap="round"
-            stroke-dasharray="5 6" opacity="0" style="transition:opacity .2s;animation:fd2 .25s linear infinite;"/>
-
-      <!-- ══ VÁLVULA AGUA (derecha) ══ -->
-      <!-- fuente agua -->
-      <rect x="220" y="4" width="52" height="16" rx="4" fill="#0a1e38"/>
-      <text x="246" y="15" text-anchor="middle" font-family="'Space Mono',monospace" font-size="8" fill="#4a9eff" font-weight="700">AGUA</text>
-      <!-- tubo vertical desde fuente -->
-      <rect x="242" y="20" width="6" height="26" rx="2" fill="#162030"/>
-
-      <!-- válvula -->
-      <g class="vtap" onclick="toggleWater()">
-        <rect x="226" y="46" width="34" height="14" rx="4" fill="#081828" stroke="#4a9eff" stroke-width="1"/>
-        <rect x="242" y="38" width="6" height="10" rx="2" fill="#1a3a5c"/>
-        <g id="vh-w" class="vh2" style="transform-origin:243px 53px;">
-          <rect x="220" y="49" width="46" height="8" rx="4" fill="#4a9eff"/>
-          <circle cx="243" cy="53" r="4.5" fill="#081828"/>
-        </g>
-        <!-- hit zone -->
-        <rect x="214" y="38" width="58" height="28" rx="4" fill="transparent"/>
-      </g>
-      <text x="243" y="78" text-anchor="middle" font-family="'Space Mono',monospace" font-size="7" id="vlbl" fill="#4a9eff">CERRADA</text>
-
-      <!-- tubo vertical hacia recipiente -->
-      <rect x="240" y="80" width="6" height="44" rx="2" fill="#162030"/>
-
-      <!-- chorro de agua animado -->
-      <line id="w-stream" class="jin2" x1="243" y1="80" x2="243" y2="125" stroke="#4a9eff" stroke-width="6"/>
-
-      <!-- ══ RECIPIENTE (beaker) ══ -->
-      <!-- líquido -->
-      <rect id="liquid" x="50" y="330" width="200" height="0" fill="#4a9eff" opacity=".8" clip-path="url(#bc)"/>
-      <!-- ola -->
-      <rect id="lwave" x="50" y="330" width="200" height="5" fill="#7bb8ff" opacity=".4" clip-path="url(#bc)"/>
-      <!-- granitos sal en fondo -->
-      <g id="salt-grains" clip-path="url(#bc)"></g>
-
-      <!-- pared del beaker (trapezoidal) — dibujado encima del agua -->
-      <path d="M62,125 L238,125 L250,330 L50,330 Z" fill="none" stroke="#2e3350" stroke-width="2.5"/>
-      <!-- fondo -->
-      <rect x="50" y="330" width="200" height="7" rx="3" fill="#2e3350"/>
-
-      <!-- marcas volumen (lado derecho) -->
-      <line x1="237" y1="167" x2="248" y2="167" stroke="#2e3350" stroke-width="1.2"/>
-      <line x1="239" y1="206" x2="250" y2="206" stroke="#2e3350" stroke-width="1.2"/>
-      <line x1="241" y1="248" x2="252" y2="248" stroke="#2e3350" stroke-width="1.2"/>
-      <line x1="242" y1="289" x2="253" y2="289" stroke="#2e3350" stroke-width="1.2"/>
-      <text x="255" y="171" font-family="'Space Mono',monospace" font-size="8" fill="#3a3f5a">400</text>
-      <text x="255" y="210" font-family="'Space Mono',monospace" font-size="8" fill="#3a3f5a">300</text>
-      <text x="255" y="252" font-family="'Space Mono',monospace" font-size="8" fill="#3a3f5a">200</text>
-      <text x="255" y="293" font-family="'Space Mono',monospace" font-size="8" fill="#3a3f5a">100</text>
-      <text x="255" y="118" font-family="'Space Mono',monospace" font-size="7" fill="#3a3f5a">mL</text>
-
-      <!-- label volumen dentro -->
-      <text id="blbl" x="150" y="240" text-anchor="middle" font-family="'Space Mono',monospace" font-size="12" fill="#e8ecf4" opacity=".55">0 mL</text>
-
-      <!-- ══ BALANZA debajo del recipiente ══ -->
-      <!-- base -->
-      <rect x="80" y="348" width="140" height="8" rx="4" fill="#1e2840"/>
-      <!-- platillo -->
-      <ellipse cx="150" cy="348" rx="70" ry="6" fill="#22263a" stroke="#2e3350" stroke-width="1"/>
-      <!-- pie -->
-      <rect x="142" y="356" width="16" height="24" rx="4" fill="#1e2840"/>
-      <!-- display balanza -->
-      <rect x="90" y="378" width="120" height="36" rx="8" fill="#0a1020" stroke="#2e3350" stroke-width="1"/>
-      <text x="150" y="390" text-anchor="middle" font-family="'Space Mono',monospace" font-size="7" fill="#4a5070">MASA TOTAL</text>
-      <text id="scale-disp" x="150" y="408" text-anchor="middle" font-family="'Space Mono',monospace" font-size="16" font-weight="700" fill="#f7a94a">0 g</text>
-
-    </svg>
-
-    <!-- sal badge — contador de sal acumulada sobre balanza antes de echar -->
-    <div class="salt-badge" id="salt-badge" style="display:none;">
-      <div>
-        <div class="sb-lbl">Sal en salero</div>
-        <div><span class="sb-val" id="sb-val">0</span> <span style="font-size:10px;color:var(--muted)">g — toca de nuevo para seguir agregando</span></div>
-      </div>
-    </div>
-
-    <div class="status-row">
-      <div class="sdot" id="sdot"></div>
-      <span class="stxt" id="stxt">Toca el salero para agregar sal · Toca la válvula para abrir el agua</span>
-    </div>
+  <div class="sim-area">
+    <canvas id="simCanvas"></canvas>
+    <div class="status-bar" id="status">Arrastra el salero sobre el recipiente y agítalo · Toca la válvula para el agua</div>
   </div>
 
-  <!-- FÓRMULAS recordatorio -->
-  <div style="background:rgba(56,217,169,.06);border:1px solid rgba(56,217,169,.2);border-radius:8px;padding:8px 12px;font-size:11px;color:var(--ok);line-height:1.8;">
-    <strong>Densidad</strong> ρ = m<sub>solución</sub> / V &nbsp;[g/mL]<br>
-    <strong>Concentración</strong> C = m<sub>sal</sub> / V × 1000 &nbsp;[g/L]<br>
+  <div class="hint-box">
+    <strong>Fórmulas:</strong><br>
+    Densidad ρ = m<sub>solución</sub> / V &nbsp;[g/mL]<br>
+    Concentración C = m<sub>sal</sub> / V × 1000 &nbsp;[g/L]<br>
     <span style="color:var(--muted);font-size:10px;">* Asumimos que la sal no cambia el volumen (solución diluida)</span>
   </div>
 
-  <!-- ANSWER -->
   <div class="answer-zone">
-    <div class="az-h">Calcula y verifica</div>
-    <div class="az-hint">Usa los datos de arriba. Usa coma para decimales (ej. <strong>1,03</strong>).</div>
+    <div class="az-h">Calcula y verifica (usa coma para decimales)</div>
     <div class="az-grid">
       <div class="az-field">
         <label>Densidad de la solución</label>
@@ -273,272 +115,598 @@
 </div>
 
 <script>
-  // ── Física ──
-  const WATER_RATE = 1.0;  // mL por segundo
-  const TICK_MS    = 100;
-  const MAX_VOL    = 500;
-  // beaker: y=125 (top) → y=330 (bottom) = 205px = 500mL → 0.41 px/mL
-  const TANK_TOP=125, TANK_BOT=330, TANK_H=205;
+// ─────────────────────────────────────────────
+//  SETUP CANVAS
+// ─────────────────────────────────────────────
+const canvas = document.getElementById('simCanvas');
+const ctx    = canvas.getContext('2d');
 
-  let volAgua   = 0;   // mL
-  let salTotal  = 0;   // g (en el recipiente)
-  let salBuffer = 0;   // g (en el salero, aún no echada)
-  let waterOn   = false;
-  let ticker    = null;
+// Canvas virtual size (we scale to fit)
+const VW = 380, VH = 480;
+canvas.width  = VW;
+canvas.height = VH;
 
-  const g = id => document.getElementById(id);
-  const liquid   = g('liquid');
-  const lwave    = g('lwave');
-  const blbl     = g('blbl');
-  const wstream  = g('w-stream');
-  const saltStream = g('salt-stream');
-  const vhW      = g('vh-w');
-  const vlbl     = g('vlbl');
-  const sdot     = g('sdot');
-  const stxt     = g('stxt');
-  const saltBadge= g('salt-badge');
-  const sbVal    = g('sb-val');
+// ─────────────────────────────────────────────
+//  PHYSICS / STATE
+// ─────────────────────────────────────────────
+const WATER_RATE  = 8.0;  // mL/s
+const TICK_MS     = 80;
+const MAX_VOL     = 500;  // mL
 
-  function fmt(n,d=1){ return n.toFixed(d).replace('.',','); }
-  function masaAgua(){ return volAgua*1.0; }
-  function masaTotal(){ return masaAgua()+salTotal; }
-  function densidad(){ return volAgua>0 ? masaTotal()/volAgua : 0; }
-  function concentracion(){ return volAgua>0 ? (salTotal/volAgua)*1000 : 0; }
+// Beaker geometry (canvas coords)
+const BK = {
+  topLeft:  {x:60,  y:120},
+  topRight: {x:300, y:120},
+  botLeft:  {x:44,  y:360},
+  botRight: {x:316, y:360},
+  // derived
+  get topY(){ return 120; },
+  get botY(){ return 360; },
+  get h(){ return 240; },  // pixel height = 500mL
+  pxPerMl(){ return this.h / MAX_VOL; },
+  // x at given y (trapezoid)
+  leftX(y){ const t=(y-this.topY)/this.h; return this.topLeft.x+(this.botLeft.x-this.topLeft.x)*t; },
+  rightX(y){ const t=(y-this.topY)/this.h; return this.topRight.x+(this.botRight.x-this.topRight.x)*t; },
+  centerX(){ return (this.topLeft.x+this.topRight.x)/2; },
+};
 
-  function updateDisplay(){
-    const h = Math.min(volAgua/MAX_VOL,1)*TANK_H;
-    const y = TANK_BOT-h;
-    liquid.setAttribute('y',y); liquid.setAttribute('height',h);
-    lwave.setAttribute('y',y-3);
-    wstream.setAttribute('y2', Math.max(y,127));
-    saltStream.setAttribute('y2', Math.max(y,127)); // también llega a la superficie
-    blbl.setAttribute('y', Math.max(y+18,240));
-    blbl.textContent = fmt(volAgua,0)+' mL';
+// Valve geometry
+const VALVE = { x: 240, y: 50, pipeX: 240 };
 
-    g('m-sal').textContent = fmt(salTotal,1);
-    g('m-vol').textContent = fmt(volAgua,0);
-    g('m-tot').textContent = fmt(masaTotal(),1);
-    g('scale-disp').textContent = fmt(masaTotal(),1)+' g';
+// Shaker (draggable)
+const shaker = {
+  x: 60, y: 50,          // center position
+  homeX: 60, homeY: 50,  // resting position
+  w: 44, h: 70,
+  dragging: false,
+  overBeaker: false,
+  saltRemaining: 300000,  // mg available (= 300 g)
+};
 
-    // liquid opacity increases with concentration
-    const opacity = Math.min(0.7 + concentracion()/3000, 0.92);
-    liquid.setAttribute('opacity', opacity);
+// Simulation state
+let volAgua  = 0;   // mL
+let salTotal = 0;   // mg  ← ahora en miligramos
+let waterOn  = false;
+let ticker   = null;
 
-    updateSaltGrains();
+// Grain particles (visual only)
+let grains = [];
+
+// Shake detection
+let lastShakeX = shaker.x, lastShakeY = shaker.y;
+let shakeVel   = 0;
+
+// ─────────────────────────────────────────────
+//  HELPERS
+// ─────────────────────────────────────────────
+function fmt(n, d=1){ return n.toFixed(d).replace('.', ','); }
+function masaSalG(){ return salTotal / 1000; }                                    // g
+function masaTotal(){ return volAgua * 1.0 + masaSalG(); }                        // g
+function densidad(){ return volAgua > 0 ? masaTotal() / volAgua : 0; }            // g/mL
+function concentracion(){ return volAgua > 0 ? (masaSalG() / volAgua) * 1000 : 0; } // g/L
+
+function isOverBeaker(x, y){
+  // check if point is inside beaker trapezoid
+  if(y < BK.topY || y > BK.botY) return false;
+  return x > BK.leftX(y) && x < BK.rightX(y);
+}
+
+function isShakerOverBeaker(){
+  // use bottom-center of shaker as the pour point
+  const pourX = shaker.x;
+  const pourY = shaker.y + shaker.h/2;
+  // must be clearly inside beaker (not just touching edge)
+  if(pourY < BK.topY || pourY > BK.botY) return false;
+  const lx = BK.leftX(pourY) + 10;
+  const rx = BK.rightX(pourY) - 10;
+  return pourX > lx && pourX < rx;
+}
+
+function updateMetrics(){
+  document.getElementById('m-sal').textContent = fmt(salTotal, 0);
+  document.getElementById('m-vol').textContent = fmt(volAgua);
+  document.getElementById('m-tot').textContent = fmt(masaTotal());
+}
+
+// ─────────────────────────────────────────────
+//  WATER VALVE
+// ─────────────────────────────────────────────
+let valveOpen = false;
+let waterStream = []; // animated water drops inside beaker
+
+function toggleValve(){
+  valveOpen = !valveOpen;
+  waterOn   = valveOpen;
+  if(valveOpen && !ticker) ticker = setInterval(tick, TICK_MS);
+  else if(!valveOpen && ticker){ clearInterval(ticker); ticker=null; }
+  document.getElementById('status').textContent =
+    valveOpen ? 'Agua fluyendo... agita el salero sobre el recipiente para echar sal'
+              : 'Válvula cerrada';
+}
+
+function tick(){
+  if(!waterOn) return;
+  volAgua = Math.min(volAgua + WATER_RATE*(TICK_MS/1000), MAX_VOL);
+  updateMetrics();
+  if(volAgua >= MAX_VOL){
+    valveOpen=false; waterOn=false;
+    clearInterval(ticker); ticker=null;
+    document.getElementById('status').textContent='Recipiente lleno';
   }
+}
 
-  function updateSaltGrains(){
-    const el = g('salt-grains');
-    el.innerHTML='';
-    if(salTotal<=0) return;
-    const n = Math.min(Math.floor(salTotal/1.5), 60);
-    for(let i=0;i<n;i++){
-      const progress = Math.random();
-      // distribute along beaker width (trapezoid)
-      const leftEdge  = 50 + (progress*(250-50)/1);
-      const beakerW   = 160 + (TANK_BOT - (TANK_BOT - Math.random()*80))/TANK_H * 80;
-      const cx = 55 + Math.random()*190;
-      const cy = TANK_BOT - 2 - Math.random()*12;
-      const r  = 1.5+Math.random()*1.5;
-      const c  = document.createElementNS('http://www.w3.org/2000/svg','circle');
-      c.setAttribute('cx',cx); c.setAttribute('cy',cy);
-      c.setAttribute('r',r); c.setAttribute('fill','#f5f0e0');
-      c.setAttribute('opacity','0.75');
-      el.appendChild(c);
-    }
-  }
+// ─────────────────────────────────────────────
+//  SALT POURING
+// ─────────────────────────────────────────────
+function pourSalt(amount){
+  if(shaker.saltRemaining <= 0) return;
+  // amount already has the threshold subtracted in onMove
+  // clamp to 10–300 mg per shake
+  const mgAmount = Math.max(10, Math.min(amount * 12, 300));
+  const actual = Math.min(mgAmount, shaker.saltRemaining);
+  salTotal  += actual;
+  shaker.saltRemaining -= actual;
+  updateMetrics();
+  spawnGrains(shaker.x, shaker.y + shaker.h/2, Math.ceil(actual/100));
+  document.getElementById('status').textContent =
+    `Sal: ${fmt(salTotal,0)} mg · Agua: ${fmt(volAgua,0)} mL`;
+}
 
-  // ── AGUA ──
-  function toggleWater(){
-    waterOn=!waterOn;
-    vhW.style.transform = waterOn ? 'rotate(90deg)' : 'rotate(0deg)';
-    vlbl.textContent = waterOn ? 'ABIERTA' : 'CERRADA';
-    wstream.classList.toggle('on', waterOn);
-    sdot.classList.toggle('on', waterOn);
-    stxt.textContent = waterOn ? 'Agua fluyendo...' : 'Válvula cerrada';
-    if(waterOn && !ticker) ticker=setInterval(tick,TICK_MS);
-    else if(!waterOn && ticker){ clearInterval(ticker); ticker=null; }
-  }
-
-  function tick(){
-    if(!waterOn) return;
-    volAgua = Math.min(volAgua+WATER_RATE*(TICK_MS/1000), MAX_VOL);
-    updateDisplay();
-    if(volAgua>=MAX_VOL){
-      waterOn=false; vhW.style.transform='rotate(0deg)';
-      vlbl.textContent='CERRADA'; wstream.classList.remove('on');
-      sdot.classList.remove('on'); stxt.textContent='Recipiente lleno';
-      clearInterval(ticker); ticker=null;
-    }
-  }
-
-  // ── SAL ──
-  let saltAnimTimeout = null;
-
-  function shakeSalt(){
-    // cada toque agrega 5g al salero
-    salBuffer = Math.min(salBuffer+5, 500);
-    sbVal.textContent = salBuffer;
-    saltBadge.style.display='flex';
-
-    // animar salero
-    const sh = g('shaker');
-    sh.classList.remove('shaking-anim');
-    void sh.offsetWidth;
-    sh.classList.add('shaking-anim');
-
-    // mostrar chorro de sal
-    saltStream.style.opacity='0.85';
-
-    // agregar sal al recipiente inmediatamente
-    salTotal += 5;
-    updateDisplay();
-    stxt.textContent = `Sal agregada: ${fmt(salTotal,0)} g en el recipiente`;
-
-    // ocultar chorro tras 0.5s
-    clearTimeout(saltAnimTimeout);
-    saltAnimTimeout = setTimeout(()=>{
-      saltStream.style.opacity='0';
-    }, 500);
-
-    // granitos canvas
-    spawnGrainParticles();
-  }
-
-  // drag para agregar más rápido
-  let isDrag=false, dragY0=0, lastDragAdd=0;
-
-  const shakerEl = g('shaker');
-  shakerEl.addEventListener('touchstart',e=>{
-    e.preventDefault(); isDrag=true; dragY0=e.touches[0].clientY; lastDragAdd=Date.now();
-  },{passive:false});
-  shakerEl.addEventListener('touchmove',e=>{
-    e.preventDefault();
-    if(!isDrag) return;
-    const dy = dragY0-e.touches[0].clientY;
-    const now = Date.now();
-    if(dy>12 && now-lastDragAdd>150){
-      const g_add = Math.max(5, Math.round(dy/8)*5);
-      salBuffer = Math.min(salBuffer+g_add,500);
-      salTotal  = Math.min(salTotal+g_add,500);
-      sbVal.textContent=salBuffer;
-      saltBadge.style.display='flex';
-      saltStream.style.opacity='0.85';
-      clearTimeout(saltAnimTimeout);
-      saltAnimTimeout=setTimeout(()=>{saltStream.style.opacity='0';},500);
-      stxt.textContent=`Sal agregada: ${fmt(salTotal,0)} g en el recipiente`;
-      updateDisplay();
-      spawnGrainParticles();
-      dragY0=e.touches[0].clientY; lastDragAdd=now;
-    }
-  },{passive:false});
-  shakerEl.addEventListener('touchend',e=>{e.preventDefault();isDrag=false;},{passive:false});
-
-  // mouse drag (escritorio)
-  shakerEl.addEventListener('mousedown',e=>{isDrag=true;dragY0=e.clientY;lastDragAdd=Date.now();});
-  window.addEventListener('mousemove',e=>{
-    if(!isDrag)return;
-    const dy=dragY0-e.clientY, now=Date.now();
-    if(dy>12 && now-lastDragAdd>150){
-      const g_add=Math.max(5,Math.round(dy/8)*5);
-      salTotal=Math.min(salTotal+g_add,500);
-      saltStream.style.opacity='0.85';
-      clearTimeout(saltAnimTimeout);
-      saltAnimTimeout=setTimeout(()=>{saltStream.style.opacity='0';},500);
-      stxt.textContent=`Sal agregada: ${fmt(salTotal,0)} g en el recipiente`;
-      updateDisplay(); spawnGrainParticles();
-      dragY0=e.clientY; lastDragAdd=now;
-    }
-  });
-  window.addEventListener('mouseup',()=>{isDrag=false;});
-
-  // ── Partículas canvas ──
-  const canvas=g('gc');
-  const ctx=canvas.getContext('2d');
-  let grains=[];
-
-  function resize(){ canvas.width=window.innerWidth; canvas.height=window.innerHeight; }
-  resize(); window.addEventListener('resize',resize);
-
-  function spawnGrainParticles(){
-    const rect=g('main-svg').getBoundingClientRect();
-    const svgW=rect.width, svgH=rect.height;
-    // salero en SVG coords: cx≈32, cy≈82 → scale to screen
-    const scaleX=svgW/300, scaleY=svgH/420;
-    const ox=rect.left+32*scaleX, oy=rect.top+82*scaleY;
-    // destination: beaker center top
-    const dx=rect.left+150*scaleX, dy=rect.top+125*scaleY;
-    for(let i=0;i<8;i++){
-      const t=Math.random();
-      grains.push({
-        x:ox+(Math.random()-0.5)*10,
-        y:oy+(Math.random()-0.5)*5,
-        tx:dx+(Math.random()-0.5)*30,
-        ty:dy,
-        progress:0,
-        speed:0.04+Math.random()*0.04,
-        r:1.5+Math.random()*2,
-        life:1
-      });
-    }
-  }
-
-  function animGrains(){
-    ctx.clearRect(0,0,canvas.width,canvas.height);
-    grains=grains.filter(p=>{
-      p.progress=Math.min(p.progress+p.speed,1);
-      p.x=p.x+(p.tx-p.x)*p.speed*2;
-      p.y=p.y+(p.ty-p.y)*p.speed*2;
-      p.life=1-p.progress;
-      if(p.life<=0)return false;
-      ctx.beginPath();
-      ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
-      ctx.fillStyle=`rgba(245,240,224,${p.life})`;
-      ctx.fill();
-      return true;
+function spawnGrains(fromX, fromY, amount){
+  const n = Math.min(Math.ceil(amount * 3), 30);
+  for(let i=0; i<n; i++){
+    grains.push({
+      x: fromX + (Math.random()-0.5)*16,
+      y: fromY,
+      vx: (Math.random()-0.5)*2.5,
+      vy: 1.5 + Math.random()*3,
+      r: 1.5 + Math.random()*2,
+      life: 1,
+      color: `rgb(${220+Math.floor(Math.random()*35)},${210+Math.floor(Math.random()*30)},${170+Math.floor(Math.random()*30)})`,
     });
-    requestAnimationFrame(animGrains);
   }
-  animGrains();
+}
 
-  // ── Verificar ──
-  function checkAnswers(){
-    const rawD=g('ans-den').value.trim().replace(',','.');
-    const rawC=g('ans-con').value.trim().replace(',','.');
-    const fb=g('fb');
-    if(volAgua<=0){ fb.textContent='Agrega agua primero.'; fb.className='feedback err'; return; }
-    if(!rawD||!rawC){ fb.textContent='Completa ambos campos.'; fb.className='feedback err'; return; }
-    const gD=parseFloat(rawD), gC=parseFloat(rawC);
-    const rD=densidad(), rC=concentracion();
-    const okD=Math.abs(gD-rD)/Math.max(rD,0.001)<0.05;
-    const okC=rC===0?gC===0:Math.abs(gC-rC)/rC<0.05;
-    if(okD&&okC){
-      fb.textContent=`✓ ¡Correcto! ρ = ${fmt(rD,3)} g/mL · C = ${fmt(rC,1)} g/L`;
-      fb.className='feedback ok';
-    } else {
-      let msg='';
-      if(!okD) msg+=`Densidad: ${fmt(rD,4)} g/mL. `;
-      if(!okC) msg+=`Concentración: ${fmt(rC,2)} g/L.`;
-      fb.textContent='Revisa — '+msg; fb.className='feedback err';
+// ─────────────────────────────────────────────
+//  TOUCH / MOUSE INPUT
+// ─────────────────────────────────────────────
+function canvasPoint(e){
+  const rect = canvas.getBoundingClientRect();
+  const scaleX = VW / rect.width;
+  const scaleY = VH / rect.height;
+  const src = e.touches ? e.touches[0] : e;
+  return {
+    x: (src.clientX - rect.left) * scaleX,
+    y: (src.clientY - rect.top)  * scaleY,
+  };
+}
+
+function isTouchOnShaker(x, y){
+  return Math.abs(x - shaker.x) < shaker.w/2 + 10 &&
+         Math.abs(y - shaker.y) < shaker.h/2 + 10;
+}
+
+function isTouchOnValve(x, y){
+  return Math.abs(x - VALVE.x) < 36 && Math.abs(y - VALVE.y) < 30;
+}
+
+function onStart(e){
+  e.preventDefault();
+  const p = canvasPoint(e);
+  if(isTouchOnValve(p.x, p.y)){
+    toggleValve();
+    return;
+  }
+  if(isTouchOnShaker(p.x, p.y)){
+    shaker.dragging = true;
+    lastShakeX = p.x; lastShakeY = p.y; shakeVel = 0;
+  }
+}
+
+function onMove(e){
+  e.preventDefault();
+  if(!shaker.dragging) return;
+  const p = canvasPoint(e);
+
+  const dx = p.x - lastShakeX;
+  const dy = p.y - lastShakeY;
+  // shake velocity = how much the finger moved suddenly
+  const moved = Math.sqrt(dx*dx + dy*dy);
+  shakeVel = moved;
+
+  shaker.x += dx;
+  shaker.y += dy;
+  lastShakeX = p.x; lastShakeY = p.y;
+
+  shaker.overBeaker = isShakerOverBeaker();
+
+  // Pour salt only when shaker is clearly over beaker AND moving fast enough
+  if(shaker.overBeaker && shakeVel > 10){
+    const amount = (shakeVel - 10) * 0.5; // positive, proportional to extra velocity
+    pourSalt(amount);
+  }
+}
+
+function onEnd(e){
+  e.preventDefault();
+  if(!shaker.dragging) return;
+  shaker.dragging = false;
+  shakeVel = 0;
+  // snap back to home if not over beaker
+  // (let it stay wherever it was dropped)
+}
+
+canvas.addEventListener('touchstart', onStart, {passive:false});
+canvas.addEventListener('touchmove',  onMove,  {passive:false});
+canvas.addEventListener('touchend',   onEnd,   {passive:false});
+canvas.addEventListener('mousedown',  onStart);
+canvas.addEventListener('mousemove',  onMove);
+canvas.addEventListener('mouseup',    onEnd);
+
+// ─────────────────────────────────────────────
+//  DRAWING
+// ─────────────────────────────────────────────
+
+// Colour helpers
+const COL = {
+  surface:  '#1a1d27',
+  border:   '#2e3350',
+  water:    '#4a9eff',
+  waterLt:  '#7bb8ff',
+  dim:      '#3a3f5a',
+  salt:     '#f5f0e0',
+  saltDk:   '#c8b880',
+  text:     '#e8ecf4',
+  muted:    '#7a8099',
+  ok:       '#38d9a9',
+  warn:     '#f7a94a',
+};
+
+function drawBeaker(){
+  // water fill
+  if(volAgua > 0){
+    const fillH = (volAgua/MAX_VOL) * BK.h;
+    const fillY = BK.botY - fillH;
+
+    ctx.save();
+    // clip to beaker shape
+    ctx.beginPath();
+    ctx.moveTo(BK.topLeft.x, BK.topY);
+    ctx.lineTo(BK.topRight.x, BK.topY);
+    ctx.lineTo(BK.botRight.x, BK.botY);
+    ctx.lineTo(BK.botLeft.x,  BK.botY);
+    ctx.closePath();
+    ctx.clip();
+
+    // water body
+    const waterAlpha = Math.min(0.7 + concentracion()/3000, 0.92);
+    ctx.fillStyle = `rgba(74,158,255,${waterAlpha})`;
+    ctx.fillRect(BK.botLeft.x, fillY, BK.botRight.x - BK.botLeft.x, fillH);
+
+    // surface shimmer
+    ctx.fillStyle = 'rgba(123,184,255,0.35)';
+    ctx.fillRect(BK.botLeft.x, fillY, BK.botRight.x - BK.botLeft.x, 5);
+
+    // salt grains settled at bottom
+    if(salTotal > 0){
+      const n = Math.min(Math.floor(salTotal/1200), 80);
+      for(let i=0; i<n; i++){
+        const seedX = ((i*137.5)%1) * (BK.botRight.x-BK.botLeft.x-10) + BK.botLeft.x + 5;
+        const seedY = BK.botY - 3 - ((i*31.7)%1)*14;
+        ctx.beginPath();
+        ctx.arc(seedX, seedY, 1.5+((i*17.3)%1)*1.5, 0, Math.PI*2);
+        ctx.fillStyle = `rgba(245,240,224,${0.6+((i*23)%1)*0.3})`;
+        ctx.fill();
+      }
+    }
+
+    ctx.restore();
+
+    // volume label
+    ctx.fillStyle = 'rgba(232,236,244,0.5)';
+    ctx.font = '500 11px Space Mono, monospace';
+    ctx.textAlign = 'center';
+    const lblY = Math.max(fillY + 18, 200);
+    ctx.fillText(fmt(volAgua,0)+' mL', BK.centerX(), lblY);
+  }
+
+  // beaker outline (trapezoid)
+  ctx.strokeStyle = COL.border;
+  ctx.lineWidth   = 2.5;
+  ctx.lineJoin    = 'round';
+  ctx.beginPath();
+  ctx.moveTo(BK.topLeft.x,  BK.topY);
+  ctx.lineTo(BK.topRight.x, BK.topY);
+  ctx.lineTo(BK.botRight.x, BK.botY);
+  ctx.lineTo(BK.botLeft.x,  BK.botY);
+  ctx.closePath();
+  ctx.stroke();
+
+  // volume marks (right side)
+  const marks = [100,200,300,400];
+  marks.forEach(ml => {
+    const y = BK.botY - (ml/MAX_VOL)*BK.h;
+    const rx = BK.rightX(y);
+    ctx.strokeStyle = COL.dim;
+    ctx.lineWidth = 1.2;
+    ctx.beginPath();
+    ctx.moveTo(rx, y);
+    ctx.lineTo(rx+10, y);
+    ctx.stroke();
+    ctx.fillStyle = COL.dim;
+    ctx.font = '8px Space Mono, monospace';
+    ctx.textAlign = 'left';
+    ctx.fillText(ml+'', rx+13, y+3);
+  });
+  // mL label
+  ctx.fillStyle = COL.dim;
+  ctx.font = '8px Space Mono, monospace';
+  ctx.textAlign = 'left';
+  ctx.fillText('mL', BK.topRight.x+13, BK.topY-5);
+}
+
+function drawScale(){
+  // scale/balance under beaker
+  const cx = BK.centerX(), baseY = BK.botY+8;
+  // platform
+  ctx.fillStyle = '#22263a';
+  ctx.strokeStyle = COL.border;
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.ellipse(cx, baseY, 90, 7, 0, 0, Math.PI*2);
+  ctx.fill(); ctx.stroke();
+  // pillar
+  ctx.fillStyle = '#1a2030';
+  ctx.fillRect(cx-6, baseY+6, 12, 28);
+  // base
+  ctx.beginPath();
+  ctx.roundRect(cx-50, baseY+32, 100, 10, 5);
+  ctx.fillStyle = '#22263a'; ctx.fill(); ctx.stroke();
+  // display
+  ctx.fillStyle = '#080f1a';
+  ctx.strokeStyle = COL.border;
+  ctx.lineWidth=1;
+  ctx.beginPath();
+  ctx.roundRect(cx-55, baseY+42, 110, 40, 6);
+  ctx.fill(); ctx.stroke();
+  // mass value
+  ctx.fillStyle = COL.warn;
+  ctx.font = 'bold 18px Space Mono, monospace';
+  ctx.textAlign = 'center';
+  ctx.fillText(fmt(masaTotal(),1)+' g', cx, baseY+68);
+  ctx.fillStyle = COL.muted;
+  ctx.font = '8px Space Mono, monospace';
+  ctx.fillText('MASA TOTAL', cx, baseY+50);
+}
+
+function drawValve(){
+  const vx = VALVE.x, vy = VALVE.y;
+
+  // source label
+  ctx.fillStyle = '#0a1e38';
+  ctx.beginPath(); ctx.roundRect(vx-30, vy-38, 60, 16, 4); ctx.fill();
+  ctx.fillStyle = COL.water;
+  ctx.font = 'bold 8px Space Mono, monospace';
+  ctx.textAlign = 'center';
+  ctx.fillText('AGUA', vx, vy-27);
+
+  // pipe from source
+  ctx.fillStyle = '#162030';
+  ctx.fillRect(vx-3, vy-22, 6, 22);
+
+  // valve body
+  ctx.fillStyle = '#081828';
+  ctx.strokeStyle = valveOpen ? COL.water : COL.border;
+  ctx.lineWidth = 1.2;
+  ctx.beginPath(); ctx.roundRect(vx-18, vy, 36, 14, 4); ctx.fill(); ctx.stroke();
+
+  // stem
+  ctx.fillStyle = '#1a3a5c';
+  ctx.fillRect(vx-2, vy-8, 5, 10);
+
+  // handle (rotates 90° when open)
+  ctx.save();
+  ctx.translate(vx, vy+7);
+  if(valveOpen) ctx.rotate(Math.PI/2);
+  ctx.fillStyle = valveOpen ? COL.water : '#2a4060';
+  ctx.beginPath(); ctx.roundRect(-22, -4, 44, 8, 4); ctx.fill();
+  ctx.fillStyle = '#081828';
+  ctx.beginPath(); ctx.arc(0, 0, 4.5, 0, Math.PI*2); ctx.fill();
+  ctx.restore();
+
+  // pipe to beaker
+  ctx.fillStyle = '#162030';
+  ctx.fillRect(vx-3, vy+14, 6, 42);
+
+  // state label
+  ctx.fillStyle = valveOpen ? COL.water : COL.muted;
+  ctx.font = '7px Space Mono, monospace';
+  ctx.textAlign = 'center';
+  ctx.fillText(valveOpen ? 'ABIERTA' : 'CERRADA', vx, vy+68);
+
+  // water stream (animated dashes — drawn as dots falling)
+  if(valveOpen){
+    const t = Date.now()/100;
+    const streamTop = vy+14, streamBot = BK.topY;
+    const waterSurfY = BK.botY - (volAgua/MAX_VOL)*BK.h;
+    const streamEnd  = Math.max(waterSurfY, BK.topY+4);
+    for(let d=0; d<6; d++){
+      const progress = ((t*0.08 + d*0.18) % 1);
+      const dy = streamTop + (streamEnd - streamTop)*progress;
+      const alpha = Math.sin(progress*Math.PI);
+      ctx.fillStyle = `rgba(74,158,255,${alpha*0.9})`;
+      ctx.beginPath();
+      ctx.arc(vx, dy, 3, 0, Math.PI*2);
+      ctx.fill();
     }
   }
+}
 
-  // ── Reset ──
-  function resetAll(){
-    volAgua=0;salTotal=0;salBuffer=0;waterOn=false;
-    if(ticker){clearInterval(ticker);ticker=null;}
-    vhW.style.transform='rotate(0deg)'; vlbl.textContent='CERRADA';
-    wstream.classList.remove('on'); sdot.classList.remove('on');
-    saltStream.style.opacity='0';
-    saltBadge.style.display='none'; sbVal.textContent='0';
-    g('salt-grains').innerHTML='';
-    g('ans-den').value=''; g('ans-con').value='';
-    g('fb').textContent=''; g('fb').className='feedback';
-    stxt.textContent='Toca el salero para agregar sal · Toca la válvula para abrir el agua';
-    updateDisplay();
+function drawShaker(){
+  const sx = shaker.x, sy = shaker.y;
+  const w  = shaker.w, h = shaker.h;
+
+  // glow if over beaker
+  if(shaker.overBeaker){
+    ctx.shadowColor = 'rgba(245,240,224,0.4)';
+    ctx.shadowBlur  = 12;
   }
 
-  updateDisplay();
+  // body
+  ctx.fillStyle   = '#e8dfc0';
+  ctx.strokeStyle = '#c8b880';
+  ctx.lineWidth   = 1.5;
+  ctx.beginPath();
+  ctx.roundRect(sx-w/2, sy-h/2+14, w, h-14, 7);
+  ctx.fill(); ctx.stroke();
+
+  // cap
+  ctx.fillStyle   = '#d4c890';
+  ctx.strokeStyle = '#b8a860';
+  ctx.lineWidth   = 1;
+  ctx.beginPath();
+  ctx.roundRect(sx-w/2+3, sy-h/2, w-6, 18, 5);
+  ctx.fill(); ctx.stroke();
+
+  // holes in cap
+  const holes = [-8, 0, 8];
+  holes.forEach(hx => {
+    ctx.fillStyle = '#0f1117';
+    ctx.beginPath();
+    ctx.arc(sx+hx, sy-h/2+9, 2.2, 0, Math.PI*2);
+    ctx.fill();
+  });
+
+  // label
+  ctx.fillStyle = 'rgba(255,255,255,0.55)';
+  ctx.beginPath();
+  ctx.roundRect(sx-w/2+4, sy-4, w-8, 22, 3);
+  ctx.fill();
+  ctx.fillStyle = '#555';
+  ctx.font = 'bold 9px Space Mono, monospace';
+  ctx.textAlign = 'center';
+  ctx.fillText('SAL', sx, sy+10);
+
+  // salt remaining mini bar
+  const barW = w-8;
+  const pct  = shaker.saltRemaining/300000;
+  ctx.fillStyle = '#c8b880';
+  ctx.beginPath(); ctx.roundRect(sx-barW/2, sy+h/2-16, barW, 6, 3); ctx.fill();
+  ctx.fillStyle = '#f5f0e0';
+  ctx.beginPath(); ctx.roundRect(sx-barW/2, sy+h/2-16, barW*pct, 6, 3); ctx.fill();
+
+  ctx.shadowBlur = 0;
+
+  // "over beaker" indicator
+  if(shaker.overBeaker){
+    ctx.fillStyle = 'rgba(245,240,224,0.18)';
+    ctx.font = '9px Space Mono, monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText('¡agita!', sx, sy+h/2+14);
+  }
+}
+
+function drawGrains(){
+  // water surface y in canvas coords
+  const fillH      = (volAgua/MAX_VOL) * BK.h;
+  const waterSurfY = BK.botY - fillH;
+  const floorY     = BK.botY - 4; // beaker bottom
+
+  grains = grains.filter(g => {
+    g.x  += g.vx;
+    g.y  += g.vy;
+    g.vy += 0.25; // gravity
+    g.vx *= 0.97;
+
+    // stop grain at water surface (or floor if no water)
+    const stopY = volAgua > 0 ? waterSurfY : floorY;
+    if(g.y >= stopY){
+      g.life = 0; // remove once it hits surface
+      return false;
+    }
+
+    g.life -= 0.022;
+    if(g.life <= 0) return false;
+    ctx.globalAlpha = g.life;
+    ctx.fillStyle   = g.color;
+    ctx.beginPath();
+    ctx.arc(g.x, g.y, g.r, 0, Math.PI*2);
+    ctx.fill();
+    ctx.globalAlpha = 1;
+    return true;
+  });
+}
+
+function drawInstructions(){
+  // shaker home label
+  if(!shaker.dragging && shaker.x === shaker.homeX && shaker.y === shaker.homeY){
+    ctx.fillStyle = COL.muted;
+    ctx.font = '9px Space Mono, monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText('← arrastra', shaker.homeX+50, shaker.homeY);
+  }
+}
+
+// ─────────────────────────────────────────────
+//  MAIN RENDER LOOP
+// ─────────────────────────────────────────────
+function render(){
+  ctx.clearRect(0, 0, VW, VH);
+
+  // background
+  ctx.fillStyle = '#0f1117';
+  ctx.fillRect(0, 0, VW, VH);
+
+  drawBeaker();
+  drawScale();
+  drawValve();
+  drawGrains();
+  drawShaker();
+  drawInstructions();
+
+  requestAnimationFrame(render);
+}
+render();
+
+// ─────────────────────────────────────────────
+//  ANSWERS
+// ─────────────────────────────────────────────
+function checkAnswers(){
+  const rawD = document.getElementById('ans-den').value.trim().replace(',','.');
+  const rawC = document.getElementById('ans-con').value.trim().replace(',','.');
+  const fb   = document.getElementById('fb');
+  if(volAgua <= 0){ fb.textContent='Agrega agua primero.'; fb.className='feedback err'; return; }
+  if(!rawD||!rawC){ fb.textContent='Completa ambos campos.'; fb.className='feedback err'; return; }
+  const gD = parseFloat(rawD), gC = parseFloat(rawC);
+  const rD = densidad(), rC = concentracion();
+  const okD = Math.abs(gD-rD)/Math.max(rD,0.001) < 0.05;
+  const okC = rC===0 ? gC===0 : Math.abs(gC-rC)/rC < 0.05;
+  if(okD && okC){
+    fb.textContent = `✓ ¡Correcto! ρ = ${fmt(rD,4)} g/mL · C = ${fmt(rC,1)} g/L`;
+    fb.className = 'feedback ok';
+  } else {
+    let msg = '';
+    if(!okD) msg += `Densidad correcta: ${fmt(rD,4)} g/mL. `;
+    if(!okC) msg += `Concentración correcta: ${fmt(rC,2)} g/L.`;
+    fb.textContent = 'Revisa → '+msg; fb.className='feedback err';
+  }
+}
+
+function resetAll(){
+  volAgua=0; salTotal=0; shaker.saltRemaining=300000;
+  shaker.x=shaker.homeX; shaker.y=shaker.homeY;
+  shaker.dragging=false; shaker.overBeaker=false;
+  valveOpen=false; waterOn=false; grains=[];
+  if(ticker){ clearInterval(ticker); ticker=null; }
+  document.getElementById('ans-den').value='';
+  document.getElementById('ans-con').value='';
+  document.getElementById('fb').textContent='';
+  document.getElementById('fb').className='feedback';
+  document.getElementById('status').textContent='Arrastra el salero sobre el recipiente y agítalo · Toca la válvula para el agua';
+  updateMetrics();
+}
+
+updateMetrics();
 </script>
 </body>
 </html>
