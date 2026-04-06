@@ -88,8 +88,8 @@
 
   <div class="hint-box">
     <strong>Fórmulas:</strong><br>
-    Densidad ρ = m<sub>solución</sub> / V &nbsp;[g/mL]<br>
-    Concentración C = m<sub>sal</sub> / V × 1000 &nbsp;[g/L]<br>
+    ρ = m<sub>solución</sub> / V <br>
+    C = m<sub>sal</sub> / V<br>
     <span style="color:var(--muted);font-size:10px;">* Asumimos que la sal no cambia el volumen (solución diluida)</span>
   </div>
 
@@ -98,8 +98,8 @@
     <div class="az-grid">
       <div class="az-field">
         <label>Densidad de la solución</label>
-        <input type="text" id="ans-den" inputmode="decimal" placeholder="ej. 1,05"/>
-        <div class="unit">g/mL</div>
+        <input type="text" id="ans-den" inputmode="decimal" placeholder="ej. 1050"/>
+        <div class="unit">g/L</div>
       </div>
       <div class="az-field">
         <label>Concentración de sal</label>
@@ -129,7 +129,7 @@ canvas.height = VH;
 // ─────────────────────────────────────────────
 //  PHYSICS / STATE
 // ─────────────────────────────────────────────
-const WATER_RATE  = 8.0;  // mL/s
+const WATER_RATE  = 24.0;  // mL/s
 const TICK_MS     = 80;
 const MAX_VOL     = 500;  // mL
 
@@ -182,7 +182,7 @@ let shakeVel   = 0;
 function fmt(n, d=1){ return n.toFixed(d).replace('.', ','); }
 function masaSalG(){ return salTotal / 1000; }                                    // g
 function masaTotal(){ return volAgua * 1.0 + masaSalG(); }                        // g
-function densidad(){ return volAgua > 0 ? masaTotal() / volAgua : 0; }            // g/mL
+function densidad(){ return volAgua > 0 ? masaTotal() / volAgua * 1000 : 0; }       // g/L
 function concentracion(){ return volAgua > 0 ? (masaSalG() / volAgua) * 1000 : 0; } // g/L
 
 function isOverBeaker(x, y){
@@ -293,46 +293,43 @@ function isTouchOnValve(x, y){
 function onStart(e){
   const p = canvasPoint(e);
   if(isTouchOnValve(p.x, p.y)){
-    e.preventDefault();
-    toggleValve();
-    return;
+    e.preventDefault(); toggleValve(); return;
+  }
+  if(isTouchOnMag(p.x, p.y) && !shaker.dragging){
+    e.preventDefault(); MAG.dragging = true; return;
   }
   if(isTouchOnShaker(p.x, p.y)){
     e.preventDefault();
     shaker.dragging = true;
     lastShakeX = p.x; lastShakeY = p.y; shakeVel = 0;
   }
-  // if not touching shaker or valve, don't preventDefault → scroll works
 }
 
 function onMove(e){
-  if(!shaker.dragging) return;
+  if(!shaker.dragging && !MAG.dragging) return;
   e.preventDefault();
   const p = canvasPoint(e);
 
+  if(MAG.dragging){
+    MAG.x = p.x; MAG.y = p.y; return;
+  }
+
   const dx = p.x - lastShakeX;
   const dy = p.y - lastShakeY;
-  // shake velocity = how much the finger moved suddenly
   const moved = Math.sqrt(dx*dx + dy*dy);
   shakeVel = moved;
-
-  shaker.x += dx;
-  shaker.y += dy;
+  shaker.x += dx; shaker.y += dy;
   lastShakeX = p.x; lastShakeY = p.y;
-
   shaker.overBeaker = isShakerOverBeaker();
-
-  // Pour salt only when shaker is clearly over beaker AND moving fast enough
   if(shaker.overBeaker && shakeVel > 10){
-    const amount = (shakeVel - 10) * 0.5; // positive, proportional to extra velocity
+    const amount = (shakeVel - 10) * 0.5;
     pourSalt(amount);
   }
 }
 
 function onEnd(e){
-  if(shaker.dragging) e.preventDefault();
-  shaker.dragging = false;
-  shakeVel = 0;
+  if(shaker.dragging || MAG.dragging) e.preventDefault();
+  shaker.dragging = false; MAG.dragging = false; shakeVel = 0;
 }
 
 canvas.addEventListener('touchstart', onStart, {passive:false});
@@ -408,6 +405,7 @@ function drawBeaker(){
     const lblY = Math.max(fillY + 18, 200);
     ctx.fillText(fmt(volAgua,0)+' mL', BK.centerX(), lblY);
   }
+
 
   // beaker outline (trapezoid)
   ctx.strokeStyle = COL.border;
@@ -545,60 +543,57 @@ function drawShaker(){
   const sx = shaker.x, sy = shaker.y;
   const w  = shaker.w, h = shaker.h;
 
-  // glow if over beaker
   if(shaker.overBeaker){
     ctx.shadowColor = 'rgba(245,240,224,0.4)';
     ctx.shadowBlur  = 12;
   }
 
-  // body
+  // body (upper part)
   ctx.fillStyle   = '#e8dfc0';
   ctx.strokeStyle = '#c8b880';
   ctx.lineWidth   = 1.5;
   ctx.beginPath();
-  ctx.roundRect(sx-w/2, sy-h/2+14, w, h-14, 7);
+  ctx.roundRect(sx-w/2, sy-h/2, w, h-14, 7);
   ctx.fill(); ctx.stroke();
 
-  // cap
+  // cap with holes at BOTTOM
   ctx.fillStyle   = '#d4c890';
   ctx.strokeStyle = '#b8a860';
   ctx.lineWidth   = 1;
   ctx.beginPath();
-  ctx.roundRect(sx-w/2+3, sy-h/2, w-6, 18, 5);
+  ctx.roundRect(sx-w/2+3, sy+h/2-18, w-6, 18, 5);
   ctx.fill(); ctx.stroke();
 
-  // holes in cap
-  const holes = [-8, 0, 8];
-  holes.forEach(hx => {
+  // holes in cap (bottom)
+  [-8, 0, 8].forEach(hx => {
     ctx.fillStyle = '#0f1117';
     ctx.beginPath();
-    ctx.arc(sx+hx, sy-h/2+9, 2.2, 0, Math.PI*2);
+    ctx.arc(sx+hx, sy+h/2-9, 2.2, 0, Math.PI*2);
     ctx.fill();
   });
 
   // label
   ctx.fillStyle = 'rgba(255,255,255,0.55)';
   ctx.beginPath();
-  ctx.roundRect(sx-w/2+4, sy-4, w-8, 22, 3);
+  ctx.roundRect(sx-w/2+4, sy-12, w-8, 22, 3);
   ctx.fill();
   ctx.fillStyle = '#555';
   ctx.font = 'bold 9px Space Mono, monospace';
   ctx.textAlign = 'center';
-  ctx.fillText('SAL', sx, sy+10);
+  ctx.fillText('SAL', sx, sy+4);
 
-  // salt remaining mini bar
+  // salt remaining mini bar (at top)
   const barW = w-8;
   const pct  = shaker.saltRemaining/300000;
   ctx.fillStyle = '#c8b880';
-  ctx.beginPath(); ctx.roundRect(sx-barW/2, sy+h/2-16, barW, 6, 3); ctx.fill();
+  ctx.beginPath(); ctx.roundRect(sx-barW/2, sy-h/2+6, barW, 6, 3); ctx.fill();
   ctx.fillStyle = '#f5f0e0';
-  ctx.beginPath(); ctx.roundRect(sx-barW/2, sy+h/2-16, barW*pct, 6, 3); ctx.fill();
+  ctx.beginPath(); ctx.roundRect(sx-barW/2, sy-h/2+6, barW*pct, 6, 3); ctx.fill();
 
   ctx.shadowBlur = 0;
 
-  // "over beaker" indicator
   if(shaker.overBeaker){
-    ctx.fillStyle = 'rgba(245,240,224,0.18)';
+    ctx.fillStyle = 'rgba(245,240,224,0.7)';
     ctx.font = '9px Space Mono, monospace';
     ctx.textAlign = 'center';
     ctx.fillText('¡agita!', sx, sy+h/2+14);
@@ -636,6 +631,246 @@ function drawGrains(){
   });
 }
 
+// ─────────────────────────────────────────────
+//  MAGNIFIER
+// ─────────────────────────────────────────────
+const MAG = {
+  x: 60, y: 390,       // position (center)
+  homeX: 60, homeY: 390,
+  r: 52,               // radius of lens
+  dragging: false,
+};
+
+function isTouchOnMag(x, y){
+  const dx = x - MAG.x, dy = y - MAG.y;
+  return Math.sqrt(dx*dx+dy*dy) < MAG.r + 10;
+}
+
+// Molecule rendering helpers
+function drawWaterMolecule(cx, cy, angle, alpha){
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  ctx.translate(cx, cy);
+  ctx.rotate(angle);
+  // O atom (red)
+  ctx.fillStyle = '#e05050';
+  ctx.beginPath(); ctx.arc(0, 0, 4.5, 0, Math.PI*2); ctx.fill();
+  // H atoms (white), bent geometry ~104°
+  const hDist = 7.5, hAngle = 0.9; // radians
+  [hAngle, -hAngle].forEach(a => {
+    const hx = Math.cos(a)*hDist, hy = Math.sin(a)*hDist;
+    // bond
+    ctx.strokeStyle = 'rgba(220,220,220,0.6)';
+    ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(hx,hy); ctx.stroke();
+    // H
+    ctx.fillStyle = '#ddd';
+    ctx.beginPath(); ctx.arc(hx, hy, 2.8, 0, Math.PI*2); ctx.fill();
+  });
+  ctx.restore();
+}
+
+function drawNaIon(cx, cy, alpha){
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  // Na+ — purple circle with +
+  ctx.fillStyle = '#9b59b6';
+  ctx.beginPath(); ctx.arc(cx, cy, 5.5, 0, Math.PI*2); ctx.fill();
+  ctx.fillStyle = '#fff';
+  ctx.font = 'bold 7px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('Na⁺', cx, cy);
+  ctx.restore();
+}
+
+function drawClIon(cx, cy, alpha){
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  // Cl- — green circle with -
+  ctx.fillStyle = '#27ae60';
+  ctx.beginPath(); ctx.arc(cx, cy, 5.5, 0, Math.PI*2); ctx.fill();
+  ctx.fillStyle = '#fff';
+  ctx.font = 'bold 7px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('Cl⁻', cx, cy);
+  ctx.restore();
+}
+
+function drawMagnifier(){
+  const mx = MAG.x, my = MAG.y, mr = MAG.r;
+  const hasWater = volAgua > 0;
+  const hasSalt  = salTotal > 0;
+  const conc     = concentracion(); // g/L
+
+  // Is the magnifier centered over liquid inside beaker?
+  const overLiquid = hasWater && isOverBeaker(mx, my) &&
+                     my > (BK.botY - (volAgua/MAX_VOL)*BK.h);
+
+  // ── lens background ──
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(mx, my, mr, 0, Math.PI*2);
+  ctx.clip();
+
+  if(overLiquid){
+    // liquid background color (slightly more saturated than beaker)
+    ctx.fillStyle = hasSalt ? 'rgba(30,60,120,0.92)' : 'rgba(20,50,110,0.92)';
+    ctx.fillRect(mx-mr, my-mr, mr*2, mr*2);
+
+    // ── WATER MOLECULES ──
+    // Use seeded positions so they don't jitter
+    const seed = 42;
+    const waterPositions = [
+      {x:-20,y:-18,a:0.3},{x:10,y:-30,a:1.1},{x:32,y:-10,a:2.4},
+      {x:25,y:18,a:0.8},{x:-5,y:25,a:3.2},{x:-35,y:10,a:1.8},
+      {x:-30,y:-32,a:2.1},{x:15,y:8,a:0.5},{x:-15,y:35,a:1.5},
+    ];
+
+    // animated slow drift
+    const t = Date.now()/3000;
+    waterPositions.forEach((pos, i) => {
+      const drift = Math.sin(t + i*0.7) * 3;
+      const driftY = Math.cos(t*0.8 + i*0.5) * 2;
+      const wAlpha = 0.85 + Math.sin(t+i)*0.1;
+
+      if(hasSalt && conc > 5){
+        // With enough salt: water molecules orient around ions
+        // show them pointing toward nearest ion (simplified: just vary angle more)
+        drawWaterMolecule(mx + pos.x + drift, my + pos.y + driftY,
+                          pos.a + Math.sin(t*0.5+i)*0.3, wAlpha);
+      } else {
+        // Pure water: random orientations, free movement
+        drawWaterMolecule(mx + pos.x + drift*1.5, my + pos.y + driftY*1.5,
+                          pos.a + t*0.1 + i*0.4, wAlpha);
+      }
+    });
+
+    // ── IONS (appear as salt is added) ──
+    if(hasSalt){
+      const ionAlpha = Math.min(conc / 10, 0.95);
+      const nIonPairs = Math.min(Math.floor(conc/3) + 1, 8);
+
+      const ionPositions = [
+        {na:{x:-3,y:-5},   cl:{x:14,y:6}},
+        {na:{x:-30,y:22},  cl:{x:-14,y:12}},
+        {na:{x:22,y:-28},  cl:{x:36,y:-16}},
+        {na:{x:-18,y:-36}, cl:{x:-4,y:-26}},
+        {na:{x:36,y:18},   cl:{x:24,y:30}},
+        {na:{x:-38,y:-10}, cl:{x:-26,y:2}},
+        {na:{x:10,y:36},   cl:{x:26,y:28}},
+        {na:{x:-10,y:10},  cl:{x:4,y:22}},
+      ];
+
+      for(let i=0; i<nIonPairs; i++){
+        const ip = ionPositions[i];
+        const ionDrift = Math.sin(Date.now()/2500 + i*1.1) * 2;
+        const ionDriftY = Math.cos(Date.now()/2800 + i*0.9) * 2;
+
+        // hydration shell hint (faint ring around ion)
+        ctx.globalAlpha = ionAlpha * 0.25;
+        ctx.strokeStyle = '#4a9eff';
+        ctx.lineWidth = 1;
+        ctx.setLineDash([2,3]);
+        ctx.beginPath();
+        ctx.arc(mx+ip.na.x+ionDrift, my+ip.na.y+ionDriftY, 16, 0, Math.PI*2);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.arc(mx+ip.cl.x+ionDrift, my+ip.cl.y+ionDriftY, 16, 0, Math.PI*2);
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        drawNaIon(mx+ip.na.x+ionDrift, my+ip.na.y+ionDriftY, ionAlpha);
+        drawClIon(mx+ip.cl.x+ionDrift, my+ip.cl.y+ionDriftY, ionAlpha);
+      }
+    }
+
+  } else if(hasWater && !overLiquid){
+    // over empty part of beaker or outside — show empty hint
+    ctx.fillStyle = 'rgba(15,17,23,0.9)';
+    ctx.fillRect(mx-mr, my-mr, mr*2, mr*2);
+    ctx.fillStyle = 'rgba(74,158,255,0.3)';
+    ctx.font = '10px Space Mono, monospace';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('↓ mueve sobre', mx, my-8);
+    ctx.fillText('el líquido', mx, my+8);
+  } else {
+    // no water yet
+    ctx.fillStyle = 'rgba(15,17,23,0.9)';
+    ctx.fillRect(mx-mr, my-mr, mr*2, mr*2);
+    ctx.fillStyle = COL.muted;
+    ctx.font = '10px Space Mono, monospace';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('Agrega agua', mx, my-6);
+    ctx.fillText('para ver', mx, my+8);
+  }
+
+  ctx.restore(); // end clip
+
+  // ── lens glass effect (border + shine) ──
+  // outer ring
+  ctx.strokeStyle = MAG.dragging ? 'rgba(56,217,169,0.9)' : 'rgba(180,200,230,0.6)';
+  ctx.lineWidth = 2.5;
+  ctx.beginPath(); ctx.arc(mx, my, mr, 0, Math.PI*2); ctx.stroke();
+
+  // inner shine arc
+  ctx.strokeStyle = 'rgba(255,255,255,0.18)';
+  ctx.lineWidth = 4;
+  ctx.beginPath();
+  ctx.arc(mx - mr*0.2, my - mr*0.2, mr*0.55, -2.4, -1.0);
+  ctx.stroke();
+
+  // handle
+  const handleAngle = Math.PI * 0.78;
+  const hx1 = mx + Math.cos(handleAngle) * mr;
+  const hy1 = my + Math.sin(handleAngle) * mr;
+  const hx2 = mx + Math.cos(handleAngle) * (mr + 22);
+  const hy2 = my + Math.sin(handleAngle) * (mr + 22);
+  ctx.strokeStyle = 'rgba(180,200,230,0.7)';
+  ctx.lineWidth = 6;
+  ctx.lineCap = 'round';
+  ctx.beginPath(); ctx.moveTo(hx1, hy1); ctx.lineTo(hx2, hy2); ctx.stroke();
+  ctx.lineCap = 'butt';
+
+  // label below
+  ctx.fillStyle = COL.muted;
+  ctx.font = '8px Space Mono, monospace';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'top';
+  if(!MAG.dragging){
+    ctx.fillText('arrastra la lupa', mx, my + mr + 5);
+  }
+
+  // legend when over liquid
+  if(overLiquid){
+    const lgx = mx + mr + 10, lgy = my - 30;
+    // Na+
+    ctx.globalAlpha = 0.9;
+    ctx.fillStyle = '#9b59b6';
+    ctx.beginPath(); ctx.arc(lgx+5, lgy, 5, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = COL.muted;
+    ctx.font = '8px Space Mono, monospace';
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('Na⁺', lgx+13, lgy);
+    // Cl-
+    ctx.fillStyle = '#27ae60';
+    ctx.beginPath(); ctx.arc(lgx+5, lgy+14, 5, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = COL.muted;
+    ctx.fillText('Cl⁻', lgx+13, lgy+14);
+    // H2O
+    ctx.fillStyle = '#e05050';
+    ctx.beginPath(); ctx.arc(lgx+5, lgy+28, 4, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = COL.muted;
+    ctx.fillText('H₂O', lgx+13, lgy+28);
+    ctx.globalAlpha = 1;
+  }
+}
+
+
 function drawInstructions(){
   // shaker home label
   if(!shaker.dragging && shaker.x === shaker.homeX && shaker.y === shaker.homeY){
@@ -661,6 +896,7 @@ function render(){
   drawValve();
   drawGrains();
   drawShaker();
+  drawMagnifier();
   drawInstructions();
 
   requestAnimationFrame(render);
@@ -681,17 +917,18 @@ function checkAnswers(){
   const okD = Math.abs(gD-rD)/Math.max(rD,0.001) < 0.05;
   const okC = rC===0 ? gC===0 : Math.abs(gC-rC)/rC < 0.05;
   if(okD && okC){
-    fb.textContent = `✓ ¡Correcto! ρ = ${fmt(rD,4)} g/mL · C = ${fmt(rC,1)} g/L`;
+    fb.textContent = `✓ ¡Correcto! ρ = ${fmt(rD,1)} g/L · C = ${fmt(rC,1)} g/L`;
     fb.className = 'feedback ok';
   } else {
     let msg = '';
-    if(!okD) msg += `Densidad correcta: ${fmt(rD,4)} g/mL. `;
+    if(!okD) msg += `Densidad correcta: ${fmt(rD,1)} g/L. `;
     if(!okC) msg += `Concentración correcta: ${fmt(rC,2)} g/L.`;
     fb.textContent = 'Revisa → '+msg; fb.className='feedback err';
   }
 }
 
 function resetAll(){
+  MAG.x = MAG.homeX; MAG.y = MAG.homeY; MAG.dragging = false;
   volAgua=0; salTotal=0; shaker.saltRemaining=300000;
   shaker.x=shaker.homeX; shaker.y=shaker.homeY;
   shaker.dragging=false; shaker.overBeaker=false;
