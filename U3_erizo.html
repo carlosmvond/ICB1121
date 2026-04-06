@@ -717,17 +717,20 @@ function stopPour(){ if(pourTicker){clearInterval(pourTicker);pourTicker=null;} 
 function canvasPoint(e){
   const rect=canvas.getBoundingClientRect();
   const sx=VW/rect.width, sy=VH/rect.height;
-  const src=e.touches?e.touches[0]:e;
+  const src=e.changedTouches?e.changedTouches[0]:e.touches?e.touches[0]:e;
   return {x:(src.clientX-rect.left)*sx, y:(src.clientY-rect.top)*sy};
 }
 function hitJug(p,bk){ return Math.abs(p.x-bk.x)<50&&Math.abs(p.y-bk.y)<65; }
 
 function onStart(e){
   const p=canvasPoint(e);
+  // urchin has priority
+  if(isTouchOnIdleUrchin(p.x,p.y)) return;
   beakers.forEach(bk=>{ if(hitJug(p,bk)){ e.preventDefault(); bk.dragging=true; } });
 }
 
 function onMove(e){
+  if(urchinDragging) return;
   if(!beakers.some(b=>b.dragging)) return;
   e.preventDefault();
   const p=canvasPoint(e);
@@ -750,6 +753,7 @@ function onMove(e){
 }
 
 function onEnd(e){
+  if(urchinDragging) return;
   beakers.forEach(bk=>{
     if(bk.dragging){
       e.preventDefault();
