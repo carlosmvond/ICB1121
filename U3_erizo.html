@@ -1,0 +1,850 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+<title>Acuario del Erizo</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@400;500;600&display=swap');
+  :root{
+    --bg:#08101e;--surface:#0f1a2e;--surface2:#162236;--border:#1e3050;
+    --ok:#38d9a9;--warn:#f7a94a;--danger:#ff6b6b;--blue:#4a9eff;
+    --text:#e8ecf4;--muted:#7a8099;--dim:#2a3550;
+    --c1:#f7a94a;--c2:#4a9eff;
+    --mono:'Space Mono',monospace;--body:'DM Sans',sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+  body{background:var(--bg);color:var(--text);font-family:var(--body);
+       min-height:100vh;display:flex;flex-direction:column;align-items:center;overflow-x:hidden;}
+  header{width:100%;padding:.8rem 1.2rem .5rem;border-bottom:1px solid var(--border);background:var(--surface);}
+  header h1{font-family:var(--mono);font-size:12px;color:var(--ok);letter-spacing:.08em;text-transform:uppercase;}
+  header p{font-size:11px;color:var(--muted);margin-top:2px;}
+  .main{width:100%;max-width:480px;padding:.8rem .8rem 2rem;display:flex;flex-direction:column;gap:.8rem;}
+
+  .problem{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:.8rem 1rem;}
+  .problem h2{font-size:11px;font-weight:700;color:var(--ok);font-family:var(--mono);margin-bottom:5px;text-transform:uppercase;letter-spacing:.06em;}
+  .problem p{font-size:12px;color:var(--muted);line-height:1.6;}
+  .problem strong{color:var(--text);}
+  .goal-badge{display:inline-block;background:rgba(56,217,169,.12);border:1px solid rgba(56,217,169,.3);
+              border-radius:8px;padding:4px 10px;font-family:var(--mono);font-size:11px;color:var(--ok);margin-top:6px;}
+
+  .sim{background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden;}
+  #simCanvas{display:block;width:100%;touch-action:none;}
+
+  .metrics{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;}
+  .metric{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:7px 10px;}
+  .metric .ml{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px;}
+  .metric .mv{font-family:var(--mono);font-size:15px;font-weight:700;line-height:1;}
+  .metric .mu{font-size:9px;color:var(--muted);}
+
+  .status{font-family:var(--mono);font-size:10px;color:var(--muted);text-align:center;min-height:16px;padding:0 1rem;}
+
+  .urchin-zone{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:.8rem 1rem;text-align:center;}
+  .urchin-zone p{font-size:12px;color:var(--muted);margin-bottom:8px;}
+  .btn-urchin{width:100%;padding:11px;background:rgba(56,217,169,.1);border:1px solid var(--ok);
+              border-radius:9px;color:var(--ok);font-family:var(--body);font-size:13px;font-weight:600;cursor:pointer;}
+  .btn-urchin:disabled{opacity:.3;cursor:not-allowed;}
+  .btn-urchin:active{background:rgba(56,217,169,.2);}
+
+  .answer-zone{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:.9rem;}
+  .az-h{font-size:12px;font-weight:600;color:var(--text);margin-bottom:8px;}
+  .az-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;}
+  .az-field label{font-size:10px;color:var(--muted);display:block;margin-bottom:3px;}
+  .az-field input{width:100%;padding:8px 10px;background:var(--surface2);border:1px solid var(--border);
+                  border-radius:7px;color:var(--text);font-family:var(--mono);font-size:14px;outline:none;transition:border-color .2s;}
+  .az-field input:focus{border-color:var(--ok);}
+  .az-field .unit{font-size:9px;color:var(--muted);margin-top:2px;}
+  .btn-check{width:100%;padding:10px;background:rgba(56,217,169,.1);border:1px solid var(--ok);
+             border-radius:8px;color:var(--ok);font-family:var(--body);font-size:13px;font-weight:600;cursor:pointer;}
+  .btn-check:active{background:rgba(56,217,169,.2);}
+  .feedback{margin-top:7px;font-size:12px;font-weight:500;min-height:18px;line-height:1.6;}
+  .feedback.ok{color:var(--ok);} .feedback.err{color:var(--danger);} .feedback.warn{color:var(--warn);}
+  .btn-reset{width:100%;padding:10px;background:transparent;border:1px solid var(--border);
+             border-radius:10px;color:var(--muted);font-family:var(--body);font-size:12px;cursor:pointer;}
+</style>
+</head>
+<body>
+<header>
+  <h1>El Acuario del Erizo</h1>
+  <p>Prepara el agua correcta para que el erizo de mar pueda sobrevivir</p>
+</header>
+
+<div class="main">
+  <div class="problem">
+    <h2>Problema</h2>
+    <p>El erizo de mar necesita agua con concentración de <strong>35 g/L</strong> de sal.<br>
+    Tienes dos soluciones:<br>
+    <strong style="color:var(--c1)">Jarra A:</strong> C = 75 g/L &nbsp;·&nbsp;
+    <strong style="color:var(--c2)">Jarra B:</strong> C = 15 g/L<br><br>
+    Llena el acuario con exactamente <strong>3000 mL</strong>. ¿Cuánto tomas de cada jarra?</p>
+    <div class="goal-badge">Meta: 3000 mL · C = 35 g/L</div>
+  </div>
+
+  <div class="sim"><canvas id="simCanvas"></canvas></div>
+
+  <div class="metrics">
+    <div class="metric">
+      <div class="ml">Vol. acuario</div>
+      <div class="mv" style="color:var(--ok)"><span id="m-vol">0</span><span class="mu"> mL</span></div>
+    </div>
+    <div class="metric">
+      <div class="ml">Concentración</div>
+      <div class="mv" style="color:var(--warn)"><span id="m-con">—</span><span class="mu"> g/L</span></div>
+    </div>
+    <div class="metric">
+      <div class="ml">Meta</div>
+      <div class="mv" style="color:var(--ok)">35<span class="mu"> g/L</span></div>
+    </div>
+  </div>
+
+  <!-- Volúmenes vertidos por jarra -->
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+    <div class="metric">
+      <div class="ml" style="color:var(--c1)">Jarra A vertida</div>
+      <div class="mv" style="color:var(--c1)"><span id="m-v1">0</span><span class="mu"> mL</span></div>
+    </div>
+    <div class="metric">
+      <div class="ml" style="color:var(--c2)">Jarra B vertida</div>
+      <div class="mv" style="color:var(--c2)"><span id="m-v2">0</span><span class="mu"> mL</span></div>
+    </div>
+  </div>
+
+  <div class="status" id="status">Arrastra las jarras hacia el acuario · o ingresa volúmenes abajo</div>
+
+  <!-- Ingresar volúmenes directamente -->
+  <div class="answer-zone">
+    <div class="az-h">Ingresa volúmenes y ejecuta la mezcla automáticamente</div>
+    <div class="az-grid">
+      <div class="az-field">
+        <label style="color:var(--c1)">Jarra A (75 g/L)</label>
+        <input type="text" id="inp-v1" inputmode="decimal" placeholder="ej. 1000"/>
+        <div class="unit">mL</div>
+      </div>
+      <div class="az-field">
+        <label style="color:var(--c2)">Jarra B (15 g/L)</label>
+        <input type="text" id="inp-v2" inputmode="decimal" placeholder="ej. 2000"/>
+        <div class="unit">mL</div>
+      </div>
+    </div>
+    <button class="btn-check" id="btn-exec" onclick="executeMix()">▶ Ejecutar mezcla</button>
+    <div class="feedback" id="fb-exec"></div>
+  </div>
+
+  <button class="btn-reset" onclick="resetAll()">↺ Reiniciar</button>
+</div>
+
+<script>
+const canvas = document.getElementById('simCanvas');
+const ctx    = canvas.getContext('2d');
+const VW=480, VH=400;
+canvas.width=VW; canvas.height=VH;
+canvas.style.width='100%'; canvas.style.height='auto';
+
+// ── Constants ──
+const C1=75, C2=15;
+const MAX1=3000, MAX2=3000, MAXAQ=3000;
+const GOAL_C=35, GOAL_TOL=2; // ±2 g/L tolerance
+
+// ── State ──
+let v1poured=0, v2poured=0;
+let urchinState='none'; // 'none' | 'alive' | 'explode' | 'shrink'
+let urchinAnim=0;
+let explodeParticles=[];
+let urchinX=240, urchinY=0; // position in aquarium
+let urchinVisible=false;
+let pourTicker=null;
+
+const beakers=[
+  {key:'A', x:72, y:155, homeX:72, homeY:155, w:72, h:110, angle:0, dragging:false, poured:0,
+   color:'rgba(247,169,74,0.8)', bright:'rgba(255,200,100,0.95)', conc:C1, maxVol:MAX1},
+  {key:'B', x:408, y:155, homeX:408, homeY:155, w:72, h:110, angle:0, dragging:false, poured:0,
+   color:'rgba(74,158,255,0.8)', bright:'rgba(120,190,255,0.95)', conc:C2, maxVol:MAX2},
+];
+
+// Aquarium geometry
+const AQ={x:80, y:230, w:320, h:140, get right(){ return this.x+this.w; }, get bot(){ return this.y+this.h; }};
+
+// ── Helpers ──
+const fmt=(n,d=1)=>n.toFixed(d).replace('.',',');
+const mixVol=()=>v1poured+v2poured;
+const mixConc=()=>mixVol()>0?(v1poured*C1/1000+v2poured*C2/1000)/(mixVol()/1000):0;
+const atGoal=()=>Math.abs(mixConc()-GOAL_C)<=GOAL_TOL && Math.abs(mixVol()-MAXAQ)<=60;
+
+function updateMetrics(){
+  document.getElementById('m-vol').textContent=fmt(mixVol(),0);
+  document.getElementById('m-con').textContent=mixVol()>0?fmt(mixConc(),1):'—';
+  document.getElementById('m-v1').textContent=fmt(v1poured,0);
+  document.getElementById('m-v2').textContent=fmt(v2poured,0);
+}
+
+// ── Urchin home position (right of aquarium) ──
+const URCHIN_HOME = { x: 448, y: 285 };
+let urchinDragging = false;
+let urchinFloating = false;
+let urchinDragX = URCHIN_HOME.x, urchinDragY = URCHIN_HOME.y;
+let urchinMsg = ''; let urchinMsgTimer = null;
+
+// ── Sharp spine helper ──
+function drawSpine(cx, angle, bodyR, len, color, waveOff){
+  const a = angle + (waveOff||0);
+  const sx = cx + Math.cos(a)*(bodyR+1), sy = Math.sin(a)*(bodyR+1);
+  const mx = cx + Math.cos(a)*(bodyR+len*0.5), my = Math.sin(a)*(bodyR+len*0.5);
+  const ex = cx + Math.cos(a)*(bodyR+len), ey = Math.sin(a)*(bodyR+len);
+  ctx.strokeStyle = color; ctx.lineWidth = 2.5; ctx.lineCap = 'round';
+  ctx.beginPath(); ctx.moveTo(sx,sy); ctx.lineTo(mx,my); ctx.stroke();
+  ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(mx,my); ctx.lineTo(ex,ey); ctx.stroke();
+  ctx.lineCap = 'butt';
+}
+
+function drawIdleUrchin(cx, cy, msg){
+  if(urchinState !== 'none') return;
+  const bodyR = 18;
+  if(msg){
+    const bw=76, bh=22, bx=cx-bw/2, by=cy-bodyR-36;
+    ctx.fillStyle='rgba(255,255,255,0.93)';
+    ctx.beginPath(); ctx.roundRect(bx,by,bw,bh,5); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(cx-6,by+bh); ctx.lineTo(cx+6,by+bh); ctx.lineTo(cx,by+bh+8); ctx.closePath(); ctx.fill();
+    ctx.fillStyle='#222'; ctx.font='bold 9px DM Sans,sans-serif';
+    ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText(msg, cx, by+bh/2); ctx.textBaseline='alphabetic';
+  }
+  if(mixVol()>=2900 && !msg){ ctx.shadowColor='rgba(56,217,169,0.6)'; ctx.shadowBlur=14; }
+  ctx.fillStyle='#8b35b5';
+  ctx.beginPath(); ctx.arc(cx,cy,bodyR,0,Math.PI*2); ctx.fill();
+  ctx.shadowBlur=0;
+  ctx.save(); ctx.translate(cx,cy);
+  for(let i=0;i<16;i++) drawSpine(0,(i/16)*Math.PI*2,bodyR,13,'#5a1590',0);
+  ctx.restore();
+  [-5,5].forEach(ex=>{
+    ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(cx+ex,cy-5,3,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle='#1a0a30'; ctx.beginPath(); ctx.arc(cx+ex+.5,cy-5,1.8,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(cx+ex+1,cy-6,0.7,0,Math.PI*2); ctx.fill();
+  });
+  ctx.strokeStyle='#fff'; ctx.lineWidth=1.5; ctx.lineCap='round';
+  ctx.beginPath(); ctx.arc(cx,cy+2,4,0.2,Math.PI-0.2); ctx.stroke();
+  ctx.lineCap='butt';
+  ctx.fillStyle='rgba(255,255,255,0.35)'; ctx.font='8px Space Mono,monospace'; ctx.textAlign='center';
+  ctx.fillText('erizo', cx, cy+bodyR+14);
+}
+
+function isTouchOnIdleUrchin(x,y){
+  if(urchinState!=='none') return false;
+  return Math.hypot(x-URCHIN_HOME.x, y-URCHIN_HOME.y) < 28;
+}
+
+function urchinStartDrag(e){
+  if(urchinState!=='none') return;
+  const p = canvasPoint(e);
+  if(!isTouchOnIdleUrchin(p.x,p.y)) return;
+  if(mixVol()<2900){
+    urchinMsg='¡Falta agua!';
+    if(urchinMsgTimer) clearTimeout(urchinMsgTimer);
+    urchinMsgTimer=setTimeout(()=>{urchinMsg='';},2000);
+    return;
+  }
+  e.preventDefault();
+  urchinDragging=true; urchinFloating=true;
+  urchinDragX=p.x; urchinDragY=p.y;
+}
+
+function urchinMoveDrag(e){
+  if(!urchinDragging) return;
+  e.preventDefault();
+  const p = canvasPoint(e);
+  urchinDragX=p.x; urchinDragY=p.y;
+}
+
+function urchinEndDrag(e){
+  if(!urchinDragging) return;
+  e.preventDefault();
+  urchinDragging=false; urchinFloating=false;
+  const p = canvasPoint(e);
+  const inAq = p.x>AQ.x&&p.x<AQ.right&&p.y>AQ.y&&p.y<AQ.bot;
+  if(inAq && mixVol()>=2900){
+    urchinX=p.x; urchinY=Math.min(p.y, AQ.bot-35);
+    addUrchin();
+  }
+}
+
+canvas.addEventListener('touchstart', urchinStartDrag, {passive:false});
+canvas.addEventListener('touchmove',  urchinMoveDrag,  {passive:false});
+canvas.addEventListener('touchend',   urchinEndDrag,   {passive:false});
+canvas.addEventListener('mousedown',  urchinStartDrag);
+canvas.addEventListener('mousemove',  urchinMoveDrag);
+canvas.addEventListener('mouseup',    urchinEndDrag);
+
+// ── Execute mix automatically ──
+let autoTicker=null;
+function executeMix(){
+  const r1=parseFloat(document.getElementById('inp-v1').value.replace(',','.'));
+  const r2=parseFloat(document.getElementById('inp-v2').value.replace(',','.'));
+  const fb=document.getElementById('fb-exec');
+  if(isNaN(r1)||isNaN(r2)||r1<0||r2<0){
+    fb.textContent='Ingresa volúmenes válidos en ambos campos.'; fb.className='feedback err'; return;
+  }
+  if(r1+r2>MAXAQ+10){
+    fb.textContent=`V_A+V_B = ${r1+r2} mL supera los 3000 mL del acuario.`; fb.className='feedback warn'; return;
+  }
+  if(r1>MAX1||r2>MAX2){
+    fb.textContent='No hay suficiente líquido en alguna jarra.'; fb.className='feedback err'; return;
+  }
+  fb.textContent=''; fb.className='feedback';
+  // reset poured amounts first
+  v1poured=0; v2poured=0;
+  beakers.forEach(bk=>{bk.poured=0; bk.angle=0;});
+  const target1=r1, target2=r2;
+  // animate: tilt both jugs and fill gradually
+  if(autoTicker) clearInterval(autoTicker);
+  const RATE=30; // mL per tick
+  beakers[0].angle = Math.PI*0.45;
+  beakers[1].angle = -Math.PI*0.45;
+  autoTicker=setInterval(()=>{
+    let done1 = v1poured>=target1;
+    let done2 = v2poured>=target2;
+    if(!done1){
+      const pour=Math.min(RATE, target1-v1poured, MAXAQ-mixVol());
+      v1poured+=pour; beakers[0].poured+=pour;
+    } else { beakers[0].angle=0; }
+    if(!done2){
+      const pour=Math.min(RATE, target2-v2poured, MAXAQ-mixVol());
+      v2poured+=pour; beakers[1].poured+=pour;
+    } else { beakers[1].angle=0; }
+    updateMetrics();
+    if(done1&&done2){ clearInterval(autoTicker); autoTicker=null; }
+  },50);
+  document.getElementById('status').textContent='Vertiendo automáticamente...';
+}
+
+// ── JUG DRAWING ──
+function jugPath(cx,cy,w,h){
+  ctx.beginPath();
+  ctx.moveTo(cx-w/2, cy-h/2);
+  ctx.lineTo(cx+w/2, cy-h/2);
+  ctx.lineTo(cx+w/2*0.92, cy+h/2);
+  ctx.lineTo(cx-w/2*0.92, cy+h/2);
+  ctx.closePath();
+}
+
+function drawSpout(cx,cy,w,h,col,side){
+  ctx.fillStyle=col;
+  ctx.beginPath();
+  ctx.moveTo(cx+side*w/2, cy-h/2);
+  ctx.lineTo(cx+side*(w/2+13), cy-h/2-8);
+  ctx.lineTo(cx+side*(w/2+18), cy-h/2-6);
+  ctx.lineTo(cx+side*(w/2+14), cy-h/2+5);
+  ctx.lineTo(cx+side*w/2, cy-h/2+6);
+  ctx.closePath(); ctx.fill();
+}
+
+function drawHandle(cx,cy,w,h,col,side){
+  ctx.strokeStyle=col; ctx.lineWidth=5; ctx.lineCap='round';
+  ctx.beginPath();
+  ctx.moveTo(cx+side*w/2, cy-h/5);
+  ctx.bezierCurveTo(cx+side*(w/2+26), cy-h/5, cx+side*(w/2+26), cy+h/5, cx+side*w/2, cy+h/5);
+  ctx.stroke(); ctx.lineCap='butt';
+}
+
+function drawGraduations(cx,cy,w,h,maxVol,accentColor){
+  for(let i=1;i<=4;i++){
+    const pct=i/4, y=cy+h/2-pct*h;
+    const isMain=i%2===0||i===4;
+    ctx.strokeStyle=isMain?accentColor:'rgba(180,80,80,0.35)';
+    ctx.lineWidth=isMain?1.2:0.7;
+    ctx.beginPath(); ctx.moveTo(cx-w/2+2,y); ctx.lineTo(cx-w/2+2+(isMain?14:8),y); ctx.stroke();
+    if(isMain){
+      ctx.fillStyle=accentColor; ctx.font='7px Space Mono,monospace'; ctx.textAlign='left';
+      ctx.fillText(Math.round(pct*maxVol)+'', cx-w/2+20, y+3);
+    }
+  }
+}
+
+function drawJugUpright(bk){
+  const {x,y,w,h,poured,maxVol,color,bright,conc,key}=bk;
+  const vol=maxVol-poured;
+  const side=key==='A'?-1:1; // handle side (outer)
+  const spoutSide=key==='A'?1:-1; // spout toward center
+
+  // glass body bg
+  ctx.fillStyle='rgba(255,255,255,0.03)';
+  jugPath(x,y,w,h); ctx.fill();
+
+  // liquid
+  if(vol>0){
+    const frac=Math.min(vol/maxVol,1), fh=frac*h, fy=y+h/2-fh;
+    ctx.save(); jugPath(x,y,w,h); ctx.clip();
+    ctx.fillStyle=color; ctx.fillRect(x-w/2,fy,w,fh);
+    ctx.fillStyle=bright; ctx.fillRect(x-w/2,fy,w,3);
+    ctx.restore();
+  }
+
+  // outline
+  ctx.strokeStyle=bright; ctx.lineWidth=1.8; ctx.lineJoin='round';
+  jugPath(x,y,w,h); ctx.stroke();
+
+  // base
+  ctx.fillStyle=bright;
+  ctx.beginPath(); ctx.roundRect(x-w/2*0.92-2,y+h/2-2,w*0.92+4,6,3); ctx.fill();
+
+  drawGraduations(x,y,w,h,maxVol,'rgba(200,80,80,0.6)');
+  drawSpout(x,y,w,h,bright,spoutSide);
+  drawHandle(x,y,w,h,bright,side);
+
+  // glass highlight
+  ctx.strokeStyle='rgba(255,255,255,0.1)'; ctx.lineWidth=3; ctx.lineCap='round';
+  ctx.beginPath(); ctx.moveTo(x-w/2+5,y-h/2+10); ctx.lineTo(x-w/2+5,y+h/2-10); ctx.stroke();
+  ctx.lineCap='butt';
+
+  // labels
+  ctx.fillStyle=bright; ctx.font='bold 9px Space Mono,monospace'; ctx.textAlign='center';
+  ctx.fillText(`Jarra ${key}`, x, y-h/2-18);
+  ctx.fillStyle='rgba(255,255,255,0.4)'; ctx.font='8px Space Mono,monospace';
+  ctx.fillText(`C=${conc} g/L`, x, y-h/2-7);
+  if(vol>0){
+    ctx.fillStyle='rgba(255,255,255,0.7)'; ctx.font='bold 9px Space Mono,monospace';
+    ctx.fillText(fmt(vol,0)+' mL', x, y+6);
+  }
+}
+
+function drawJugTilted(bk){
+  const {x,y,w,h,poured,maxVol,color,bright,conc,key,angle}=bk;
+  const vol=maxVol-poured;
+  const spoutSide=key==='A'?1:-1;
+  const handleSide=key==='A'?-1:1;
+
+  ctx.save();
+  ctx.translate(x,y); ctx.rotate(angle);
+
+  ctx.fillStyle='rgba(255,255,255,0.03)';
+  jugPath(0,0,w,h); ctx.fill();
+
+  if(vol>0){
+    const frac=Math.min(vol/maxVol,1), fh=frac*h, fy=h/2-fh;
+    ctx.save(); jugPath(0,0,w,h); ctx.clip();
+    ctx.fillStyle=color; ctx.fillRect(-w/2,fy,w,fh);
+    ctx.fillStyle=bright; ctx.fillRect(-w/2,fy,w,3);
+    ctx.restore();
+  }
+
+  const outCol=bk.dragging?'rgba(255,255,255,0.7)':bright;
+  ctx.strokeStyle=outCol; ctx.lineWidth=bk.dragging?2.5:1.8; ctx.lineJoin='round';
+  jugPath(0,0,w,h); ctx.stroke();
+
+  ctx.fillStyle=outCol;
+  ctx.beginPath(); ctx.roundRect(-w/2*0.92-2,h/2-2,w*0.92+4,6,3); ctx.fill();
+  drawSpout(0,0,w,h,outCol,spoutSide);
+  drawHandle(0,0,w,h,outCol,handleSide);
+
+  ctx.strokeStyle='rgba(255,255,255,0.1)'; ctx.lineWidth=3; ctx.lineCap='round';
+  ctx.beginPath(); ctx.moveTo(-w/2+5,-h/2+10); ctx.lineTo(-w/2+5,h/2-10); ctx.stroke();
+  ctx.lineCap='butt';
+
+  if(vol>5){
+    ctx.fillStyle='rgba(255,255,255,0.8)'; ctx.font='bold 9px Space Mono,monospace'; ctx.textAlign='center';
+    ctx.fillText(fmt(vol,0)+' mL',0,5);
+  }
+  ctx.fillStyle=bright; ctx.font='8px Space Mono,monospace'; ctx.textAlign='center';
+  ctx.fillText(`C=${conc} g/L`,0,-h/2-16);
+  ctx.restore();
+
+  if(Math.abs(angle)>0.35&&vol>0) drawStream(bk,angle);
+}
+
+function drawStream(bk, angle){
+  const sign = bk.key==='A' ? 1 : -1; // spout direction
+  // spout tip position in world coords (jug rotated around bk.x, bk.y)
+  const spoutLocalX = sign * (bk.w/2 + 16);
+  const spoutLocalY = -bk.h/2 + 4;
+  const lipX = bk.x + spoutLocalX*Math.cos(angle) - spoutLocalY*Math.sin(angle);
+  const lipY = bk.y + spoutLocalX*Math.sin(angle) + spoutLocalY*Math.cos(angle);
+  const destX = AQ.x + AQ.w/2;
+  const waterSurfY = AQ.bot - (mixVol()/MAXAQ)*AQ.h;
+  const destY = Math.max(waterSurfY - 4, AQ.y + 10);
+  const t = Date.now()/110;
+  const col = bk.key==='A' ? 'rgba(247,169,74,' : 'rgba(74,158,255,';
+  for(let d=0;d<10;d++){
+    const p = ((t*0.065 + d*0.11) % 1);
+    const ex = lipX + (destX-lipX)*p;
+    const ey = lipY + (destY-lipY)*p + p*(1-p)*60;
+    const a = Math.sin(p*Math.PI)*0.9;
+    const r = Math.max(1, 3.5-p*2.5);
+    ctx.fillStyle = col+a+')';
+    ctx.beginPath(); ctx.arc(ex, ey, r, 0, Math.PI*2); ctx.fill();
+  }
+}
+
+// ── AQUARIUM ──
+function drawAquarium(){
+  const mv=mixVol(), mc=mixConc();
+  const frac=Math.min(mv/MAXAQ,1);
+  const waterH=frac*AQ.h;
+  const waterY=AQ.bot-waterH;
+
+  // tank bg
+  ctx.fillStyle='rgba(8,20,40,0.9)';
+  ctx.beginPath(); ctx.roundRect(AQ.x,AQ.y,AQ.w,AQ.h,8); ctx.fill();
+
+  // water fill — color depends on concentration
+  if(mv>0){
+    const conc=mc;
+    ctx.save();
+    ctx.beginPath(); ctx.roundRect(AQ.x,AQ.y,AQ.w,AQ.h,8); ctx.clip();
+
+    // ── Color mezclado (mezcla homogénea) ──
+    // interpola naranja↔azul según proporción de cada jarra
+    const fracA = mv>0 ? v1poured/mv : 0;
+    const fracB = mv>0 ? v2poured/mv : 0;
+    const mr2 = Math.round(220*fracA + 40*fracB);
+    const mg2 = Math.round(130*fracA + 110*fracB);
+    const mb2 = Math.round(40*fracA  + 220*fracB);
+    ctx.fillStyle=`rgba(${mr2},${mg2},${mb2},0.72)`;
+    ctx.fillRect(AQ.x, waterY, AQ.w, waterH);
+
+    // surface shimmer
+    ctx.fillStyle='rgba(255,255,255,0.15)';
+    ctx.fillRect(AQ.x, waterY, AQ.w, 4);
+
+    // animated waves
+    const wt=Date.now()/1800;
+    ctx.strokeStyle='rgba(255,255,255,0.10)'; ctx.lineWidth=1.5;
+    for(let wi=0;wi<3;wi++){
+      ctx.beginPath();
+      for(let wx=0;wx<=AQ.w;wx+=8){
+        const wy=waterY+3+Math.sin(wx*0.04+wt+wi*1.2)*3;
+        wx===0?ctx.moveTo(AQ.x+wx,wy):ctx.lineTo(AQ.x+wx,wy);
+      }
+      ctx.stroke();
+    }
+    ctx.restore();
+
+    // sand bottom
+    ctx.fillStyle='rgba(194,160,100,0.4)';
+    ctx.fillRect(AQ.x, AQ.bot-14, AQ.w, 14);
+    for(let si=0;si<20;si++){
+      ctx.fillStyle=`rgba(180,140,80,${0.3+((si*37)%1)*0.3})`;
+      ctx.beginPath(); ctx.arc(AQ.x+10+((si*73)%1)*(AQ.w-20), AQ.bot-7+((si*31)%1)*4, 2+((si*17)%1)*2, 0, Math.PI*2); ctx.fill();
+    }
+
+    // seaweed
+    drawSeaweed(AQ.x+30, AQ.bot-14, 3, '#2d8a4e');
+    drawSeaweed(AQ.x+60, AQ.bot-14, 2, '#1e6b35');
+    drawSeaweed(AQ.x+AQ.w-40, AQ.bot-14, 3, '#2d8a4e');
+    drawSeaweed(AQ.x+AQ.w-70, AQ.bot-14, 2, '#3aaa5e');
+
+    // concentration label
+    const isGood=atGoal();
+    ctx.fillStyle=isGood?'rgba(56,217,169,0.95)':'rgba(255,255,255,0.65)';
+    ctx.font='bold 12px Space Mono,monospace'; ctx.textAlign='center';
+    ctx.fillText(`C = ${fmt(mc,1)} g/L`, AQ.x+AQ.w/2, Math.max(waterY+20, AQ.bot-28));
+
+    if(isGood && urchinState==='none'){
+      ctx.fillStyle='rgba(56,217,169,0.8)'; ctx.font='bold 10px Space Mono,monospace'; ctx.textAlign='center';
+      ctx.fillText('¡Concentración perfecta!', AQ.x+AQ.w/2, AQ.y-8);
+    }
+  }
+
+  // tank outline
+  ctx.strokeStyle='rgba(100,160,220,0.4)'; ctx.lineWidth=2; ctx.lineJoin='round';
+  ctx.beginPath(); ctx.roundRect(AQ.x,AQ.y,AQ.w,AQ.h,8); ctx.stroke();
+
+  // volume marks on right side
+  [25,50,75,100].forEach(pct=>{
+    const y=AQ.bot-(pct/100)*AQ.h;
+    ctx.strokeStyle='rgba(100,160,220,0.25)'; ctx.lineWidth=1;
+    ctx.beginPath(); ctx.moveTo(AQ.right-12,y); ctx.lineTo(AQ.right-2,y); ctx.stroke();
+    ctx.fillStyle='rgba(100,160,220,0.4)'; ctx.font='7px Space Mono,monospace'; ctx.textAlign='right';
+    ctx.fillText(Math.round(MAXAQ*pct/100)+'', AQ.x-4, y+3);
+  });
+
+  // label
+  ctx.fillStyle='rgba(100,160,220,0.6)'; ctx.font='bold 9px Space Mono,monospace'; ctx.textAlign='center';
+  ctx.fillText('ACUARIO  3000 mL', AQ.x+AQ.w/2, AQ.y-20);
+}
+
+function drawSeaweed(x,baseY,segments,color){
+  const t=Date.now()/2000;
+  ctx.strokeStyle=color; ctx.lineWidth=3; ctx.lineCap='round';
+  ctx.beginPath(); ctx.moveTo(x,baseY);
+  for(let i=0;i<segments;i++){
+    const sy=baseY-(i+1)*14;
+    const sx=x+Math.sin(t+i*0.8)*6;
+    ctx.lineTo(sx,sy);
+  }
+  ctx.stroke(); ctx.lineCap='butt';
+}
+
+// ── URCHIN DRAWING ──
+function drawUrchin(cx,cy,state,anim){
+  if(state==='none') return;
+  ctx.save(); ctx.translate(cx,cy);
+
+  if(state==='explode'){
+    if(anim < 55){
+      // inflate phase — sad face, swelling body
+      const s = 1 + (anim/55)*0.65;
+      ctx.scale(s,s);
+      const rn = Math.floor((anim/55)*100);
+      ctx.fillStyle=`rgb(${139+rn},${Math.max(10,53-rn)},${Math.max(60,181-rn)})`;
+      ctx.beginPath(); ctx.arc(0,0,20,0,Math.PI*2); ctx.fill();
+      for(let i=0;i<16;i++){
+        const w=Math.sin(Date.now()/80+i*0.7)*0.25;
+        drawSpine(0,(i/16)*Math.PI*2,20,13,'#7a1a50',w);
+      }
+      // sad eyes with tears
+      [-6,6].forEach(ex=>{
+        ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(ex,-5,3.5,0,Math.PI*2); ctx.fill();
+        ctx.fillStyle='#1a0a30'; ctx.beginPath(); ctx.arc(ex,-5,2,0,Math.PI*2); ctx.fill();
+        ctx.fillStyle='rgba(120,200,255,0.85)';
+        ctx.beginPath(); ctx.ellipse(ex+1,0,1.5,3.5,0.1,0,Math.PI*2); ctx.fill();
+      });
+      ctx.strokeStyle='#fff'; ctx.lineWidth=1.5; ctx.lineCap='round';
+      ctx.beginPath(); ctx.arc(0,6,5,Math.PI+0.2,-0.2); ctx.stroke();
+      ctx.lineCap='butt';
+      // sweat
+      const nSw=Math.floor(anim/14);
+      for(let s2=0;s2<nSw;s2++){
+        const sa=(s2/Math.max(nSw,1))*Math.PI*2+0.4;
+        ctx.fillStyle='rgba(120,200,255,0.55)';
+        ctx.beginPath(); ctx.ellipse(Math.cos(sa)*28,Math.sin(sa)*26,2,3.5,sa,0,Math.PI*2); ctx.fill();
+      }
+    } else {
+      const prog=Math.min((anim-55)/65,1);
+      explodeParticles.forEach(p=>{
+        const px=p.vx*prog*55, py=p.vy*prog*55+prog*prog*28;
+        ctx.fillStyle=`rgba(${p.r},${p.g},${p.b},${1-prog})`;
+        ctx.beginPath(); ctx.arc(px,py,p.size*(1+prog*2),0,Math.PI*2); ctx.fill();
+      });
+      ctx.strokeStyle=`rgba(255,160,80,${Math.max(0,0.9-(anim-55)/45)})`;
+      ctx.lineWidth=3; ctx.beginPath(); ctx.arc(0,0,(anim-55)*3.2,0,Math.PI*2); ctx.stroke();
+      ctx.strokeStyle=`rgba(220,100,255,${Math.max(0,0.5-(anim-55)/60)})`;
+      ctx.lineWidth=1.5; ctx.beginPath(); ctx.arc(0,0,(anim-55)*1.8,0,Math.PI*2); ctx.stroke();
+    }
+    ctx.restore(); return;
+  }
+
+  if(state==='shrink'){
+    const sc=Math.max(0.4,1-anim/120*0.6); ctx.scale(sc,sc);
+    ctx.fillStyle='#6b2a8a'; ctx.beginPath(); ctx.arc(0,0,18,0,Math.PI*2); ctx.fill();
+    for(let i=0;i<10;i++) drawSpine(0,(i/10)*Math.PI*2,18,8,'#4a1a6a',0);
+    [-5,5].forEach(ex=>{
+      ctx.fillStyle='#ddd'; ctx.beginPath(); ctx.arc(ex,-4,3,0,Math.PI*2); ctx.fill();
+      ctx.fillStyle='#1a0a30'; ctx.beginPath(); ctx.arc(ex,-4,1.5,0,Math.PI*2); ctx.fill();
+    });
+    ctx.strokeStyle='#ddd'; ctx.lineWidth=1.5; ctx.lineCap='round';
+    ctx.beginPath(); ctx.arc(0,6,5,Math.PI+0.2,-0.2); ctx.stroke();
+    ctx.lineCap='butt';
+    ctx.restore(); return;
+  }
+
+  if(state==='alive'){
+    ctx.translate(0,Math.sin(Date.now()/600)*3);
+    ctx.fillStyle='#8b35b5'; ctx.beginPath(); ctx.arc(0,0,20,0,Math.PI*2); ctx.fill();
+    for(let i=0;i<16;i++) drawSpine(0,(i/16)*Math.PI*2,20,14,'#5a1590',Math.sin(Date.now()/700+i*0.5)*0.1);
+    [-6,6].forEach(ex=>{
+      ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(ex,-5,3.5,0,Math.PI*2); ctx.fill();
+      ctx.fillStyle='#1a0a30'; ctx.beginPath(); ctx.arc(ex+0.5,-5,2,0,Math.PI*2); ctx.fill();
+      ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(ex+1,-6,0.8,0,Math.PI*2); ctx.fill();
+    });
+    ctx.strokeStyle='#fff'; ctx.lineWidth=1.5; ctx.lineCap='round';
+    ctx.beginPath(); ctx.arc(0,2,5,0.2,Math.PI-0.2); ctx.stroke();
+    ctx.lineCap='butt';
+  }
+  ctx.restore();
+}
+
+
+// ── URCHIN LOGIC ──
+let urchinAnimTicker=null;
+
+function addUrchin(){
+  if(urchinState!=='none') return;
+  const mc=mixConc();
+  urchinAnim=0;
+
+  if(atGoal()){
+    urchinState='alive';
+    
+    document.getElementById('status').textContent='Concentración ideal — el erizo sobrevive y nada tranquilo.';
+  } else if(mc < GOAL_C-GOAL_TOL){
+    urchinState='explode';
+    initExplodeParticles();
+    
+    document.getElementById('status').textContent=`C = ${fmt(mc,1)} g/L — muy baja. El erizo explota por ósmosis.`;
+  } else {
+    urchinState='shrink';
+    
+    document.getElementById('status').textContent=`C = ${fmt(mc,1)} g/L — muy alta. El erizo se deshidrata y encoge.`;
+  }
+
+  // urchin placed
+  if(urchinAnimTicker) clearInterval(urchinAnimTicker);
+  urchinAnimTicker=setInterval(()=>{ urchinAnim++; },16);
+}
+
+function initExplodeParticles(){
+  explodeParticles=[];
+  for(let i=0;i<28;i++){
+    const angle=Math.random()*Math.PI*2;
+    const speed=0.4+Math.random()*0.8;
+    explodeParticles.push({
+      vx:Math.cos(angle)*speed, vy:Math.sin(angle)*speed-0.5,
+      r:Math.floor(100+Math.random()*155),
+      g:Math.floor(20+Math.random()*60),
+      b:Math.floor(140+Math.random()*80),
+      size:2+Math.random()*4
+    });
+  }
+}
+
+// ── POUR LOGIC ──
+function startPour(bkIdx){
+  if(pourTicker) clearInterval(pourTicker);
+  pourTicker=setInterval(()=>{
+    const bk=beakers[bkIdx];
+    const vol=bk.maxVol-bk.poured;
+    if(vol<=0||mixVol()>=MAXAQ){ stopPour(); return; }
+    const tilt=Math.min((Math.abs(bk.angle)-0.35)/0.7,1);
+    const rate=tilt*8;
+    const pour=Math.min(rate, vol, MAXAQ-mixVol());
+    bk.poured+=pour;
+    if(bkIdx===0) v1poured+=pour; else v2poured+=pour;
+    updateMetrics();
+  },40);
+}
+function stopPour(){ if(pourTicker){clearInterval(pourTicker);pourTicker=null;} }
+
+// ── TOUCH / MOUSE ──
+function canvasPoint(e){
+  const rect=canvas.getBoundingClientRect();
+  const sx=VW/rect.width, sy=VH/rect.height;
+  const src=e.touches?e.touches[0]:e;
+  return {x:(src.clientX-rect.left)*sx, y:(src.clientY-rect.top)*sy};
+}
+function hitJug(p,bk){ return Math.abs(p.x-bk.x)<50&&Math.abs(p.y-bk.y)<65; }
+
+function onStart(e){
+  const p=canvasPoint(e);
+  beakers.forEach(bk=>{ if(hitJug(p,bk)){ e.preventDefault(); bk.dragging=true; } });
+}
+
+function onMove(e){
+  if(!beakers.some(b=>b.dragging)) return;
+  e.preventDefault();
+  const p=canvasPoint(e);
+  beakers.forEach((bk,i)=>{
+    if(!bk.dragging) return;
+    bk.x=p.x; bk.y=p.y;
+    const overAq=p.x>AQ.x&&p.x<AQ.right&&p.y>AQ.y-60&&p.y<AQ.bot;
+    if(overAq){
+      const maxTilt=Math.PI*0.55;
+      const dx=AQ.x+AQ.w/2-bk.x;
+      const proximity=Math.min(Math.abs(dx)/80,1);
+      bk.angle=(bk.key==='A'?1:-1)*proximity*maxTilt;
+      if(Math.abs(bk.angle)>0.35) startPour(i);
+      else stopPour();
+      document.getElementById('status').textContent=Math.abs(bk.angle)>0.35?'¡Vertiendo!':'Inclina más...';
+    } else {
+      bk.angle=0; stopPour();
+    }
+  });
+}
+
+function onEnd(e){
+  beakers.forEach(bk=>{
+    if(bk.dragging){
+      e.preventDefault();
+      bk.dragging=false; bk.angle=0; stopPour();
+      bk.x=bk.homeX; bk.y=bk.homeY;
+      document.getElementById('status').textContent='Arrastra las jarras hacia el acuario para verter';
+    }
+  });
+}
+
+canvas.addEventListener('touchstart',onStart,{passive:false});
+canvas.addEventListener('touchmove',onMove,{passive:false});
+canvas.addEventListener('touchend',onEnd,{passive:false});
+canvas.addEventListener('mousedown',onStart);
+canvas.addEventListener('mousemove',onMove);
+canvas.addEventListener('mouseup',onEnd);
+
+// ── RENDER ──
+function render(){
+  ctx.clearRect(0,0,VW,VH);
+  ctx.fillStyle='#08101e'; ctx.fillRect(0,0,VW,VH);
+
+  // table
+  ctx.fillStyle='#0e1828'; ctx.fillRect(0,VH-30,VW,30);
+  ctx.strokeStyle='#1e3050'; ctx.lineWidth=1;
+  ctx.beginPath(); ctx.moveTo(0,VH-30); ctx.lineTo(VW,VH-30); ctx.stroke();
+
+  drawAquarium();
+
+  // urchin inside aquarium (clipped)
+  if(urchinState!=='none'){
+    ctx.save();
+    ctx.beginPath(); ctx.roundRect(AQ.x,AQ.y,AQ.w,AQ.h,8); ctx.clip();
+    drawUrchin(urchinX, urchinY, urchinState, urchinAnim);
+    ctx.restore();
+  }
+
+  // jugs
+  beakers.forEach((bk,i)=>{
+    if(!bk.dragging){
+      if(bk.angle===0) drawJugUpright(bk);
+      else drawJugTilted(bk);
+    }
+  });
+  beakers.forEach(bk=>{ if(bk.dragging) drawJugTilted(bk); });
+
+  // idle urchin (right of aquarium) or drag ghost
+  if(urchinFloating){
+    drawIdleUrchin(urchinDragX, urchinDragY, '');
+  } else {
+    drawIdleUrchin(URCHIN_HOME.x, URCHIN_HOME.y, urchinMsg);
+  }
+
+  requestAnimationFrame(render);
+}
+
+// ── ANSWERS ──
+function checkAnswers(){
+  const r1=parseFloat(document.getElementById('ans-v1').value.replace(',','.'));
+  const r2=parseFloat(document.getElementById('ans-v2').value.replace(',','.'));
+  const fb=document.getElementById('fb');
+  if(isNaN(r1)||isNaN(r2)){fb.textContent='Completa ambos campos.';fb.className='feedback err';return;}
+  const ok1=Math.abs(r1-1000)<=30, ok2=Math.abs(r2-2000)<=30;
+  const okSum=Math.abs(r1+r2-3000)<=50;
+  if(ok1&&ok2){
+    fb.innerHTML='✓ ¡Correcto! V_A = 1000 mL · V_B = 2000 mL<br><span style="font-size:11px;color:var(--muted)">75×1 + 15×2 = 75+30 = 105 g → C = 105/3 = 35 g/L ✓</span>';
+    fb.className='feedback ok';
+  } else if(!okSum){
+    fb.textContent=`V_A+V_B = ${r1+r2} mL ≠ 3000 mL. La suma debe ser 3000.`;
+    fb.className='feedback warn';
+  } else {
+    let msg='';
+    if(!ok1) msg+=`V_A correcto = 1000 mL. `;
+    if(!ok2) msg+=`V_B correcto = 2000 mL.`;
+    fb.textContent='Revisa → '+msg; fb.className='feedback err';
+  }
+}
+
+function resetAll(){
+  v1poured=0; v2poured=0; urchinState='none'; urchinAnim=0; explodeParticles=[];
+  beakers.forEach(bk=>{bk.x=bk.homeX;bk.y=bk.homeY;bk.angle=0;bk.dragging=false;bk.poured=0;});
+  stopPour();
+  if(autoTicker){clearInterval(autoTicker);autoTicker=null;}
+  if(urchinAnimTicker){clearInterval(urchinAnimTicker);urchinAnimTicker=null;}
+  document.getElementById('inp-v1').value='';
+  document.getElementById('inp-v2').value='';
+  document.getElementById('fb-exec').textContent=''; document.getElementById('fb-exec').className='feedback';
+  document.getElementById('status').textContent='Arrastra las jarras hacia el acuario · o ingresa volúmenes abajo';
+  urchinDragging=false; urchinFloating=false; urchinMsg='';
+  urchinDragX=URCHIN_HOME.x; urchinDragY=URCHIN_HOME.y;
+  updateMetrics();
+}
+
+updateMetrics();
+render();
+</script>
+</body>
+</html>
