@@ -1,0 +1,629 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+<title>Torneo de Capibaras — doble for</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@400;500;600&display=swap');
+  :root{
+    --bg:#0f1117;--surface:#1a1d27;--surface2:#22263a;--border:#2e3350;
+    --ok:#38d9a9;--warn:#f7a94a;--blue:#4a9eff;--danger:#ff6b6b;
+    --text:#e8ecf4;--muted:#7a8099;--dim:#3a3f5a;
+    --cap1:#c8a45a;--cap2:#b8904a;--cap3:#d4b870;--cap4:#a07838;
+    --mono:'Space Mono',monospace;--body:'DM Sans',sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+  body{background:var(--bg);color:var(--text);font-family:var(--body);
+       min-height:100vh;display:flex;flex-direction:column;align-items:center;overflow-x:hidden;}
+  header{width:100%;padding:.8rem 1.2rem .5rem;border-bottom:1px solid var(--border);background:var(--surface);}
+  header h1{font-family:var(--mono);font-size:12px;color:var(--ok);letter-spacing:.08em;text-transform:uppercase;}
+  header p{font-size:11px;color:var(--muted);margin-top:2px;}
+  .main{width:100%;max-width:480px;padding:.8rem .8rem 2rem;display:flex;flex-direction:column;gap:.8rem;}
+
+  /* arena */
+  .arena{background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden;}
+  #arena-canvas{display:block;width:100%;touch-action:none;}
+
+  /* code block */
+  .code-wrap{background:#080d14;border:1px solid var(--border);border-radius:12px;padding:.8rem 1rem;font-family:var(--mono);font-size:12px;line-height:2.1;}
+  .code-line{border-radius:5px;padding:0 6px;transition:background .25s,color .25s;color:var(--muted);white-space:pre;}
+  .code-line.active{background:#f7a94a22;color:var(--warn);font-weight:700;}
+  .code-line.done{color:#3a3f5a;}
+  .kw{color:#4a9eff;}.fn{color:#38d9a9;}.st{color:#ff9f7a;}
+
+  /* variables */
+  .vars{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+  .var-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:8px 12px;}
+  .var-label{font-size:9px;color:var(--muted);font-family:var(--mono);text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px;}
+  .var-val{font-family:var(--mono);font-size:14px;font-weight:700;min-height:20px;color:var(--text);}
+  .hi-i{color:var(--blue);}
+  .hi-j{color:var(--warn);}
+
+  /* matches */
+  .matches-header{font-size:11px;color:var(--muted);font-family:var(--mono);margin-bottom:6px;}
+  .matches-grid{display:flex;flex-wrap:wrap;gap:6px;min-height:32px;}
+  .chip{border:1px solid var(--border);border-radius:20px;padding:4px 10px;font-size:11px;
+        color:var(--muted);background:var(--surface);transition:all .3s;}
+  .chip.new{background:rgba(56,217,169,.15);border-color:var(--ok);color:var(--ok);font-weight:700;
+            animation:pop .35s ease;}
+  @keyframes pop{0%{transform:scale(.6);opacity:0}70%{transform:scale(1.1)}100%{transform:scale(1);opacity:1}}
+
+  /* explanation */
+  .explain{background:var(--surface);border:1px solid var(--border);border-radius:10px;
+           padding:10px 14px;font-size:12px;line-height:1.6;color:var(--muted);min-height:52px;}
+  .explain strong{color:var(--text);}
+  .explain code{color:var(--ok);font-family:var(--mono);font-size:11px;}
+
+  /* controls */
+  .controls{display:flex;gap:8px;}
+  .btn{flex:1;padding:10px;border-radius:10px;border:1px solid var(--border);
+       background:var(--surface);color:var(--muted);font-family:var(--body);font-size:13px;
+       font-weight:600;cursor:pointer;transition:all .2s;text-align:center;}
+  .btn:active{transform:scale(.97);}
+  .btn:disabled{opacity:.3;cursor:not-allowed;transform:none;}
+  .btn-run{background:rgba(56,217,169,.1);border-color:var(--ok);color:var(--ok);}
+  .btn-step{background:rgba(74,158,255,.1);border-color:var(--blue);color:var(--blue);}
+  .btn-reset{background:transparent;}
+
+  .step-counter{font-family:var(--mono);font-size:10px;color:var(--dim);text-align:center;margin-top:2px;}
+
+  /* tabs */
+  .tabs{display:flex;gap:0;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:4px;margin-bottom:.2rem;}
+  .tab{flex:1;padding:8px;border-radius:9px;border:none;background:transparent;color:var(--muted);
+       font-family:var(--body);font-size:12px;font-weight:600;cursor:pointer;transition:all .2s;text-align:center;}
+  .tab.active{background:var(--surface2);color:var(--text);border:1px solid var(--border);}
+  .tab-content{display:none;flex-direction:column;gap:.8rem;}
+  .tab-content.active{display:flex;}
+
+  /* code explainer */
+  .exp-block{background:#080d14;border:1px solid var(--border);border-radius:12px;overflow:hidden;}
+  .exp-code{font-family:var(--mono);font-size:12px;padding:.7rem 1rem;color:var(--warn);
+            border-bottom:1px solid var(--border);line-height:1.8;white-space:pre-wrap;word-break:break-all;}
+  .exp-body{padding:.8rem 1rem;}
+  .exp-title{font-size:13px;font-weight:600;color:var(--text);margin-bottom:5px;}
+  .exp-desc{font-size:12px;color:var(--muted);line-height:1.65;}
+  .exp-desc code{color:var(--ok);font-family:var(--mono);font-size:11px;
+                 background:rgba(56,217,169,.08);padding:1px 4px;border-radius:3px;}
+  .exp-desc strong{color:var(--text);}
+  .badge{display:inline-block;font-family:var(--mono);font-size:10px;padding:2px 7px;
+         border-radius:10px;margin-right:5px;margin-bottom:4px;}
+  .badge-kw{background:rgba(74,158,255,.15);color:var(--blue);}
+  .badge-fn{background:rgba(56,217,169,.15);color:var(--ok);}
+  .badge-st{background:rgba(255,159,122,.15);color:#ff9f7a;}
+  .divider{height:1px;background:var(--border);margin:.2rem 0;}
+  .why-box{background:rgba(247,169,74,.07);border:1px solid rgba(247,169,74,.25);
+           border-radius:10px;padding:10px 14px;font-size:12px;color:var(--muted);line-height:1.65;}
+  .why-box strong{color:var(--warn);}
+  .why-box code{color:var(--ok);font-family:var(--mono);font-size:11px;}
+</style>
+</head>
+<body>
+<header>
+  <h1>Torneo de Capibaras — doble for</h1>
+  <p>Visualiza cómo el doble for genera todos los partidos únicos</p>
+</header>
+
+<div class="main">
+
+  <!-- TABS -->
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('anim')">Animación</button>
+    <button class="tab" onclick="switchTab('code')">Código explicado</button>
+  </div>
+
+  <!-- TAB: ANIMACIÓN -->
+  <div class="tab-content active" id="tab-anim">
+
+  <!-- ARENA con capibaras dibujadas -->
+  <div class="arena">
+    <canvas id="arena-canvas"></canvas>
+  </div>
+
+  <!-- CÓDIGO -->
+  <div class="code-wrap">
+    <div class="code-line" id="l0"><span class="st">capibaras</span> = [<span class="st">"Capi"</span>, <span class="st">"Bara"</span>, <span class="st">"Capo"</span>, <span class="st">"Chonk"</span>]</div>
+    <div class="code-line" id="l1"><span class="kw">for</span> i <span class="kw">in</span> <span class="fn">range</span>(<span class="fn">len</span>(capibaras)):</div>
+    <div class="code-line" id="l2">    <span class="kw">for</span> j <span class="kw">in</span> <span class="fn">range</span>(i+1, <span class="fn">len</span>(capibaras)):</div>
+    <div class="code-line" id="l3">        <span class="fn">print</span>(capibaras[i], <span class="st">"vs"</span>, capibaras[j])</div>
+  </div>
+
+  <!-- VARIABLES -->
+  <div class="vars">
+    <div class="var-card">
+      <div class="var-label">for externo — i</div>
+      <div class="var-val" id="vi">—</div>
+    </div>
+    <div class="var-card">
+      <div class="var-label">for interno — j</div>
+      <div class="var-val" id="vj">—</div>
+    </div>
+  </div>
+
+  <!-- PARTIDOS -->
+  <div>
+    <div class="matches-header" id="mh">Partidos generados: 0 de 6</div>
+    <div class="matches-grid" id="mg"></div>
+  </div>
+
+  <!-- EXPLICACIÓN -->
+  <div class="explain" id="exp">
+    Presiona <strong>Paso</strong> para avanzar uno a uno, o <strong>Ejecutar</strong> para ver todo automáticamente.
+  </div>
+
+  <!-- CONTROLES -->
+  <div class="controls">
+    <button class="btn btn-run" id="btn-run" onclick="toggleRun()">▶ Ejecutar</button>
+    <button class="btn btn-step" id="btn-step" onclick="doStep()">Paso →</button>
+    <button class="btn btn-reset" onclick="doReset()">↺ Reiniciar</button>
+  </div>
+  <div class="step-counter" id="sc"></div>
+
+  </div><!-- end tab-anim -->
+
+  <!-- TAB: CÓDIGO EXPLICADO -->
+  <div class="tab-content" id="tab-code">
+
+    <!-- LÍNEA 1 -->
+    <div class="exp-block">
+      <div class="exp-code">capibaras = ["Capi", "Bara", "Capo", "Chonk"]</div>
+      <div class="exp-body">
+        <div class="exp-title">Lista de participantes</div>
+        <div class="exp-desc">
+          Creamos una <strong>lista</strong> llamada <code>capibaras</code> con 4 elementos. En Python, una lista se escribe con corchetes <code>[ ]</code> y los elementos van separados por comas. Cada nombre es un <strong>string</strong> (texto entre comillas).<br><br>
+          <span class="badge badge-st">string</span> texto entre comillas simples o dobles<br>
+          <span class="badge badge-fn">lista</span> colección ordenada de elementos, indexada desde 0
+        </div>
+      </div>
+    </div>
+
+    <!-- LÍNEA 2 -->
+    <div class="exp-block">
+      <div class="exp-code">for i in range(len(capibaras)):</div>
+      <div class="exp-body">
+        <div class="exp-title">For externo — recorre cada capibara</div>
+        <div class="exp-desc">
+          <span class="badge badge-kw">for</span> repite el bloque de código para cada valor de <code>i</code>.<br><br>
+          <span class="badge badge-fn">len(capibaras)</span> devuelve <strong>4</strong> (el largo de la lista).<br><br>
+          <span class="badge badge-fn">range(4)</span> genera los números <strong>0, 1, 2, 3</strong> — los índices válidos de la lista.<br><br>
+          Entonces <code>i</code> toma los valores 0 → 1 → 2 → 3, uno por vuelta. Con <code>capibaras[i]</code> accedemos a cada capibara por su posición.
+        </div>
+      </div>
+    </div>
+
+    <!-- LÍNEA 3 — LA CLAVE -->
+    <div class="exp-block">
+      <div class="exp-code">    for j in range(i+1, len(capibaras)):</div>
+      <div class="exp-body">
+        <div class="exp-title">For interno — solo las que vienen después</div>
+        <div class="exp-desc">
+          Este es el <strong>truco más importante</strong>. <code>range(i+1, len(capibaras))</code> empieza en <code>i+1</code>, no en 0.<br><br>
+          <strong>¿Por qué i+1?</strong><br>
+          Si <code>j</code> empezara en 0, generaríamos partidos duplicados (Capi vs Bara <em>y</em> Bara vs Capi) y una capibara enfrentaría a sí misma (Capi vs Capi).<br><br>
+          Al empezar en <code>i+1</code>, <code>j</code> siempre es mayor que <code>i</code>, garantizando que cada par aparezca <strong>exactamente una vez</strong>.
+        </div>
+      </div>
+    </div>
+
+    <!-- LÍNEA 4 -->
+    <div class="exp-block">
+      <div class="exp-code">        print(capibaras[i], "vs", capibaras[j])</div>
+      <div class="exp-body">
+        <div class="exp-title">print() — muestra el partido</div>
+        <div class="exp-desc">
+          <span class="badge badge-fn">print()</span> muestra en pantalla lo que le pasemos. Puede recibir varios argumentos separados por comas — los imprime todos en la misma línea con un espacio entre ellos.<br><br>
+          <code>capibaras[i]</code> accede al elemento en la posición <code>i</code> de la lista.<br>
+          <code>capibaras[j]</code> accede al elemento en la posición <code>j</code>.<br><br>
+          Si i=0, j=2: imprime <strong>"Capi vs Capo"</strong>.
+        </div>
+      </div>
+    </div>
+
+    <!-- ¿POR QUÉ 6 PARTIDOS? -->
+    <div class="why-box">
+      <strong>¿Por qué exactamente 6 partidos?</strong><br><br>
+      Con 4 capibaras, la cantidad de pares posibles se calcula como:<br><br>
+      <code>n × (n-1) / 2 = 4 × 3 / 2 = 6</code><br><br>
+      Esta fórmula viene de las <strong>combinaciones</strong>: elegir 2 de 4 sin importar el orden. El doble <code>for</code> con <code>range(i+1, ...)</code> implementa exactamente esto.
+    </div>
+
+    <!-- TABLA DE VALORES -->
+    <div class="exp-block">
+      <div class="exp-body" style="padding:.8rem 1rem;">
+        <div class="exp-title" style="margin-bottom:8px;">Tabla de ejecución completa</div>
+        <div style="overflow-x:auto;">
+          <table style="width:100%;border-collapse:collapse;font-family:var(--mono);font-size:11px;">
+            <tr style="border-bottom:1px solid var(--border);">
+              <td style="padding:6px 8px;color:var(--muted);">i</td>
+              <td style="padding:6px 8px;color:var(--muted);">j</td>
+              <td style="padding:6px 8px;color:var(--muted);">capibaras[i]</td>
+              <td style="padding:6px 8px;color:var(--muted);">capibaras[j]</td>
+              <td style="padding:6px 8px;color:var(--muted);">resultado</td>
+            </tr>
+            <tr style="border-bottom:1px solid var(--border);">
+              <td style="padding:6px 8px;color:var(--blue);">0</td><td style="padding:6px 8px;color:var(--warn);">1</td>
+              <td style="padding:6px 8px;color:var(--text);">Capi</td><td style="padding:6px 8px;color:var(--text);">Bara</td>
+              <td style="padding:6px 8px;color:var(--ok);">Capi vs Bara</td>
+            </tr>
+            <tr style="border-bottom:1px solid var(--border);">
+              <td style="padding:6px 8px;color:var(--blue);">0</td><td style="padding:6px 8px;color:var(--warn);">2</td>
+              <td style="padding:6px 8px;color:var(--text);">Capi</td><td style="padding:6px 8px;color:var(--text);">Capo</td>
+              <td style="padding:6px 8px;color:var(--ok);">Capi vs Capo</td>
+            </tr>
+            <tr style="border-bottom:1px solid var(--border);">
+              <td style="padding:6px 8px;color:var(--blue);">0</td><td style="padding:6px 8px;color:var(--warn);">3</td>
+              <td style="padding:6px 8px;color:var(--text);">Capi</td><td style="padding:6px 8px;color:var(--text);">Chonk</td>
+              <td style="padding:6px 8px;color:var(--ok);">Capi vs Chonk</td>
+            </tr>
+            <tr style="border-bottom:1px solid var(--border);">
+              <td style="padding:6px 8px;color:var(--blue);">1</td><td style="padding:6px 8px;color:var(--warn);">2</td>
+              <td style="padding:6px 8px;color:var(--text);">Bara</td><td style="padding:6px 8px;color:var(--text);">Capo</td>
+              <td style="padding:6px 8px;color:var(--ok);">Bara vs Capo</td>
+            </tr>
+            <tr style="border-bottom:1px solid var(--border);">
+              <td style="padding:6px 8px;color:var(--blue);">1</td><td style="padding:6px 8px;color:var(--warn);">3</td>
+              <td style="padding:6px 8px;color:var(--text);">Bara</td><td style="padding:6px 8px;color:var(--text);">Chonk</td>
+              <td style="padding:6px 8px;color:var(--ok);">Bara vs Chonk</td>
+            </tr>
+            <tr>
+              <td style="padding:6px 8px;color:var(--blue);">2</td><td style="padding:6px 8px;color:var(--warn);">3</td>
+              <td style="padding:6px 8px;color:var(--text);">Capo</td><td style="padding:6px 8px;color:var(--text);">Chonk</td>
+              <td style="padding:6px 8px;color:var(--ok);">Capo vs Chonk</td>
+            </tr>
+          </table>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- end tab-code -->
+
+</div><!-- end main -->
+
+<script>
+// ── Canvas setup ──
+const canvas = document.getElementById('arena-canvas');
+const ctx = canvas.getContext('2d');
+const VW = 480, VH = 220;
+canvas.width = VW; canvas.height = VH;
+canvas.style.width  = '100%';
+canvas.style.height = 'auto';
+
+// ── Capibaras ──
+const CAPS = [
+  {name:'Capi',  color:'#c8a45a', dark:'#8a6a28', x:60,  y:110},
+  {name:'Bara',  color:'#b8905a', dark:'#7a5a28', x:180, y:110},
+  {name:'Capo',  color:'#d4b460', dark:'#9a7830', x:300, y:110},
+  {name:'Chonk', color:'#a07840', dark:'#6a4818', x:420, y:110},
+];
+
+// ── Draw one capybara (facing right) ──
+function drawCap(cx, cy, cap, state){
+  // state: 'normal' | 'i' (blue glow) | 'j' (amber glow) | 'fight'
+  const s = 1.0;
+  ctx.save();
+  ctx.translate(cx, cy);
+
+  // glow
+  if(state === 'i'){
+    ctx.shadowColor = '#4a9eff'; ctx.shadowBlur = 18;
+  } else if(state === 'j'){
+    ctx.shadowColor = '#f7a94a'; ctx.shadowBlur = 18;
+  } else if(state === 'fight'){
+    ctx.shadowColor = '#ff6b6b'; ctx.shadowBlur = 14;
+  }
+
+  // body (big oval)
+  ctx.fillStyle = cap.color;
+  ctx.beginPath();
+  ctx.ellipse(0, 0, 34*s, 22*s, 0, 0, Math.PI*2);
+  ctx.fill();
+
+  // head
+  ctx.fillStyle = cap.color;
+  ctx.beginPath();
+  ctx.ellipse(30*s, -12*s, 18*s, 14*s, -0.2, 0, Math.PI*2);
+  ctx.fill();
+
+  // snout / muzzle (big square nose — characteristic capybara feature)
+  ctx.fillStyle = cap.dark;
+  ctx.beginPath();
+  ctx.roundRect(36*s, -10*s, 16*s, 10*s, 3);
+  ctx.fill();
+
+  // nostril left
+  ctx.fillStyle = '#0f1117';
+  ctx.beginPath(); ctx.ellipse(39*s, -7*s, 2*s, 1.5*s, 0, 0, Math.PI*2); ctx.fill();
+  // nostril right
+  ctx.beginPath(); ctx.ellipse(44*s, -7*s, 2*s, 1.5*s, 0, 0, Math.PI*2); ctx.fill();
+
+  // eye
+  ctx.fillStyle = '#1a1010';
+  ctx.beginPath(); ctx.arc(28*s, -18*s, 3.5*s, 0, Math.PI*2); ctx.fill();
+  // eye shine
+  ctx.fillStyle = '#fff';
+  ctx.beginPath(); ctx.arc(29*s, -19*s, 1.2*s, 0, Math.PI*2); ctx.fill();
+
+  // ear
+  ctx.fillStyle = cap.dark;
+  ctx.beginPath(); ctx.ellipse(20*s, -24*s, 6*s, 4*s, -0.4, 0, Math.PI*2); ctx.fill();
+
+  // legs (4 stumpy legs)
+  ctx.fillStyle = cap.dark;
+  [[-20, 18],[-8, 20],[8, 20],[20, 18]].forEach(([lx,ly]) => {
+    ctx.beginPath();
+    ctx.roundRect((lx-4)*s, ly*s, 9*s, 14*s, 4);
+    ctx.fill();
+  });
+
+  // tail (tiny nub)
+  ctx.fillStyle = cap.dark;
+  ctx.beginPath(); ctx.ellipse(-36*s, -2*s, 5*s, 4*s, 0.3, 0, Math.PI*2); ctx.fill();
+
+  // ── PELUCAS ──
+  if(cap.name === 'Bara'){
+    // peluca rizada rosa — bucles sobre la cabeza
+    const wigColors = ['#ff8fab','#ff6b9d','#ff8fab','#ff5c8a','#ff8fab'];
+    const curlPos = [[-4,-30],[2,-38],[10,-34],[18,-38],[24,-30]];
+    curlPos.forEach(([bx,by],ci)=>{
+      ctx.fillStyle = wigColors[ci%wigColors.length];
+      ctx.beginPath();
+      ctx.arc((30+bx)*s, by*s, 7*s, 0, Math.PI*2);
+      ctx.fill();
+    });
+    // base del pelo
+    ctx.fillStyle = '#ff8fab';
+    ctx.beginPath();
+    ctx.ellipse(30*s, -26*s, 20*s, 8*s, 0, 0, Math.PI*2);
+    ctx.fill();
+    // mechones laterales
+    ctx.fillStyle = '#ff6b9d';
+    ctx.beginPath(); ctx.ellipse(14*s, -20*s, 5*s, 10*s, -0.4, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(46*s, -18*s, 4*s, 8*s, 0.3, 0, Math.PI*2); ctx.fill();
+  }
+
+  if(cap.name === 'Capo'){
+    // peluca larga rubia lisa — cae a los lados
+    ctx.fillStyle = '#f5d060';
+    // cuerpo principal del pelo (encima de la cabeza)
+    ctx.beginPath();
+    ctx.ellipse(30*s, -28*s, 22*s, 9*s, 0, 0, Math.PI*2);
+    ctx.fill();
+    // mechón izquierdo largo
+    ctx.beginPath();
+    ctx.moveTo(12*s, -26*s);
+    ctx.bezierCurveTo(5*s, -20*s, 2*s, -5*s, 8*s, 5*s);
+    ctx.bezierCurveTo(14*s, -2*s, 16*s, -16*s, 14*s, -26*s);
+    ctx.fill();
+    // mechón derecho largo
+    ctx.beginPath();
+    ctx.moveTo(48*s, -26*s);
+    ctx.bezierCurveTo(55*s, -18*s, 56*s, -5*s, 50*s, 4*s);
+    ctx.bezierCurveTo(44*s, 0*s, 44*s, -14*s, 46*s, -26*s);
+    ctx.fill();
+    // flequillo
+    ctx.fillStyle = '#e8c040';
+    ctx.beginPath();
+    ctx.ellipse(30*s, -22*s, 18*s, 5*s, 0, 0, Math.PI*2);
+    ctx.fill();
+  }
+
+  if(cap.name === 'Chonk'){
+    // mohawk verde — cresta en el centro
+    const mohawkX = [24, 26, 28, 30, 32, 34, 36];
+    const mohawkH = [14, 20, 24, 26, 24, 20, 14];
+    ctx.fillStyle = '#38d9a9';
+    mohawkX.forEach((mx,mi)=>{
+      ctx.beginPath();
+      ctx.moveTo((mx-3)*s, -22*s);
+      ctx.lineTo(mx*s, -(22+mohawkH[mi])*s);
+      ctx.lineTo((mx+3)*s, -22*s);
+      ctx.fill();
+    });
+    // base de la cresta
+    ctx.fillStyle = '#1db87a';
+    ctx.beginPath();
+    ctx.ellipse(30*s, -23*s, 15*s, 5*s, 0, 0, Math.PI*2);
+    ctx.fill();
+  }
+  ctx.restore();
+
+  // name label below
+  ctx.fillStyle = state==='i' ? '#4a9eff' : state==='j' ? '#f7a94a' : state==='fight' ? '#ff6b6b' : '#7a8099';
+  ctx.font = `${state==='i'||state==='j'||state==='fight' ? 'bold ' : ''}11px 'Space Mono',monospace`;
+  ctx.textAlign = 'center';
+  ctx.fillText(cap.name, cx, cy + 42);
+}
+
+// ── VS lightning bolt between i and j ──
+function drawVS(x1, x2, y){
+  const mx = (x1+x2)/2;
+  ctx.strokeStyle = '#ff6b6b';
+  ctx.lineWidth = 2;
+  ctx.setLineDash([5,4]);
+  ctx.beginPath(); ctx.moveTo(x1+44, y); ctx.lineTo(x2-44, y); ctx.stroke();
+  ctx.setLineDash([]);
+  // VS text
+  ctx.fillStyle = '#ff6b6b';
+  ctx.font = 'bold 14px DM Sans, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('VS', mx, y+5);
+}
+
+// ── i bracket ──
+function drawBracket(x, y, color, label){
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(x-38, y+30); ctx.lineTo(x-38, y+46); ctx.lineTo(x+38, y+46); ctx.lineTo(x+38, y+30);
+  ctx.stroke();
+  ctx.fillStyle = color;
+  ctx.font = 'bold 10px Space Mono, monospace';
+  ctx.textAlign = 'center';
+  ctx.fillText(label, x, y+58);
+}
+
+// ── Generate steps ──
+const N = CAPS.length;
+const STEPS = [];
+for(let i=0;i<N;i++){
+  STEPS.push({line:'l1',i,j:null,phase:'outer',
+    msg:`<strong>for externo:</strong> i = ${i} → capibara <strong class="hi-i">"${CAPS[i].name}"</strong>. El for interno comparará "${CAPS[i].name}" con todas las que vienen después (j > i).`});
+  for(let j=i+1;j<N;j++){
+    STEPS.push({line:'l2',i,j,phase:'inner',
+      msg:`<strong>for interno:</strong> j = ${j} → capibara <strong class="hi-j">"${CAPS[j].name}"</strong>. Como j empieza en <code>i+1</code>, nunca repetimos ni enfrentamos a una capibara consigo misma.`});
+    STEPS.push({line:'l3',i,j,phase:'print',match:`${CAPS[i].name} vs ${CAPS[j].name}`,
+      msg:`<strong>print</strong> imprime el partido: <strong>"${CAPS[i].name} vs ${CAPS[j].name}"</strong> ✓ Combinación única, nunca vista antes.`});
+  }
+}
+STEPS.push({line:null,i:null,j:null,phase:'done',
+  msg:`<strong>¡Torneo completo!</strong> El doble <code>for</code> con <code>range(i+1, ...)</code> generó los <strong>6 partidos únicos</strong> posibles entre 4 capibaras. Sin repeticiones, sin autoenfrentamientos.`});
+
+let cur = -1, matches = [], lastNew = -1, running = false, timer = null;
+
+// ── Animation state for capybaras ──
+let animI = -1, animJ = -1, animPhase = 'normal';
+let flashTimer = null;
+
+function getState(idx){
+  if(animPhase === 'fight' && (idx===animI||idx===animJ)) return 'fight';
+  if(idx===animI) return 'i';
+  if(idx===animJ) return 'j';
+  return 'normal';
+}
+
+function render(){
+  ctx.clearRect(0,0,VW,VH);
+  // background
+  ctx.fillStyle = '#0f1117';
+  ctx.fillRect(0,0,VW,VH);
+
+  // grass strip
+  ctx.fillStyle = '#0d1f12';
+  ctx.fillRect(0, 130, VW, 20);
+
+  // draw capibaras
+  CAPS.forEach((cap,idx) => drawCap(cap.x, cap.y, cap, getState(idx)));
+
+  // draw VS between i and j when printing
+  if(animPhase==='fight' && animI>=0 && animJ>=0){
+    drawVS(CAPS[animI].x, CAPS[animJ].x, CAPS[animI].y - 5);
+  }
+
+  // draw brackets
+  if(animI>=0){
+    drawBracket(CAPS[animI].x, CAPS[animI].y, '#4a9eff', `i=${animI}`);
+  }
+  if(animJ>=0){
+    drawBracket(CAPS[animJ].x, CAPS[animJ].y, '#f7a94a', `j=${animJ}`);
+  }
+}
+
+function updateUI(){
+  const s = cur>=0 ? STEPS[cur] : null;
+
+  // code lines
+  ['l0','l1','l2','l3'].forEach(id=>{
+    const el=document.getElementById(id);
+    el.className='code-line';
+    if(!s) return;
+    if(s.line===id) el.classList.add('active');
+    else if(cur>0) el.classList.add('done');
+  });
+
+  // variables
+  const vi=document.getElementById('vi');
+  const vj=document.getElementById('vj');
+  if(s&&s.i!==null) vi.innerHTML=`<span class="hi-i">i=${s.i}</span> → "${CAPS[s.i].name}"`;
+  else vi.textContent='—';
+  if(s&&s.j!==null) vj.innerHTML=`<span class="hi-j">j=${s.j}</span> → "${CAPS[s.j].name}"`;
+  else vj.textContent='—';
+
+  // matches
+  const mg=document.getElementById('mg');
+  mg.innerHTML=matches.map((m,idx)=>
+    `<div class="chip${idx===lastNew?' new':''}">${m}</div>`
+  ).join('');
+  document.getElementById('mh').textContent=`Partidos generados: ${matches.length} de 6`;
+
+  // explanation
+  document.getElementById('exp').innerHTML = s ? s.msg :
+    'Presiona <strong>Paso</strong> para avanzar uno a uno, o <strong>Ejecutar</strong> para ver todo automáticamente.';
+
+  // step counter
+  document.getElementById('sc').textContent = cur>=0 ? `paso ${cur+1} / ${STEPS.length}` : '';
+
+  // buttons
+  const done = cur>=STEPS.length-1;
+  document.getElementById('btn-step').disabled = done;
+  document.getElementById('btn-run').disabled  = done;
+}
+
+function doStep(){
+  if(cur>=STEPS.length-1) return;
+  cur++;
+  const s=STEPS[cur];
+  lastNew=-1;
+
+  animI = s.i!==null ? s.i : animI;
+  animJ = s.j!==null ? s.j : -1;
+
+  if(s.phase==='print'){
+    matches.push(s.match);
+    lastNew=matches.length-1;
+    animPhase='fight';
+    // flash back to normal after a bit
+    clearTimeout(flashTimer);
+    flashTimer=setTimeout(()=>{animPhase='normal';render();},500);
+  } else if(s.phase==='outer'){
+    animI=s.i; animJ=-1; animPhase='normal';
+  } else if(s.phase==='inner'){
+    animPhase='normal';
+  } else if(s.phase==='done'){
+    animI=-1; animJ=-1; animPhase='normal';
+  }
+
+  render();
+  updateUI();
+}
+
+function doReset(){
+  clearInterval(timer); clearTimeout(flashTimer);
+  running=false; cur=-1; matches=[]; lastNew=-1;
+  animI=-1; animJ=-1; animPhase='normal';
+  document.getElementById('btn-run').textContent='▶ Ejecutar';
+  ['l0','l1','l2','l3'].forEach(id=>document.getElementById(id).className='code-line');
+  render(); updateUI();
+}
+
+function toggleRun(){
+  if(running){
+    clearInterval(timer); running=false;
+    document.getElementById('btn-run').textContent='▶ Ejecutar';
+    return;
+  }
+  if(cur>=STEPS.length-1){ doReset(); return; }
+  running=true;
+  document.getElementById('btn-run').textContent='⏸ Pausar';
+  timer=setInterval(()=>{
+    if(cur>=STEPS.length-1){
+      clearInterval(timer); running=false;
+      document.getElementById('btn-run').textContent='▶ Ejecutar';
+      return;
+    }
+    doStep();
+  }, 800);
+}
+
+// init
+render(); updateUI();
+
+function switchTab(tab){
+  document.querySelectorAll('.tab').forEach((t,i)=>{
+    t.classList.toggle('active', (i===0&&tab==='anim')||(i===1&&tab==='code'));
+  });
+  document.getElementById('tab-anim').classList.toggle('active', tab==='anim');
+  document.getElementById('tab-code').classList.toggle('active', tab==='code');
+}
+</script>
+</body>
+</html>
