@@ -1,0 +1,964 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ICB 1121 · Balance de Masa con Reacción</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #f5f4f0; --surface: #ffffff; --surface2: #f0ede6;
+  --blue: #0033cc; --blue-light: #e8eeff; --blue-mid: #b3c0f0;
+  --green: #1a6b2a; --green-light: #e6f4e9;
+  --red: #b81c1c; --red-light: #fdeaea;
+  --amber: #b35a00; --amber-light: #fff3e0;
+  --text: #1a1a1a; --text2: #555; --text3: #888;
+  --border: #d8d4cc; --radius: 6px;
+  --mono: 'IBM Plex Mono', monospace;
+  --sans: 'IBM Plex Sans', sans-serif;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: var(--sans); background: var(--bg); color: var(--text); min-height: 100vh; }
+header { background: var(--blue); color: white; padding: 1rem 2rem; display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+.header-title h1 { font-size: 15px; font-weight: 600; letter-spacing: .02em; }
+.header-title p { font-size: 12px; opacity: .7; margin-top: 2px; }
+.course-badge { font-family: var(--mono); font-size: 11px; background: rgba(255,255,255,.15); border: 1px solid rgba(255,255,255,.25); padding: 4px 10px; border-radius: 4px; white-space: nowrap; }
+.container { max-width: 1050px; margin: 0 auto; padding: 2rem 1.5rem; }
+.rxn-banner { background: var(--blue-light); border: 1px solid var(--blue-mid); border-radius: var(--radius); padding: 1rem 1.25rem; margin-bottom: 1.5rem; display: flex; flex-wrap: wrap; gap: 1rem; align-items: center; }
+.rxn-equation { font-family: var(--mono); font-size: 15px; font-weight: 500; color: var(--blue); }
+.rxn-tags { display: flex; gap: 6px; flex-wrap: wrap; }
+.tag { font-size: 11px; padding: 3px 10px; border-radius: 20px; font-weight: 500; }
+.tag-gray { background: var(--surface2); color: var(--text2); border: 1px solid var(--border); }
+.tabs { display: flex; gap: 0; border-bottom: 2px solid var(--border); margin-bottom: 1.5rem; }
+.tab-btn { padding: 10px 18px; font-size: 13px; font-family: var(--sans); font-weight: 500; cursor: pointer; background: transparent; border: none; color: var(--text3); border-bottom: 2px solid transparent; margin-bottom: -2px; transition: all .15s; }
+.tab-btn:not(.locked):hover { color: var(--blue); background: var(--blue-light); }
+.tab-btn.active { color: var(--blue); border-bottom-color: var(--blue); background: var(--blue-light); }
+.tab-btn.locked { cursor: not-allowed; opacity: .4; }
+.panel { display: none; } .panel.active { display: block; }
+.sit-desc { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--blue); border-radius: var(--radius); padding: 1rem 1.25rem; margin-bottom: 1.25rem; font-size: 14px; line-height: 1.7; color: var(--text2); }
+.sit-desc strong { color: var(--text); }
+.hint-bar { margin-bottom: .75rem; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.hint-label { font-size: 11px; color: var(--text3); font-weight: 500; letter-spacing: .05em; text-transform: uppercase; margin-right: 4px; }
+.hint-btn { font-family: var(--sans); font-size: 11px; padding: 4px 10px; border: 1px solid var(--border); border-radius: 4px; background: var(--surface); color: var(--text2); cursor: pointer; transition: all .12s; }
+.hint-btn:hover { background: var(--blue-light); border-color: var(--blue-mid); color: var(--blue); }
+.hint-btn.active { background: var(--blue-light); border-color: var(--blue); color: var(--blue); font-weight: 500; }
+.hint-box { background: #fffdf5; border: 1px solid #e8d88a; border-radius: var(--radius); padding: .875rem 1.125rem; font-size: 13px; line-height: 1.7; color: var(--text); margin-bottom: 1rem; display: none; }
+.hint-box.visible { display: block; }
+.hint-box .hint-title { font-weight: 600; color: var(--amber); margin-bottom: .35rem; font-size: 12px; text-transform: uppercase; letter-spacing: .06em; }
+.progress-row { display: flex; align-items: center; gap: 12px; margin-bottom: 1rem; }
+.progress-track { flex: 1; height: 5px; background: var(--border); border-radius: 3px; overflow: hidden; }
+.progress-fill { height: 100%; background: var(--green); border-radius: 3px; transition: width .4s ease; }
+.progress-label { font-family: var(--mono); font-size: 12px; color: var(--text2); white-space: nowrap; }
+.tbl-wrap { overflow-x: auto; margin-bottom: .75rem; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 620px; background: var(--surface); border-radius: var(--radius); overflow: hidden; border: 1px solid var(--border); }
+thead th { background: #1a1a2e; color: #c8d4ff; font-weight: 500; padding: 9px 8px; text-align: center; font-size: 11px; letter-spacing: .03em; border-right: 1px solid rgba(255,255,255,.08); }
+thead th:first-child { text-align: left; padding-left: 12px; }
+tbody tr:nth-child(even) td { background: #fafaf8; }
+tbody tr:hover td { background: var(--blue-light); }
+td { padding: 7px 8px; border-bottom: 1px solid var(--border); border-right: 1px solid #ebe8e0; text-align: center; vertical-align: middle; }
+td.sp { text-align: left; padding-left: 12px; font-family: var(--mono); font-weight: 500; font-size: 13px; white-space: nowrap; }
+td.fixed { background: #f8f7f3; color: var(--text2); font-family: var(--mono); }
+td.zero { background: #f8f7f3; color: var(--text3); font-family: var(--mono); }
+tr.total-row td { background: #1a1a2e; color: #c8d4ff; font-weight: 600; font-family: var(--mono); font-size: 12px; border-bottom: none; }
+tr.total-row td.sp { color: white; }
+input[type=number], input[type=text] { width: 70px; padding: 4px 6px; font-family: var(--mono); font-size: 13px; border: 1.5px solid var(--border); border-radius: 4px; text-align: center; background: white; color: var(--text); transition: all .15s; -moz-appearance: textfield; }
+input[type=number]::-webkit-inner-spin-button, input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; }
+input:focus { outline: none; border-color: var(--blue); box-shadow: 0 0 0 3px rgba(0,51,204,.1); }
+input.ok { border-color: var(--green); background: var(--green-light); }
+input.err { border-color: var(--red); background: var(--red-light); }
+.feedback-global { min-height: 24px; font-size: 13px; padding: 6px 0; color: var(--text2); }
+.success-card { background: var(--green-light); border: 1px solid #7dc98a; border-radius: var(--radius); padding: 1rem 1.25rem; font-size: 14px; color: var(--green); line-height: 1.7; display: none; margin-top: .75rem; }
+.success-card.show { display: block; }
+.lr-table-wrap { margin-top: 1.25rem; }
+.lr-title { font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--text3); margin-bottom: .5rem; }
+.lr-tbl { width:100%; border-collapse:collapse; font-size:13px; border:1px solid var(--border); border-radius:var(--radius); overflow:hidden; }
+.lr-tbl th { background:#1a1a2e; color:#c8d4ff; font-weight:500; padding:8px 10px; font-size:11px; letter-spacing:.03em; text-align:center; border-right:1px solid rgba(255,255,255,.08); }
+.lr-tbl td { padding:8px 10px; border-top:1px solid var(--border); border-right:1px solid var(--border); background:white; text-align:center; vertical-align:middle; }
+.lr-tbl tr:nth-child(2) td { background:#fafaf8; }
+.lr-tbl input[type=text], .lr-tbl input[type=number] { width:85%; }
+.question-box { background: var(--amber-light); border: 1px solid #e8b84a; border-radius: var(--radius); padding: 1rem 1.25rem; margin-top: 1.5rem; font-size: 14px; line-height: 1.7; }
+.question-box .q-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: var(--amber); margin-bottom: .4rem; }
+.q-options { display: flex; gap: 8px; flex-wrap: wrap; margin-top: .75rem; }
+.q-opt { padding: 6px 14px; border: 1.5px solid var(--border); border-radius: 20px; font-size: 13px; cursor: pointer; background: white; transition: all .12s; font-family: var(--sans); }
+.q-opt:hover { border-color: var(--blue); color: var(--blue); }
+.q-opt.selected-ok { background: var(--green-light); border-color: var(--green); color: var(--green); font-weight: 500; }
+.q-opt.selected-err { background: var(--red-light); border-color: var(--red); color: var(--red); }
+.q-feedback { font-size: 13px; margin-top: .5rem; line-height: 1.6; display: none; }
+.q-feedback.show { display: block; }
+.unlock-btn { margin-top: 1rem; padding: 8px 20px; background: var(--blue); color: white; border: none; border-radius: var(--radius); font-family: var(--sans); font-size: 13px; font-weight: 500; cursor: not-allowed; opacity: .4; transition: all .2s; }
+.unlock-btn.ready { opacity: 1; cursor: pointer; }
+.unlock-btn.ready:hover { background: #001faa; }
+
+/* ===== MOBILE RESPONSIVE ===== */
+@media (max-width: 768px) {
+  header {
+    padding: .75rem 1rem;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .header-title h1 { font-size: 13px; }
+  .header-title p  { font-size: 11px; }
+  .course-badge    { font-size: 10px; padding: 3px 7px; }
+
+  /* Header buttons: smaller */
+  header button { font-size: 11px !important; padding: 5px 10px !important; }
+
+  .container { padding: 1rem .75rem; }
+
+  /* RUT gate */
+  #rut-gate > div { padding: 1.5rem 1.25rem; }
+
+  /* Reaction banner */
+  .rxn-equation { font-size: 12px; }
+  .rxn-banner   { padding: .75rem 1rem; gap: .5rem; }
+  .tag          { font-size: 10px; padding: 2px 7px; }
+
+  /* Tabs */
+  .tabs { gap: 0; overflow-x: auto; white-space: nowrap; }
+  .tab-btn { font-size: 11px; padding: 8px 12px; }
+
+  /* Situation description */
+  .sit-desc { font-size: 13px; padding: .75rem 1rem; }
+
+  /* Hint bar: wrap and smaller */
+  .hint-bar { gap: 4px; }
+  .hint-label { font-size: 10px; }
+  .hint-btn   { font-size: 10px; padding: 3px 7px; }
+  .hint-box   { font-size: 12px; padding: .6rem .875rem; }
+
+  /* Progress */
+  .progress-label { font-size: 11px; }
+
+  /* Table: horizontal scroll, smaller font */
+  .tbl-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  table     { font-size: 11px; min-width: 520px; }
+  thead th  { font-size: 10px; padding: 7px 4px; }
+  td        { padding: 5px 3px; }
+  td.sp     { font-size: 11px; padding-left: 7px; }
+  input[type=number], input[type=text] {
+    width: 56px;
+    font-size: 11px;
+    padding: 3px 4px;
+  }
+
+  /* LR table */
+  .lr-tbl         { font-size: 11px; }
+  .lr-tbl th      { font-size: 10px; padding: 6px 6px; }
+  .lr-tbl td      { padding: 6px 6px; }
+  .lr-tbl input   { width: 80% !important; font-size: 11px; }
+
+  /* Success card */
+  .success-card { font-size: 13px; padding: .75rem 1rem; }
+
+  /* Unlock button */
+  .unlock-btn { font-size: 12px; padding: 7px 16px; }
+
+  /* Question box */
+  .question-box { font-size: 13px; padding: .75rem 1rem; }
+  .q-options    { gap: 6px; }
+  .q-opt        { font-size: 12px; padding: 5px 11px; }
+
+  /* Prize modal */
+  #prize-backdrop > div { padding: 1.5rem 1.25rem; }
+  #prize-code { font-size: 24px; letter-spacing: .1em; }
+
+  /* Auto modal */
+  #auto-backdrop > div { padding: 1.5rem 1.25rem; width: 90vw; }
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-title">
+    <h1>Balance de Masa con Reacción Química</h1>
+    <p>Guía de trabajo interactiva · Síntesis de acrilonitrilo</p>
+  </div>
+  <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+    <button id="prize-btn" onclick="openPrize()" disabled style="font-family:var(--sans);font-size:12px;font-weight:600;padding:6px 14px;background:linear-gradient(135deg,#f0a500,#e07b00);color:white;border:none;border-radius:4px;cursor:not-allowed;opacity:.4;transition:all .3s">🏆 Cobrar premio</button>
+    <button onclick="resetAll()" style="font-family:var(--sans);font-size:12px;padding:6px 14px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.3);border-radius:4px;color:white;cursor:pointer" onmouseover="this.style.background='rgba(255,255,255,.22)'" onmouseout="this.style.background='rgba(255,255,255,.12)'">↺ Reiniciar</button>
+    <button onclick="openAutoModal()" style="font-family:var(--sans);font-size:12px;padding:6px 14px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.3);border-radius:4px;color:white;cursor:pointer" onmouseover="this.style.background='rgba(255,255,255,.22)'" onmouseout="this.style.background='rgba(255,255,255,.12)'">Completar todo</button>
+    <div class="course-badge">ICB 1121</div>
+  </div>
+</header>
+
+<div id="auto-backdrop" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:1000;align-items:center;justify-content:center">
+  <div style="background:var(--surface);border-radius:10px;padding:2rem;width:340px;max-width:90vw">
+    <div style="font-size:15px;font-weight:600;margin-bottom:.35rem;color:var(--text)">Acceso de profesor</div>
+    <div style="font-size:13px;color:var(--text2);margin-bottom:1.25rem;line-height:1.5">Ingresa la contraseña para completar todas las tablas automáticamente.</div>
+    <input type="password" id="auto-pwd" placeholder="Contraseña" style="width:100%;padding:8px 12px;font-size:14px;border:1.5px solid var(--border);border-radius:5px;margin-bottom:.5rem;font-family:var(--sans);background:var(--surface);color:var(--text)" onkeydown="if(event.key==='Enter')submitPwd()">
+    <div id="pwd-err" style="font-size:12px;color:var(--red);min-height:18px;margin-bottom:.75rem"></div>
+    <div style="display:flex;gap:8px;justify-content:flex-end">
+      <button onclick="closeAutoModal()" style="font-family:var(--sans);font-size:13px;padding:7px 16px;background:transparent;border:1px solid var(--border);border-radius:5px;cursor:pointer;color:var(--text2)">Cancelar</button>
+      <button onclick="submitPwd()" style="font-family:var(--sans);font-size:13px;padding:7px 16px;background:var(--blue);border:none;border-radius:5px;cursor:pointer;color:white;font-weight:500">Confirmar</button>
+    </div>
+  </div>
+</div>
+
+<!-- RUT GATE -->
+<div id="rut-gate" style="min-height:80vh;display:flex;align-items:center;justify-content:center;padding:2rem">
+  <div style="background:white;border-radius:10px;padding:2.5rem 2rem;width:380px;max-width:95vw;box-shadow:0 4px 24px rgba(0,0,0,.10);text-align:center">
+    <div style="font-size:28px;margin-bottom:.75rem">⚗️</div>
+    <div style="font-size:17px;font-weight:600;color:var(--text);margin-bottom:.4rem">Balance de Masa con Reacción</div>
+    <div style="font-size:13px;color:var(--text2);margin-bottom:1.75rem;line-height:1.6">Ingresa tu RUT para comenzar la actividad.</div>
+    <input type="text" id="rut-input" placeholder="Ej: 12345678-9" style="width:100%;padding:10px 14px;font-size:15px;border:1.5px solid var(--border);border-radius:6px;text-align:center;font-family:var(--mono);margin-bottom:.75rem;background:white;color:var(--text)" onkeydown="if(event.key==='Enter')startActivity()">
+    <button onclick="startActivity()" style="width:100%;padding:10px;background:var(--blue);color:white;border:none;border-radius:6px;font-family:var(--sans);font-size:14px;font-weight:500;cursor:pointer;margin-top:.25rem">Comenzar →</button>
+    <div id="rut-err" style="font-size:12px;color:var(--red);min-height:18px;margin-top:.5rem"></div>
+  </div>
+</div>
+
+<!-- PRIZE MODAL -->
+<div id="prize-backdrop" onclick="if(event.target===this)this.style.display='none'" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:2000;align-items:center;justify-content:center">
+  <div style="background:white;border-radius:12px;padding:2rem 2rem 1.75rem;width:380px;max-width:92vw;text-align:center;box-shadow:0 8px 32px rgba(0,0,0,.2)">
+    <div style="font-size:36px;margin-bottom:.5rem">🎉</div>
+    <div style="font-size:17px;font-weight:600;color:var(--green);margin-bottom:.5rem">¡Actividad completada!</div>
+    <div style="font-size:13px;color:var(--text2);line-height:1.6;margin-bottom:1.25rem">Completaste correctamente las tres situaciones. Este es tu código de verificación:</div>
+    <div id="prize-code" style="font-family:var(--mono);font-size:32px;font-weight:600;letter-spacing:.15em;color:var(--blue);background:var(--blue-light);border:1.5px solid var(--blue-mid);border-radius:8px;padding:.6rem 1rem;margin-bottom:1rem"></div>
+    <div style="font-size:14px;font-weight:600;color:var(--green);margin-bottom:.4rem">¡Muy buen trabajo! 🎓</div>
+    <div style="font-size:12px;color:var(--text3);margin-bottom:1.25rem">Envíale este código a tu profesor para canjear tus décimas.</div>
+    <button onclick="copyCode()" id="copy-btn" style="font-family:var(--sans);font-size:13px;padding:8px 20px;background:var(--blue);color:white;border:none;border-radius:5px;cursor:pointer;font-weight:500">Copiar código</button>
+    <button onclick="document.getElementById('prize-backdrop').style.display='none'" style="font-family:var(--sans);font-size:13px;padding:8px 16px;background:transparent;border:1px solid var(--border);border-radius:5px;cursor:pointer;color:var(--text2);margin-left:8px">Cerrar</button>
+  </div>
+</div>
+
+<div class="container" id="main-container" style="display:none">
+
+  <div class="rxn-banner">
+    <div>
+      <div style="font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--text3);margin-bottom:4px">Reacción balanceada</div>
+      <div class="rxn-equation">C&#x2083;H&#x2086; + NH&#x2083; + <sup>3</sup>/<sub>2</sub> O&#x2082; &#x2192; C&#x2083;H&#x2083;N + 3 H&#x2082;O</div>
+    </div>
+    <div class="rxn-tags">
+      <span class="tag tag-gray">1 mol C₃H₆ + 1 mol NH₃ + 3/2 mol O₂</span>
+      <span class="tag tag-gray">→ 1 mol C₃H₃N + 3 mol H₂O</span>
+    </div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab-btn active" id="tab2" onclick="showTab(2)">Situación 1 — Reactivo limitante</button>
+    <button class="tab-btn locked" id="tab3" onclick="showTab(3)">Situación 2 — Conversión parcial 🔒</button>
+  </div>
+
+  <!-- ===== SITUACIÓN 2 ===== -->
+  <div class="panel active" id="panel2">
+    <div class="sit-desc">
+      Ingresan <strong>2 520 g de C₃H₆</strong>, <strong>680 g de NH₃</strong> y <strong>2 880 g de O₂</strong>. La reacción se lleva a cabo <strong>completamente</strong>. Determina la composición molar de la corriente de salida e identifica el reactivo limitante.
+    </div>
+    <div class="hint-bar">
+      <span class="hint-label">Ayuda por columna:</span>
+      <button class="hint-btn" onclick="toggleHint(2,'mm')">Masa molar</button>
+      <button class="hint-btn" onclick="toggleHint(2,'eg')">Entra (g)</button>
+      <button class="hint-btn" onclick="toggleHint(2,'em')">Entra (mol)</button>
+      <button class="hint-btn" onclick="toggleHint(2,'sc')">Se consume</button>
+      <button class="hint-btn" onclick="toggleHint(2,'sp')">Se produce</button>
+      <button class="hint-btn" onclick="toggleHint(2,'sa')">Sale</button>
+      <button class="hint-btn" onclick="toggleHint(2,'pm')">% molar</button>
+      <button class="hint-btn" onclick="toggleHint(2,'lr')">Reactivo limitante</button>
+      <button class="hint-btn" onclick="toggleHint(2,'exc')">% de exceso</button>
+    </div>
+    <div class="hint-box" id="hint2"><div class="hint-title" id="hint2-title"></div><div id="hint2-body"></div></div>
+    <div class="progress-row">
+      <div class="progress-track"><div class="progress-fill" id="prog2" style="width:0%"></div></div>
+      <div class="progress-label" id="plabel2">0 / 37</div>
+    </div>
+    <div class="tbl-wrap">
+    <table>
+      <thead><tr>
+        <th>Especie</th><th>Masa molar (g/mol)</th><th>Entra (g)</th><th>Entra (mol)</th>
+        <th>Se consume (mol)</th><th>Se produce (mol)</th><th>Sale (mol)</th><th>% molar</th>
+      </tr></thead>
+      <tbody>
+        <tr><td class="sp">C₃H₆</td><td class="fixed">42</td>
+          <td><input type="number" id="s2_c3h6_eg" oninput="ck2()" placeholder="?"></td>
+          <td><input type="number" id="s2_c3h6_em" oninput="ck2()" placeholder="?"></td>
+          <td><input type="number" id="s2_c3h6_sc" oninput="ck2()" placeholder="?"></td>
+          <td><input type="number" id="s2_c3h6_sp" oninput="ck2()" placeholder="?"></td>
+          <td><input type="number" id="s2_c3h6_sa" oninput="ck2()" placeholder="?"></td>
+          <td><input type="number" id="s2_c3h6_pm" oninput="ck2()" placeholder="?"></td>
+        </tr>
+        <tr><td class="sp">NH₃</td><td class="fixed">17</td>
+          <td><input type="number" id="s2_nh3_eg" oninput="ck2()" placeholder="?"></td>
+          <td><input type="number" id="s2_nh3_em" oninput="ck2()" placeholder="?"></td>
+          <td><input type="number" id="s2_nh3_sc" oninput="ck2()" placeholder="?"></td>
+          <td><input type="number" id="s2_nh3_sp" oninput="ck2()" placeholder="?"></td>
+          <td><input type="number" id="s2_nh3_sa" oninput="ck2()" placeholder="?"></td>
+          <td><input type="number" id="s2_nh3_pm" oninput="ck2()" placeholder="?"></td>
+        </tr>
+        <tr><td class="sp">O₂</td><td class="fixed">32</td>
+          <td><input type="number" id="s2_o2_eg" oninput="ck2()" placeholder="?"></td>
+          <td><input type="number" id="s2_o2_em" oninput="ck2()" placeholder="?"></td>
+          <td><input type="number" id="s2_o2_sc" oninput="ck2()" placeholder="?"></td>
+          <td><input type="number" id="s2_o2_sp" oninput="ck2()" placeholder="?"></td>
+          <td><input type="number" id="s2_o2_sa" oninput="ck2()" placeholder="?"></td>
+          <td><input type="number" id="s2_o2_pm" oninput="ck2()" placeholder="?"></td>
+        </tr>
+        <tr><td class="sp">C₃H₃N</td><td class="fixed">53</td>
+          <td class="zero">0</td><td class="zero">0</td>
+          <td><input type="number" id="s2_c3h3n_sc" oninput="ck2()" placeholder="?"></td>
+          <td><input type="number" id="s2_c3h3n_sp" oninput="ck2()" placeholder="?"></td>
+          <td><input type="number" id="s2_c3h3n_sa" oninput="ck2()" placeholder="?"></td>
+          <td><input type="number" id="s2_c3h3n_pm" oninput="ck2()" placeholder="?"></td>
+        </tr>
+        <tr><td class="sp">H₂O</td><td class="fixed">18</td>
+          <td class="zero">0</td><td class="zero">0</td>
+          <td><input type="number" id="s2_h2o_sc" oninput="ck2()" placeholder="?"></td>
+          <td><input type="number" id="s2_h2o_sp" oninput="ck2()" placeholder="?"></td>
+          <td><input type="number" id="s2_h2o_sa" oninput="ck2()" placeholder="?"></td>
+          <td><input type="number" id="s2_h2o_pm" oninput="ck2()" placeholder="?"></td>
+        </tr>
+        <tr class="total-row"><td class="sp">TOTAL</td><td>—</td>
+          <td><input type="number" id="s2_tot_eg" oninput="ck2()" placeholder="?"></td>
+          <td><input type="number" id="s2_tot_em" oninput="ck2()" placeholder="?"></td>
+          <td><input type="number" id="s2_tot_sc" oninput="ck2()" placeholder="?"></td>
+          <td><input type="number" id="s2_tot_sp" oninput="ck2()" placeholder="?"></td>
+          <td><input type="number" id="s2_tot_sa" oninput="ck2()" placeholder="?"></td>
+          <td class="fixed" style="color:#c8d4ff">100</td>
+        </tr>
+      </tbody>
+    </table>
+    </div>
+    <div class="lr-table-wrap">
+      <div class="lr-title">Reactivo limitante y exceso</div>
+      <table class="lr-tbl">
+        <thead><tr>
+          <th>Reactivo limitante</th>
+          <th>Reactivo en exceso</th>
+          <th>Cant. estequiométrica (mol)</th>
+          <th>% exceso</th>
+        </tr></thead>
+        <tbody>
+          <tr>
+            <td rowspan="2" style="background:white"><input type="text" id="s2_lr" oninput="ck2lr()" placeholder="fórmula"></td>
+            <td><input type="text" id="s2_er1" oninput="ck2lr()" placeholder="fórmula"></td>
+            <td><input type="number" id="s2_stoich1" oninput="ck2lr()" placeholder="?"></td>
+            <td><input type="number" id="s2_exc1" oninput="ck2lr()" placeholder="?"></td>
+          </tr>
+          <tr>
+            <td><input type="text" id="s2_er2" oninput="ck2lr()" placeholder="fórmula"></td>
+            <td><input type="number" id="s2_stoich2" oninput="ck2lr()" placeholder="?"></td>
+            <td><input type="number" id="s2_exc2" oninput="ck2lr()" placeholder="?"></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="feedback-global" id="fb2"></div>
+    <div class="success-card" id="sc2"><strong>¡Excelente!</strong> NH₃ es el reactivo limitante. Con solo 40 mol de NH₃ disponibles, solo pueden reaccionar 40 mol de C₃H₆ y 60 mol de O₂, dejando excesos de ambos reactivos restantes.</div>
+    <button class="unlock-btn" id="unlock3" onclick="unlockTab(3)">Continuar a Situación 2 →</button>
+  </div>
+
+  <!-- ===== SITUACIÓN 3 ===== -->
+  <div class="panel" id="panel3">
+    <div class="sit-desc">
+      Misma alimentación que la Situación 2: <strong>2 520 g de C₃H₆</strong>, <strong>680 g de NH₃</strong> y <strong>2 880 g de O₂</strong>. El grado de conversión del reactivo limitante es del <strong>60%</strong>. Determina la composición molar de la corriente de salida.
+    </div>
+    <div class="hint-bar">
+      <span class="hint-label">Ayuda por columna:</span>
+      <button class="hint-btn" onclick="toggleHint(3,'mm')">Masa molar</button>
+      <button class="hint-btn" onclick="toggleHint(3,'eg')">Entra (g)</button>
+      <button class="hint-btn" onclick="toggleHint(3,'em')">Entra (mol)</button>
+      <button class="hint-btn" onclick="toggleHint(3,'sc')">Se consume</button>
+      <button class="hint-btn" onclick="toggleHint(3,'sp')">Se produce</button>
+      <button class="hint-btn" onclick="toggleHint(3,'sa')">Sale</button>
+      <button class="hint-btn" onclick="toggleHint(3,'pm')">% molar</button>
+      <button class="hint-btn" onclick="toggleHint(3,'lr')">Reactivo limitante</button>
+      <button class="hint-btn" onclick="toggleHint(3,'exc')">% de exceso</button>
+    </div>
+    <div class="hint-box" id="hint3"><div class="hint-title" id="hint3-title"></div><div id="hint3-body"></div></div>
+    <div class="progress-row">
+      <div class="progress-track"><div class="progress-fill" id="prog3" style="width:0%"></div></div>
+      <div class="progress-label" id="plabel3">0 / 29</div>
+    </div>
+    <div class="tbl-wrap">
+    <table>
+      <thead><tr>
+        <th>Especie</th><th>Masa molar (g/mol)</th><th>Entra (g)</th><th>Entra (mol)</th>
+        <th>Se consume (mol)</th><th>Se produce (mol)</th><th>Sale (mol)</th><th>% molar</th>
+      </tr></thead>
+      <tbody>
+        <tr><td class="sp">C₃H₆</td><td class="fixed">42</td>
+          <td class="fixed">2520</td>
+          <td class="fixed">60</td>
+          <td><input type="number" id="s3_c3h6_sc" oninput="ck3()" placeholder="?"></td>
+          <td><input type="number" id="s3_c3h6_sp" oninput="ck3()" placeholder="?"></td>
+          <td><input type="number" id="s3_c3h6_sa" oninput="ck3()" placeholder="?"></td>
+          <td><input type="number" id="s3_c3h6_pm" oninput="ck3()" placeholder="?"></td>
+        </tr>
+        <tr><td class="sp">NH₃</td><td class="fixed">17</td>
+          <td class="fixed">680</td>
+          <td class="fixed">40</td>
+          <td><input type="number" id="s3_nh3_sc" oninput="ck3()" placeholder="?"></td>
+          <td><input type="number" id="s3_nh3_sp" oninput="ck3()" placeholder="?"></td>
+          <td><input type="number" id="s3_nh3_sa" oninput="ck3()" placeholder="?"></td>
+          <td><input type="number" id="s3_nh3_pm" oninput="ck3()" placeholder="?"></td>
+        </tr>
+        <tr><td class="sp">O₂</td><td class="fixed">32</td>
+          <td class="fixed">2880</td>
+          <td class="fixed">90</td>
+          <td><input type="number" id="s3_o2_sc" oninput="ck3()" placeholder="?"></td>
+          <td><input type="number" id="s3_o2_sp" oninput="ck3()" placeholder="?"></td>
+          <td><input type="number" id="s3_o2_sa" oninput="ck3()" placeholder="?"></td>
+          <td><input type="number" id="s3_o2_pm" oninput="ck3()" placeholder="?"></td>
+        </tr>
+        <tr><td class="sp">C₃H₃N</td><td class="fixed">53</td>
+          <td class="zero">0</td><td class="zero">0</td>
+          <td><input type="number" id="s3_c3h3n_sc" oninput="ck3()" placeholder="?"></td>
+          <td><input type="number" id="s3_c3h3n_sp" oninput="ck3()" placeholder="?"></td>
+          <td><input type="number" id="s3_c3h3n_sa" oninput="ck3()" placeholder="?"></td>
+          <td><input type="number" id="s3_c3h3n_pm" oninput="ck3()" placeholder="?"></td>
+        </tr>
+        <tr><td class="sp">H₂O</td><td class="fixed">18</td>
+          <td class="zero">0</td><td class="zero">0</td>
+          <td><input type="number" id="s3_h2o_sc" oninput="ck3()" placeholder="?"></td>
+          <td><input type="number" id="s3_h2o_sp" oninput="ck3()" placeholder="?"></td>
+          <td><input type="number" id="s3_h2o_sa" oninput="ck3()" placeholder="?"></td>
+          <td><input type="number" id="s3_h2o_pm" oninput="ck3()" placeholder="?"></td>
+        </tr>
+        <tr class="total-row"><td class="sp">TOTAL</td><td>—</td>
+          <td class="fixed">6080</td>
+          <td class="fixed">190</td>
+          <td><input type="number" id="s3_tot_sc" oninput="ck3()" placeholder="?"></td>
+          <td><input type="number" id="s3_tot_sp" oninput="ck3()" placeholder="?"></td>
+          <td><input type="number" id="s3_tot_sa" oninput="ck3()" placeholder="?"></td>
+          <td class="fixed" style="color:#c8d4ff">100</td>
+        </tr>
+      </tbody>
+    </table>
+    </div>
+    <div class="lr-table-wrap">
+      <div class="lr-title">Reactivo limitante y exceso</div>
+      <table class="lr-tbl">
+        <thead><tr>
+          <th>Reactivo limitante</th>
+          <th>Reactivo en exceso</th>
+          <th>Cant. estequiométrica (mol)</th>
+          <th>% exceso</th>
+        </tr></thead>
+        <tbody>
+          <tr>
+            <td rowspan="2" style="background:white"><input type="text" id="s3_lr" oninput="ck3lr()" placeholder="fórmula"></td>
+            <td><input type="text" id="s3_er1" oninput="ck3lr()" placeholder="fórmula"></td>
+            <td><input type="number" id="s3_stoich1" oninput="ck3lr()" placeholder="?"></td>
+            <td><input type="number" id="s3_exc1" oninput="ck3lr()" placeholder="?"></td>
+          </tr>
+          <tr>
+            <td><input type="text" id="s3_er2" oninput="ck3lr()" placeholder="fórmula"></td>
+            <td><input type="number" id="s3_stoich2" oninput="ck3lr()" placeholder="?"></td>
+            <td><input type="number" id="s3_exc2" oninput="ck3lr()" placeholder="?"></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="question-box">
+      <div class="q-label">Pregunta de reflexión</div>
+      <div>¿El porcentaje de exceso de los reactivos depende del grado de conversión de la reacción?</div>
+      <div class="q-options">
+        <button class="q-opt" onclick="answerQ('si')">Sí, depende</button>
+        <button class="q-opt" onclick="answerQ('no')">No, es independiente</button>
+      </div>
+      <div class="q-feedback" id="q-feedback"></div>
+    </div>
+    <div class="feedback-global" id="fb3"></div>
+    <div class="success-card" id="sc3"><strong>¡Actividad completada!</strong> Con 60% de conversión, solo reaccionan 24 mol de NH₃. El porcentaje de exceso es idéntico al de la Situación 2 porque depende únicamente de las cantidades alimentadas, no de cuánto reacciona.</div>
+  </div>
+
+</div>
+</div><!-- end main-container -->
+
+<script>
+// ===== RUT & PRIZE =====
+let studentRUT = '';
+
+function startActivity() {
+  const val = document.getElementById('rut-input').value.trim();
+  if(!val) { document.getElementById('rut-err').textContent = 'Por favor ingresa tu RUT.'; return; }
+  studentRUT = val;
+  document.getElementById('rut-gate').style.display = 'none';
+  document.getElementById('main-container').style.display = 'block';
+}
+
+function generateCode(rutStr) {
+  const digits = rutStr.replace(/[^0-9]/g, '');
+  if(!digits) return '------';
+  const rutNum = parseInt(digits, 10);
+  const a = (rutNum * 1337 + 42069) % 99991;
+  const b = (a * 7 + rutNum % 97) % 99991;
+  const letters = 'ACEFHKLMNPRSTUVWXY';
+  const letter = letters[rutNum % letters.length];
+  return letter + String(b).padStart(5, '0');
+}
+
+function openPrize() {
+  const code = generateCode(studentRUT);
+  document.getElementById('prize-code').textContent = code;
+  document.getElementById('prize-backdrop').style.display = 'flex';
+  document.getElementById('copy-btn').textContent = 'Copiar código';
+}
+
+function copyCode() {
+  const code = document.getElementById('prize-code').textContent;
+  navigator.clipboard.writeText(code).then(() => {
+    document.getElementById('copy-btn').textContent = '\u00a1Copiado!';
+    setTimeout(() => document.getElementById('copy-btn').textContent = 'Copiar c\u00f3digo', 2000);
+  });
+}
+
+const tol = (a,b) => Math.abs(a-b) < 0.6;
+const gel = id => document.getElementById(id);
+const setSafe = (id, prop, val) => { const el=gel(id); if(el) el[prop]=val; };
+const setClass = (id, cls) => { const el=gel(id); if(el) el.className=cls; };
+const setStyle = (id, prop, val) => { const el=gel(id); if(el) el.style[prop]=val; };
+const tolP = (a,b) => Math.abs(a-b) < 0.6;
+
+// ===== HINTS =====
+const HINTS = {
+  mm:   { title:'Masa molar (g/mol)', body:'Suma las masas atómicas: <b>C₃H₆:</b> 3×12+6×1=42 &nbsp;|&nbsp; <b>NH₃:</b> 14+3=17 &nbsp;|&nbsp; <b>O₂:</b> 2×16=32 &nbsp;|&nbsp; <b>C₃H₃N:</b> 3×12+3×1+14=53 &nbsp;|&nbsp; <b>H₂O:</b> 2+16=18 g/mol' },
+  eg:   { title:'Entra (g)', body:`
+Esta columna registra la <b>masa en gramos</b> de cada especie que se alimenta al reactor.<br><br>
+
+<b>Para los reactivos:</b> el valor viene directamente del enunciado del problema. Solo hay que leerlo y trasladarlo a la tabla.<br>
+<div style="margin:.4rem 0 .5rem 1rem;font-family:var(--mono);font-size:12px">
+  C₃H₆: indicado en el enunciado (p.ej. 1 680 g)<br>
+  NH₃: &nbsp;indicado en el enunciado (p.ej. 680 g)<br>
+  O₂: &nbsp; indicado en el enunciado (p.ej. 1 920 g)
+</div>
+
+<b>Para los productos:</b> C₃H₃N y H₂O <em>no se alimentan</em> al reactor — se forman dentro de él. Por lo tanto, su masa de entrada es <b>0 g</b>.<br><br>
+
+<b>¿Para qué sirve esta columna?</b><br>
+Es el punto de partida del balance. A partir de estos gramos calcularás los moles que entran (columna siguiente), y desde ahí toda la tabla se construye usando la estequiometría de la reacción.
+` },
+  em:   { title:'Entra (mol)', body:`
+El mol es la unidad que usamos para contar moléculas. Como no podemos pesar moles directamente, convertimos la masa usando la <b>masa molar</b>:<br><br>
+
+<div style="margin:.3rem 0 .5rem 1rem;font-size:14px">
+  <b>n = m / M</b> &nbsp;&nbsp; (mol = g ÷ g/mol)
+</div>
+
+Donde:<br>
+<div style="margin:.3rem 0 .5rem 1rem;font-size:13px">
+  <b>n</b> = cantidad de sustancia (mol)<br>
+  <b>m</b> = masa que entra al reactor (g) — columna "Entra (g)"<br>
+  <b>M</b> = masa molar (g/mol) — columna "Masa molar"
+</div>
+
+<b>Ejemplos con esta reacción:</b><br>
+<div style="margin:.4rem 0 .4rem 1rem;font-family:var(--mono);font-size:12px">
+  C₃H₆: 1 680 g ÷ 42 g/mol = <b>40 mol</b><br>
+  NH₃: &nbsp; 680 g ÷ 17 g/mol = <b>40 mol</b><br>
+  O₂: &nbsp; 1 920 g ÷ 32 g/mol = <b>60 mol</b>
+</div>
+
+Los <b>productos</b> (C₃H₃N y H₂O) no se alimentan al reactor, por lo que su valor en esta columna es <b>0 mol</b>.<br><br>
+
+<b>¿Por qué usamos moles y no gramos?</b><br>
+Porque la estequiometría de la ecuación química relaciona <em>moléculas</em> (y por tanto moles), no masas. Por ejemplo, en esta reacción 1 mol de C₃H₆ reacciona con exactamente 1 mol de NH₃ y 3/2 mol de O₂ — pero eso corresponde a masas muy distintas: 42 g, 17 g y 48 g respectivamente. Si trabajáramos en gramos, la proporción 42:17:48 no se lee directamente de la ecuación. En cambio, en moles la proporción es simplemente <b>1:1:3/2</b>, tal como aparece en la ecuación balanceada.
+` },
+  sc:   { title:'Se consume (mol)', body:`
+<b>Solo los reactivos se consumen</b>; los productos tienen 0 en esta columna.<br><br>
+
+<b>Paso 1 — Identificar el reactivo limitante</b><br>
+Cuando los reactivos <em>no</em> están en proporción estequiométrica, uno se agota antes: ese es el <b>reactivo limitante</b>. Para encontrarlo, divide los moles disponibles de cada reactivo por su coeficiente estequiométrico y compara los cocientes:<br>
+<div style="margin:.5rem 0 .5rem 1rem;font-family:var(--mono);font-size:12px">
+  n<sub>A</sub>/a &nbsp;vs&nbsp; n<sub>B</sub>/b &nbsp;vs&nbsp; n<sub>C</sub>/c &nbsp;…
+</div>
+El reactivo con el <b>menor cociente</b> es el limitante (se agota primero). Si todos los cocientes son iguales, los reactivos están en <b>proporción estequiométrica</b> y se agotan simultáneamente.<br><br>
+<b>Ejemplo</b> (se alimentan 60 mol de C₃H₆, 40 mol de NH₃ y 90 mol de O₂):<br>
+Dividimos cada cantidad por su coeficiente estequiométrico:<br>
+<div style="margin:.4rem 0 .4rem 1rem;font-family:var(--mono);font-size:12px">
+  C₃H₆: 60 mol ÷ 1 &nbsp;= 60<br>
+  NH₃: &nbsp; 40 mol ÷ 1 &nbsp;= <b>40 &nbsp;← menor</b><br>
+  O₂: &nbsp;&nbsp; 90 mol ÷ 1,5 = 60
+</div>
+Como NH₃ tiene el cociente más pequeño, <b>NH₃ es el reactivo limitante</b>. C₃H₆ y O₂ quedan en exceso.<br><br>
+
+<b>Paso 2 — ¿Cuánto se consume del limitante?</b><br>
+Depende de si la reacción es completa o no:<br><br>
+
+<b>Reacción completa:</b> el limitante se consume totalmente. Los moles consumidos son iguales a los moles alimentados.<br>
+<b>Ejemplo:</b> NH₃ es el limitante y entran 40 mol → se consumen <b>40 mol NH₃</b>.<br><br>
+
+<b>Reacción incompleta:</b> solo reacciona una fracción del limitante. Se multiplica por el grado de conversión X.<br>
+<b>Ejemplo</b> con X = 60%: se consumen 0,6 × 40 = <b>24 mol NH₃</b>.<br><br>
+
+<b>Paso 3 — ¿Cuánto se consume de los otros reactivos?</b><br>
+Toma los moles consumidos del limitante (calculados en el paso 2) y aplica la proporcionalidad estequiométrica:<br>
+<div style="margin:.5rem 0 .5rem 1rem;font-size:13px">
+  mol consumido de <i>X</i> = mol consumidos del limitante × (coef. de <i>X</i> / coef. del limitante)
+</div>
+<b>Ejemplo reacción completa</b> (se consumieron 40 mol NH₃):<br>
+<div style="margin:.4rem 0 .5rem 1rem;font-family:var(--mono);font-size:12px">
+  C₃H₆: 40 × (1/1) &nbsp;= <b>40 mol</b><br>
+  O₂: &nbsp;&nbsp; 40 × (3/2) = <b>60 mol</b>
+</div>
+<b>Ejemplo reacción incompleta</b> (se consumieron 24 mol NH₃):<br>
+<div style="margin:.4rem 0 .5rem 1rem;font-family:var(--mono);font-size:12px">
+  C₃H₆: 24 × (1/1) &nbsp;= <b>24 mol</b><br>
+  O₂: &nbsp;&nbsp; 24 × (3/2) = <b>36 mol</b>
+</div>
+Los <b>productos no se consumen</b>, su valor en esta columna es siempre 0.
+
+
+` },
+  sp:   { title:'Se produce (mol)', body:`
+<b>Solo los productos se generan</b>; los reactivos tienen 0 en esta columna.<br><br>
+
+La clave está en mirar dos cosas al mismo tiempo: la <b>columna "Se consume"</b> y la <b>ecuación química balanceada</b>.<br><br>
+
+La ecuación te dice la proporción exacta entre lo que se consume y lo que se produce. Busca cuántos moles de reactivo limitante se consumieron (columna "Se consume"), y luego aplica esa misma proporción a los productos:<br>
+<div style="margin:.5rem 0 .5rem 1rem;font-size:13px">
+  mol producido de <i>P</i> = mol consumido del limitante × (coef. de <i>P</i> / coef. del limitante)
+</div>
+
+<b>Ejemplo:</b> la ecuación es C₃H₆ + NH₃ + 3/2 O₂ → <b>1</b> C₃H₃N + <b>3</b> H₂O.<br>
+Si en la columna "Se consume" ves que se consumieron <b>40 mol de NH₃</b> (coef. 1):<br>
+<div style="margin:.4rem 0 .4rem 1rem;font-family:var(--mono);font-size:12px">
+  C₃H₃N: 40 × (1/1) = <b>40 mol</b><br>
+  H₂O: &nbsp; 40 × (3/1) = <b>120 mol</b>
+</div>
+Si la reacción fuera parcial y se consumieran 24 mol de NH₃:<br>
+<div style="margin:.4rem 0 .4rem 1rem;font-family:var(--mono);font-size:12px">
+  C₃H₃N: 24 × (1/1) = <b>24 mol</b><br>
+  H₂O: &nbsp; 24 × (3/1) = <b>72 mol</b>
+</div>
+` },
+  sa:   { title:'Sale (mol)', body:`
+Esta columna se calcula aplicando la siguiente fórmula a <b>cada especie</b>:<br><br>
+<div style="margin:.3rem 0 .5rem 1.2rem;font-size:14px">
+  <b>Sale = Entra − Consume + Produce</b>
+</div>
+Simplemente toma los valores que ya completaste en las columnas anteriores y aplica la resta y suma para cada fila.
+` },
+  pm:   { title:'% molar', body:'<b>% = (mol que sale / total mol de salida) × 100</b>. Primero suma todos los moles de la columna "Sale".' },
+  lr:   { title:'Reactivo limitante', body:`
+Para identificar el reactivo limitante, divide los moles disponibles de cada reactivo por su coeficiente estequiométrico y compara los cocientes:<br>
+<div style="margin:.4rem 0 .5rem 1rem;font-size:13px">
+  n<sub>A</sub>/a &nbsp;vs&nbsp; n<sub>B</sub>/b &nbsp;vs&nbsp; n<sub>C</sub>/c &nbsp;…
+</div>
+El reactivo con el <b>menor cociente</b> es el limitante. Si todos los cocientes son iguales, los reactivos están en <b>proporción estequiométrica</b> y se agotan simultáneamente.<br><br>
+<b>Ejemplo</b> (se alimentan 60 mol de C₃H₆, 40 mol de NH₃ y 90 mol de O₂):<br>
+Dividimos cada cantidad por su coeficiente estequiométrico:<br>
+<div style="margin:.4rem 0 .4rem 1rem;font-family:var(--mono);font-size:12px">
+  C₃H₆: 60 mol ÷ 1 &nbsp;= 60<br>
+  NH₃: &nbsp; 40 mol ÷ 1 &nbsp;= <b>40 &nbsp;← menor</b><br>
+  O₂: &nbsp;&nbsp; 90 mol ÷ 1,5 = 60
+</div>
+Como NH₃ tiene el cociente más pequeño, <b>NH₃ es el reactivo limitante</b>. C₃H₆ y O₂ quedan en exceso.
+` },
+  exc:  { title:'Cantidad estequiométrica y % de exceso', body:`
+<b>Cantidad estequiométrica</b><br>
+Es la cantidad de un reactivo en exceso que se necesitaría para que todos los reactivos estén en <em>proporción estequiométrica</em>, es decir, la cantidad justa para reaccionar completamente con el reactivo limitante sin que sobre nada de ninguno.<br><br>
+Se calcula directamente desde la estequiometría, usando los moles <b>alimentados</b> del limitante — no los que reaccionan. Por eso, <b>no depende del grado de conversión</b>:<br>
+<div style="margin:.4rem 0 .5rem 1rem;font-size:13px">
+  n<sub>A, estequiométrico</sub> = mol<sub>limitante</sub> × (coef. de A / coef. del limitante)
+</div>
+<b>Ejemplo:</b> el limitante es NH₃ con 40 mol, coef. 1.<br>
+<div style="margin:.4rem 0 .5rem 1rem;font-family:var(--mono);font-size:12px">
+  C₃H₆ estequiométrico: 40 × (1/1) = <b>40 mol</b><br>
+  O₂ estequiométrico: &nbsp; 40 × (3/2 ÷ 1) = <b>60 mol</b>
+</div>
+
+<b>Porcentaje de exceso</b><br>
+Cuantifica cuánto <em>más</em> se alimentó de un reactivo en exceso respecto a lo que la estequiometría requería:<br>
+<div style="margin:.4rem 0 .5rem 1rem;font-size:13px">
+  % exceso<sub>A</sub> = (n<sub>A, alimentados</sub> − n<sub>A, estequiométrico</sub>) / n<sub>A, estequiométrico</sub> × 100
+</div>
+<b>Ejemplo:</b> se alimentaron 60 mol de C₃H₆, pero solo se necesitaban 40 mol:<br>
+<div style="margin:.4rem 0 .5rem 1rem;font-family:var(--mono);font-size:12px">
+  % exceso C₃H₆ = (60 − 40) / 40 × 100 = <b>50%</b><br>
+  % exceso O₂ &nbsp; = (90 − 60) / 60 × 100 = <b>50%</b>
+</div>
+Nota: el % de exceso depende solo de las cantidades <b>alimentadas</b> y de la estequiometría — no del grado de conversión.
+` },
+
+};
+
+const activeHint = {1:null, 2:null, 3:null};
+function toggleHint(sit, key) {
+  const box=document.getElementById('hint'+sit);
+  const btns=document.querySelectorAll('#panel'+sit+' .hint-btn');
+  if(activeHint[sit]===key){ box.classList.remove('visible'); activeHint[sit]=null; btns.forEach(b=>b.classList.remove('active')); return; }
+  document.getElementById('hint'+sit+'-title').textContent=HINTS[key].title;
+  document.getElementById('hint'+sit+'-body').innerHTML=HINTS[key].body;
+  box.classList.add('visible'); activeHint[sit]=key;
+  btns.forEach(b=>b.classList.remove('active')); event.target.classList.add('active');
+}
+
+// ===== TABS =====
+function showTab(n) {
+  const t = document.getElementById('tab'+n);
+  if(!t || t.classList.contains('locked')) return;
+  [2,3].forEach(i=>{
+    const ti=document.getElementById('tab'+i);
+    const pi=document.getElementById('panel'+i);
+    if(ti) ti.classList.remove('active');
+    if(pi) pi.classList.remove('active');
+  });
+  t.classList.add('active');
+  const p=document.getElementById('panel'+n);
+  if(p) p.classList.add('active');
+}
+function unlockTab(n) {
+  // Guard: only unlock if the button is actually ready
+  const btn = document.getElementById('unlock'+n);
+  if(!btn || !btn.classList.contains('ready')) return;
+  const t=document.getElementById('tab'+n);
+  t.classList.remove('locked');
+  t.innerHTML=t.innerHTML.replace(' 🔒','');
+  showTab(n);
+}
+
+// ===== SITUATION 2 =====
+// Feed: C3H6=2520g=60mol, NH3=680g=40mol, O2=2880g=90mol
+// Limiting: NH3 (40mol). Needs C3H6=40, O2=60
+// Consumed: C3H6=40, NH3=40, O2=60 | Produced: C3H3N=40, H2O=120
+// Sale: C3H6=20, NH3=0, O2=30, C3H3N=40, H2O=120 | total=210
+// pct: C3H6=9.52, NH3=0, O2=14.29, C3H3N=19.05, H2O=57.14
+// Excess C3H6: (60-40)/40*100=50% | Excess O2: (90-60)/60*100=50%
+const S2={
+  c3h6:{eg:2520,em:60,sc:40,sp:0,sa:20,pm:9.52},
+  nh3: {eg:680, em:40,sc:40,sp:0,sa:0, pm:0},
+  o2:  {eg:2880,em:90,sc:60,sp:0,sa:30,pm:14.29},
+  c3h3n:{eg:0,em:0,sc:0,sp:40,sa:40,pm:19.05},
+  h2o: {eg:0,em:0,sc:0,sp:120,sa:120,pm:57.14},
+  tot: {eg:6080,em:190,sc:140,sp:160,sa:210}
+};
+const S2F=[
+  ['s2_c3h6_eg','c3h6','eg'],['s2_c3h6_em','c3h6','em'],['s2_c3h6_sc','c3h6','sc'],['s2_c3h6_sp','c3h6','sp'],['s2_c3h6_sa','c3h6','sa'],['s2_c3h6_pm','c3h6','pm'],
+  ['s2_nh3_eg','nh3','eg'],  ['s2_nh3_em','nh3','em'],  ['s2_nh3_sc','nh3','sc'],  ['s2_nh3_sp','nh3','sp'],  ['s2_nh3_sa','nh3','sa'],  ['s2_nh3_pm','nh3','pm'],
+  ['s2_o2_eg','o2','eg'],    ['s2_o2_em','o2','em'],    ['s2_o2_sc','o2','sc'],    ['s2_o2_sp','o2','sp'],    ['s2_o2_sa','o2','sa'],    ['s2_o2_pm','o2','pm'],
+  ['s2_c3h3n_sc','c3h3n','sc'],['s2_c3h3n_sp','c3h3n','sp'],['s2_c3h3n_sa','c3h3n','sa'],['s2_c3h3n_pm','c3h3n','pm'],
+  ['s2_h2o_sc','h2o','sc'],  ['s2_h2o_sp','h2o','sp'],  ['s2_h2o_sa','h2o','sa'],  ['s2_h2o_pm','h2o','pm'],
+  ['s2_tot_eg','tot','eg'],  ['s2_tot_em','tot','em'],  ['s2_tot_sc','tot','sc'],  ['s2_tot_sp','tot','sp'],  ['s2_tot_sa','tot','sa']
+];
+// Excess data: C3H6 stoich=40mol excess=50%, O2 stoich=60mol excess=50%
+const EX = {
+  C3H6:{stoich:40,pct:50}, 'C₃H₆':{stoich:40,pct:50},
+  O2:{stoich:60,pct:50},   'O₂':{stoich:60,pct:50}
+};
+function normSp(s){ return s.trim().replace(/\s/g,'').toUpperCase().replace('₃','3').replace('₆','6').replace('₂','2'); }
+// Check excess rows for a situation — both rows must have DIFFERENT valid reactants
+function getExcessRowData(erId, stoichId, excId){
+  const er=normSp(document.getElementById(erId).value||'');
+  const st=parseFloat(document.getElementById(stoichId).value);
+  const ex=parseFloat(document.getElementById(excId).value);
+  let known=null;
+  if(er==='C3H6') known=EX['C3H6'];
+  else if(er==='O2') known=EX['O2'];
+  return {er, st, ex, known};
+}
+function styleExcessRows(pfx){
+  const d1=getExcessRowData(pfx+'_er1',pfx+'_stoich1',pfx+'_exc1');
+  const d2=getExcessRowData(pfx+'_er2',pfx+'_stoich2',pfx+'_exc2');
+  // A row's reactant is only valid if it's a known excess reactant AND different from the other row
+  const er1Valid = (d1.er==='C3H6'||d1.er==='O2') && d1.er!==d2.er;
+  const er2Valid = (d2.er==='C3H6'||d2.er==='O2') && d2.er!==d1.er;
+  const e=id=>document.getElementById(id);
+  if(d1.er) e(pfx+'_er1').className=er1Valid?'ok':'err';
+  if(d2.er) e(pfx+'_er2').className=er2Valid?'ok':'err';
+  if(!isNaN(d1.st)) e(pfx+'_stoich1').className=(er1Valid&&tol(d1.st,d1.known.stoich))?'ok':'err';
+  if(!isNaN(d1.ex)) e(pfx+'_exc1').className=(er1Valid&&tol(d1.ex,d1.known.pct))?'ok':'err';
+  if(!isNaN(d2.st)) e(pfx+'_stoich2').className=(er2Valid&&tol(d2.st,d2.known.stoich))?'ok':'err';
+  if(!isNaN(d2.ex)) e(pfx+'_exc2').className=(er2Valid&&tol(d2.ex,d2.known.pct))?'ok':'err';
+}
+function getLRok(pfx){
+  let ok=0;
+  const lr=normSp(document.getElementById(pfx+'_lr').value||'');
+  if(lr==='NH3') ok++;
+  const d1=getExcessRowData(pfx+'_er1',pfx+'_stoich1',pfx+'_exc1');
+  const d2=getExcessRowData(pfx+'_er2',pfx+'_stoich2',pfx+'_exc2');
+  const er1Valid=(d1.er==='C3H6'||d1.er==='O2')&&d1.er!==d2.er;
+  const er2Valid=(d2.er==='C3H6'||d2.er==='O2')&&d2.er!==d1.er;
+  // both rows have different valid reactants
+  if(er1Valid&&er2Valid) ok++;
+  if(er1Valid&&tol(d1.st,d1.known.stoich)) ok++;
+  if(er2Valid&&tol(d2.st,d2.known.stoich)) ok++;
+  if(er1Valid&&tol(d1.ex,d1.known.pct)) ok++;
+  if(er2Valid&&tol(d2.ex,d2.known.pct)) ok++;
+  return ok;
+}
+function getLR2OK(){ return getLRok('s2'); }
+function ck2lr(){
+  const lr=normSp(document.getElementById('s2_lr').value||'');
+  if(lr) document.getElementById('s2_lr').className=(lr==='NH3')?'ok':'err';
+  styleExcessRows('s2');
+  ck2();
+}
+function ck2(){
+  let ok=0,total=S2F.length;
+  S2F.forEach(([id,sp,col])=>{
+    const el=document.getElementById(id); if(!el)return;
+    const v=parseFloat(el.value), ans=S2[sp][col];
+    if(isNaN(v)){el.className='';return;}
+    const c=(ans===0&&tol(v,0))||(ans!==0&&tolP(v,ans));
+    el.className=c?'ok':'err'; if(c)ok++;
+  });
+  const lrOk=getLR2OK();
+  setStyle('prog2','width',Math.round((ok+lrOk)/(total+6)*100)+'%');
+  setSafe('plabel2','textContent',(ok+lrOk)+' / '+(total+6));
+  const done=(ok>=total)&&(lrOk>=6);
+  setClass('sc2',done?'success-card show':'success-card');
+  setClass('unlock3',done?'unlock-btn ready':'unlock-btn');
+}
+
+// ===== SITUATION 3 =====
+// Same feed as S2. X=60% on NH3 (limiting).
+// Reacted NH3 = 40*0.6 = 24 mol
+// Consumed: C3H6=24, NH3=24, O2=36 | Produced: C3H3N=24, H2O=72
+// Sale: C3H6=36, NH3=16, O2=54, C3H3N=24, H2O=72 | total=202
+// pct: C3H6=17.82, NH3=7.92, O2=26.73, C3H3N=11.88, H2O=35.64
+// Excess same: C3H6=50%, O2=50%
+const S3={
+  c3h6:{eg:2520,em:60,sc:24,sp:0,sa:36,pm:17.82},
+  nh3: {eg:680, em:40,sc:24,sp:0,sa:16,pm:7.92},
+  o2:  {eg:2880,em:90,sc:36,sp:0,sa:54,pm:26.73},
+  c3h3n:{eg:0,em:0,sc:0,sp:24,sa:24,pm:11.88},
+  h2o: {eg:0,em:0,sc:0,sp:72,sa:72,pm:35.64},
+  tot: {eg:6080,em:190,sc:84,sp:96,sa:202}
+};
+const S3F=[
+  ['s3_c3h6_sc','c3h6','sc'],['s3_c3h6_sp','c3h6','sp'],['s3_c3h6_sa','c3h6','sa'],['s3_c3h6_pm','c3h6','pm'],
+  ['s3_nh3_sc','nh3','sc'],  ['s3_nh3_sp','nh3','sp'],  ['s3_nh3_sa','nh3','sa'],  ['s3_nh3_pm','nh3','pm'],
+  ['s3_o2_sc','o2','sc'],    ['s3_o2_sp','o2','sp'],    ['s3_o2_sa','o2','sa'],    ['s3_o2_pm','o2','pm'],
+  ['s3_c3h3n_sc','c3h3n','sc'],['s3_c3h3n_sp','c3h3n','sp'],['s3_c3h3n_sa','c3h3n','sa'],['s3_c3h3n_pm','c3h3n','pm'],
+  ['s3_h2o_sc','h2o','sc'],  ['s3_h2o_sp','h2o','sp'],  ['s3_h2o_sa','h2o','sa'],  ['s3_h2o_pm','h2o','pm'],
+  ['s3_tot_sc','tot','sc'],  ['s3_tot_sp','tot','sp'],  ['s3_tot_sa','tot','sa']
+];
+function getLR3OK(){ return getLRok('s3'); }
+function ck3lr(){
+  const lr=normSp(document.getElementById('s3_lr').value||'');
+  if(lr) document.getElementById('s3_lr').className=(lr==='NH3')?'ok':'err';
+  styleExcessRows('s3');
+  ck3();
+}
+function ck3(){
+  let ok=0,total=S3F.length;
+  S3F.forEach(([id,sp,col])=>{
+    const el=document.getElementById(id); if(!el)return;
+    const v=parseFloat(el.value), ans=S3[sp][col];
+    if(isNaN(v)){el.className='';return;}
+    const c=(ans===0&&tol(v,0))||(ans!==0&&tolP(v,ans));
+    el.className=c?'ok':'err'; if(c)ok++;
+  });
+  const lrOk=getLR3OK();
+  setStyle('prog3','width',Math.round((ok+lrOk)/(total+6)*100)+'%');
+  setSafe('plabel3','textContent',(ok+lrOk)+' / '+(total+6));
+  const done=(ok>=total)&&(lrOk>=6);
+  setClass('sc3',done?'success-card show':'success-card');
+  const pb=document.getElementById('prize-btn');
+  if(pb){ pb.disabled=!done; pb.style.opacity=done?'1':'0.4'; pb.style.cursor=done?'pointer':'not-allowed'; }
+}
+
+// ===== QUESTION =====
+function answerQ(ans){
+  const btns=document.querySelectorAll('.q-opt');
+  const fb=document.getElementById('q-feedback');
+  btns.forEach(b=>b.className='q-opt');
+  if(ans==='no'){
+    event.target.className='q-opt selected-ok';
+    fb.innerHTML='<b>Correcto.</b> El porcentaje de exceso depende solo de las cantidades <em>alimentadas</em> y de la estequiometría. Compara las Situaciones 2 y 3: mismo exceso (50%), distinto grado de conversión.';
+    fb.style.color='var(--green)';
+  } else {
+    event.target.className='q-opt selected-err';
+    fb.innerHTML='Incorrecto. El exceso se calcula con lo que <em>entra</em>, no con lo que reacciona. El grado de conversión no lo afecta.';
+    fb.style.color='var(--red)';
+  }
+  fb.className='q-feedback show';
+}
+
+// ===== AUTOCOMPLETE =====
+function openAutoModal(){
+  document.getElementById('auto-backdrop').style.display='flex';
+  document.getElementById('auto-pwd').value='';
+  document.getElementById('pwd-err').textContent='';
+  setTimeout(()=>document.getElementById('auto-pwd').focus(),50);
+}
+function closeAutoModal(){ document.getElementById('auto-backdrop').style.display='none'; }
+function submitPwd(){
+  if(document.getElementById('auto-pwd').value==='170752465'){
+    closeAutoModal();
+    // If still on RUT gate, bypass it with a placeholder RUT
+    if(document.getElementById('rut-gate').style.display !== 'none'){
+      studentRUT = 'PROFESOR';
+      document.getElementById('rut-gate').style.display = 'none';
+      document.getElementById('main-container').style.display = 'block';
+    }
+    fillAll();
+  } else {
+    document.getElementById('pwd-err').textContent='Contraseña incorrecta. Inténtalo de nuevo.';
+    document.getElementById('auto-pwd').focus();
+  }
+}
+function sv(id,val){ const el=document.getElementById(id); if(el) el.value=val; }
+function fillAll(){
+  [3].forEach(n=>{ const t=document.getElementById('tab'+n); if(t.classList.contains('locked')){ t.classList.remove('locked'); t.innerHTML=t.innerHTML.replace(' 🔒',''); }});
+
+  // S2
+  sv('s2_c3h6_eg',2520); sv('s2_c3h6_em',60);  sv('s2_c3h6_sc',40);  sv('s2_c3h6_sp',0);   sv('s2_c3h6_sa',20);  sv('s2_c3h6_pm',9.52);
+  sv('s2_nh3_eg',680);   sv('s2_nh3_em',40);   sv('s2_nh3_sc',40);   sv('s2_nh3_sp',0);    sv('s2_nh3_sa',0);    sv('s2_nh3_pm',0);
+  sv('s2_o2_eg',2880);   sv('s2_o2_em',90);    sv('s2_o2_sc',60);    sv('s2_o2_sp',0);     sv('s2_o2_sa',30);    sv('s2_o2_pm',14.29);
+  sv('s2_c3h3n_sc',0);   sv('s2_c3h3n_sp',40); sv('s2_c3h3n_sa',40); sv('s2_c3h3n_pm',19.05);
+  sv('s2_h2o_sc',0);     sv('s2_h2o_sp',120);  sv('s2_h2o_sa',120);  sv('s2_h2o_pm',57.14);
+  sv('s2_tot_eg',6080);  sv('s2_tot_em',190);  sv('s2_tot_sc',140);  sv('s2_tot_sp',160);  sv('s2_tot_sa',210);
+  document.getElementById('s2_lr').value='NH3';
+  document.getElementById('s2_er1').value='C3H6';
+  sv('s2_stoich1',40); sv('s2_exc1',50);
+  document.getElementById('s2_er2').value='O2';
+  sv('s2_stoich2',60); sv('s2_exc2',50);
+  ck2lr(); ck2();
+
+  // S3
+  sv('s3_c3h6_sc',24);  sv('s3_c3h6_sp',0);   sv('s3_c3h6_sa',36);  sv('s3_c3h6_pm',17.82);
+  sv('s3_nh3_sc',24);   sv('s3_nh3_sp',0);    sv('s3_nh3_sa',16);   sv('s3_nh3_pm',7.92);
+  sv('s3_o2_sc',36);    sv('s3_o2_sp',0);     sv('s3_o2_sa',54);    sv('s3_o2_pm',26.73);
+  sv('s3_c3h3n_sc',0);   sv('s3_c3h3n_sp',24); sv('s3_c3h3n_sa',24); sv('s3_c3h3n_pm',11.88);
+  sv('s3_h2o_sc',0);     sv('s3_h2o_sp',72);   sv('s3_h2o_sa',72);   sv('s3_h2o_pm',35.64);
+  sv('s3_tot_sc',84);   sv('s3_tot_sp',96);   sv('s3_tot_sa',202);
+  document.getElementById('s3_lr').value='NH3';
+  document.getElementById('s3_er1').value='C3H6';
+  sv('s3_stoich1',40); sv('s3_exc1',50);
+  document.getElementById('s3_er2').value='O2';
+  sv('s3_stoich2',60); sv('s3_exc2',50);
+  ck3lr(); ck3();
+  const pb=document.getElementById('prize-btn');
+  if(pb){ pb.disabled=false; pb.style.opacity='1'; pb.style.cursor='pointer'; }
+}
+
+
+// ===== RESET =====
+function resetAll(){
+  if(!confirm('¿Seguro que quieres reiniciar? Se perderá tu progreso.')) return;
+  studentRUT = '';
+  document.getElementById('main-container').style.display = 'none';
+  document.getElementById('rut-gate').style.display = 'flex';
+  document.getElementById('rut-input').value = '';
+  document.getElementById('rut-err').textContent = '';
+  // Lock tab3
+  const t3 = document.getElementById('tab3');
+  if(t3 && !t3.classList.contains('locked')){ t3.classList.add('locked'); if(!t3.innerHTML.includes('🔒')) t3.innerHTML += ' 🔒'; }
+  showTab(2);
+  // Clear all inputs
+  document.querySelectorAll('input[type=number], input[type=text]').forEach(el => { el.value=''; el.className=''; });
+  // Reset progress bars
+  setStyle('prog2','width','0%'); setSafe('plabel2','textContent','0 / 37');
+  setStyle('prog3','width','0%'); setSafe('plabel3','textContent','0 / 29');
+  // Hide success cards
+  setClass('sc2','success-card'); setClass('sc3','success-card');
+  // Reset unlock button
+  setClass('unlock3','unlock-btn');
+  // Reset question
+  document.querySelectorAll('.q-opt').forEach(b => b.className='q-opt');
+  const qfb = document.getElementById('q-feedback'); if(qfb){ qfb.className='q-feedback'; qfb.innerHTML=''; }
+  // Disable prize button
+  const pb = document.getElementById('prize-btn');
+  if(pb){ pb.disabled=true; pb.style.opacity='0.4'; pb.style.cursor='not-allowed'; }
+  // Hide hints
+  [2,3].forEach(n => {
+    const h = document.getElementById('hint'+n); if(h) h.classList.remove('visible');
+    document.querySelectorAll('#panel'+n+' .hint-btn').forEach(b => b.classList.remove('active'));
+  });
+}
+
+const _abd=document.getElementById('auto-backdrop'); if(_abd) _abd.addEventListener('click',function(e){ if(e.target===this)closeAutoModal(); });
+</script>
+</body>
+</html>
