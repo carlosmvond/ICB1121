@@ -1,0 +1,909 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Malla ICB · Editor curricular</title>
+<style>
+:root{
+  --ink:#EEF2F6;
+  --ink-2:#FFFFFF;
+  --ink-3:#F2F5F8;
+  --line:#C4D0DD;
+  --line-soft:#E2E8EF;
+  --paper:#12202E;
+  --muted:#5E7185;
+  --accent:#6D28D9;
+  --accent-ink:#FFFFFF;
+  --danger:#D92D3F;
+  --warn:#B4700A;
+  --ok:#0F8A62;
+  --font-sans:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  --font-mono:ui-monospace,SFMono-Regular,"JetBrains Mono",Menlo,Consolas,"Liberation Mono",monospace;
+  --col-w:186px;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{
+  margin:0;background:var(--ink);color:var(--paper);
+  font-family:var(--font-sans);font-size:14px;
+  display:flex;flex-direction:column;overflow:hidden;
+}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+/* ---------- barra superior ---------- */
+.topbar{
+  flex:0 0 auto;display:flex;align-items:center;gap:14px;flex-wrap:wrap;
+  padding:10px 16px;background:var(--ink-2);border-bottom:1px solid var(--line);
+  box-shadow:0 1px 3px rgba(20,40,60,.09);
+}
+.brand{display:flex;flex-direction:column;line-height:1.15;margin-right:4px}
+.brand b{font-size:13px;letter-spacing:.14em;text-transform:uppercase;font-weight:700}
+.brand span{font-family:var(--font-mono);font-size:11px;color:var(--muted)}
+.counters{display:flex;gap:14px;font-family:var(--font-mono);font-size:12px}
+.counters div{display:flex;flex-direction:column;align-items:flex-start;line-height:1.2}
+.counters b{font-size:16px;font-weight:600}
+.counters small{color:var(--muted);font-size:10px;letter-spacing:.08em;text-transform:uppercase}
+.counters .bad b{color:var(--danger)}
+.counters .good b{color:var(--ok)}
+.spacer{flex:1 1 auto}
+.tools{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.btn{
+  background:var(--ink-3);border:1px solid var(--line);border-radius:6px;
+  padding:6px 11px;font-size:12.5px;transition:background .12s,border-color .12s;
+}
+.btn:hover{background:#E4EAF1;border-color:#A9B9C9}
+.btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-weight:600}
+.btn.primary:hover{background:#5B1FBC}
+.btn.on{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-weight:600}
+.field{display:flex;align-items:center;gap:5px;font-size:12px;color:var(--muted)}
+.field input,.field select{
+  background:var(--ink-3);border:1px solid var(--line);border-radius:5px;padding:5px 7px;
+  font-family:var(--font-mono);font-size:12px;
+}
+.field input[type=number]{width:56px}
+
+/* ---------- tablero ---------- */
+.board-wrap{flex:1 1 auto;overflow:auto;position:relative}
+.board{position:relative;min-height:100%;padding:0 16px 90px;width:max-content}
+.grid{display:flex;gap:10px;align-items:flex-start;position:relative;z-index:2}
+.col{width:var(--col-w);flex:0 0 var(--col-w);display:flex;flex-direction:column}
+
+.yearband{
+  position:sticky;top:0;z-index:5;background:var(--ink);padding-top:12px;
+}
+.year{
+  font-family:var(--font-mono);font-size:10px;letter-spacing:.16em;text-transform:uppercase;
+  color:var(--muted);padding:0 0 4px 2px;
+}
+.head{
+  background:var(--ink-2);border:1px solid var(--line);border-radius:8px 8px 0 0;
+  padding:8px 10px 6px;
+}
+.head h3{margin:0;font-size:12.5px;font-weight:600;letter-spacing:.02em}
+.metrics{display:flex;align-items:baseline;gap:8px;margin-top:3px;font-family:var(--font-mono)}
+.metrics .cr{font-size:19px;font-weight:600;line-height:1}
+.metrics .cum{font-size:11px;color:var(--muted)}
+.head.over .cr{color:var(--warn)}
+.head.over{border-color:var(--warn)}
+/* regla de créditos: la firma de la app */
+.ruler{height:6px;background:var(--ink-3);border-left:1px solid var(--line);border-right:1px solid var(--line);position:relative;overflow:hidden}
+.ruler i{position:absolute;inset:0 auto 0 0;background:linear-gradient(90deg,#93A7BA,#4C627A);display:block}
+.head.over + .ruler i{background:linear-gradient(90deg,#E0A94A,var(--warn))}
+.milestone{
+  position:relative;height:0;
+}
+.flag{
+  position:absolute;top:2px;left:0;right:0;font-family:var(--font-mono);font-size:9.5px;
+  letter-spacing:.05em;color:var(--accent);border-top:1px dashed var(--accent);padding-top:2px;
+}
+.body{
+  background:var(--ink-2);border:1px solid var(--line);border-top:none;border-radius:0 0 8px 8px;
+  padding:8px;min-height:120px;display:flex;flex-direction:column;gap:7px;flex:1 1 auto;
+}
+.body.dragover{background:#EDE7FB;border-color:var(--accent)}
+
+/* ---------- tarjetas ---------- */
+.card{
+  position:relative;border-radius:6px;padding:7px 8px 6px;color:#0E1720;cursor:grab;
+  border:1.5px solid rgba(0,0,0,.34);box-shadow:0 1px 2px rgba(20,40,60,.18);
+  transition:transform .1s,box-shadow .1s,opacity .1s;
+}
+.card:active{cursor:grabbing}
+.card .code{font-family:var(--font-mono);font-size:10.5px;font-weight:700;opacity:.75;letter-spacing:.03em}
+.card .name{font-size:11.5px;line-height:1.25;margin-top:1px;font-weight:600}
+.card .cr{
+  position:absolute;top:6px;right:7px;font-family:var(--font-mono);font-size:11px;font-weight:700;
+  background:rgba(0,0,0,.16);border-radius:4px;padding:0 4px;
+}
+.card.key{border-color:#0C1218;border-width:2.5px}
+.card.bl{border-style:dotted;border-width:2.5px}
+.card.sel{box-shadow:0 0 0 2.5px var(--accent),0 4px 12px rgba(20,40,60,.28);transform:translateY(-1px)}
+.card.err{box-shadow:0 0 0 2.5px var(--danger)}
+.card.err.sel{box-shadow:0 0 0 2.5px var(--accent),0 0 0 5.5px rgba(217,45,63,.6)}
+.card.dragging{opacity:.35}
+.card.dim{opacity:.34}
+.card .bug{
+  position:absolute;left:-6px;top:-6px;width:15px;height:15px;border-radius:50%;
+  background:var(--danger);color:#fff;box-shadow:0 0 0 1.5px #fff;font-size:10px;font-weight:700;line-height:15px;text-align:center;
+  font-family:var(--font-mono);
+}
+.card.linking-src{box-shadow:0 0 0 2.5px var(--ok)}
+.drop-line{height:2px;background:var(--accent);border-radius:2px;margin:-3px 0}
+
+svg.arrows{position:absolute;inset:0;pointer-events:none;z-index:3;overflow:visible}
+svg.arrows path{fill:none;stroke:#7C90A6;stroke-width:1.6}
+svg.arrows path.hi{stroke:var(--accent);stroke-width:2.4}
+svg.arrows path.bad{stroke:var(--danger);stroke-width:2.4;stroke-dasharray:6 4}
+
+/* ---------- panel lateral ---------- */
+.drawer{
+  position:fixed;top:0;right:0;bottom:0;width:330px;background:var(--ink-2);
+  border-left:1px solid var(--line);z-index:20;display:flex;flex-direction:column;
+  transform:translateX(100%);transition:transform .18s ease;
+}
+.drawer.open{transform:none}
+.drawer header{
+  padding:12px 14px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:8px;
+}
+.drawer header h2{margin:0;font-size:13px;letter-spacing:.1em;text-transform:uppercase;flex:1}
+.drawer .content{padding:14px;overflow:auto;flex:1;display:flex;flex-direction:column;gap:14px}
+.close{background:none;border:none;color:var(--muted);font-size:20px;line-height:1;padding:0 4px}
+label.lbl{display:flex;flex-direction:column;gap:4px;font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+label.lbl input,label.lbl select,label.lbl textarea{
+  background:var(--ink-3);border:1px solid var(--line);border-radius:5px;padding:7px 8px;font-size:13px;
+  font-family:var(--font-sans);color:var(--paper);width:100%;
+}
+label.lbl input[type=number]{font-family:var(--font-mono)}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.checks{display:flex;gap:14px;font-size:12px;color:var(--paper)}
+.checks label{display:flex;align-items:center;gap:6px;text-transform:none;letter-spacing:0;color:var(--paper)}
+.sect{border-top:1px solid var(--line-soft);padding-top:12px}
+.sect h4{margin:0 0 8px;font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.chip{
+  display:flex;align-items:center;gap:6px;background:var(--ink-3);border:1px solid var(--line);
+  border-radius:5px;padding:5px 6px 5px 8px;font-size:12px;margin-bottom:5px;
+}
+.chip .c{font-family:var(--font-mono);font-size:10.5px;color:var(--muted)}
+.chip .x{margin-left:auto;background:none;border:none;color:var(--muted);font-size:15px;line-height:1;padding:0 3px}
+.chip .x:hover{color:var(--danger)}
+.drawer{box-shadow:-6px 0 22px rgba(20,40,60,.13)}
+.chip.bad{border-color:var(--danger)}
+.empty{color:var(--muted);font-size:12px;font-style:italic}
+.issue{
+  border-left:3px solid var(--danger);background:#FCEBED;border-radius:0 5px 5px 0;
+  padding:7px 9px;margin-bottom:7px;font-size:12px;line-height:1.4;cursor:pointer;
+}
+.issue.warn{border-left-color:var(--warn);background:#FDF3E2}
+.issue b{font-family:var(--font-mono);font-size:11px}
+.legend{display:flex;flex-wrap:wrap;gap:6px 10px;font-size:11px;color:var(--muted);padding:8px 16px;background:var(--ink-2);border-top:1px solid var(--line)}
+.legend i{display:inline-block;width:11px;height:11px;border-radius:3px;margin-right:4px;vertical-align:-1px}
+.hint{color:var(--muted);font-size:11.5px;line-height:1.45}
+.toast{
+  position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(20px);
+  background:#12202E;color:#fff;border:1px solid #12202E;box-shadow:0 4px 14px rgba(20,40,60,.25);border-radius:7px;padding:9px 15px;
+  font-size:13px;opacity:0;pointer-events:none;transition:.2s;z-index:50;
+}
+.toast.show{opacity:1;transform:translateX(-50%)}
+@media (max-width:760px){.drawer{width:100%}.counters{display:none}}
+@media print{
+  body{background:#fff;color:#000;overflow:visible;height:auto}
+  .topbar,.drawer,.legend,.toast{display:none}
+  .board-wrap{overflow:visible}
+  .head,.body{background:#fff;border-color:#999}
+  .head h3,.metrics{color:#000}
+  .year{color:#444}
+}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="brand">
+    <b>Malla ICB</b>
+    <span id="planName">Ing. Civil en Bioprocesos · 11 sem</span>
+  </div>
+  <div class="counters">
+    <div><small>Créditos</small><b id="kTot">—</b></div>
+    <div><small>Ramos</small><b id="kCur">—</b></div>
+    <div id="kIssuesBox" class="good"><small>Conflictos</small><b id="kIssues">0</b></div>
+  </div>
+  <div class="spacer"></div>
+  <div class="tools">
+    <button class="btn primary" id="bAdd">+ Ramo</button>
+    <button class="btn" id="bLink" title="Clic aquí, luego el ramo origen y el ramo destino">Conectar</button>
+    <div class="field"><span>Flechas</span>
+      <select id="selArrows">
+        <option value="focus">al seleccionar</option>
+        <option value="all">todas</option>
+        <option value="errors">solo conflictos</option>
+      </select>
+    </div>
+    <div class="field"><span>Máx cr/sem</span><input type="number" id="inMax" min="0" max="40" value="22"></div>
+    <button class="btn" id="bIssues">Conflictos</button>
+    <button class="btn" id="bUndo" title="Ctrl+Z">Deshacer</button>
+    <button class="btn" id="bSave">Guardar JSON</button>
+    <button class="btn" id="bLoad">Abrir JSON</button>
+    <button class="btn" id="bCsv">CSV</button>
+    <button class="btn" id="bPrint">Imprimir</button>
+    <button class="btn" id="bReset">Original</button>
+    <input type="file" id="fileIn" accept=".json,application/json" hidden>
+  </div>
+</div>
+
+<div class="board-wrap" id="boardWrap">
+  <div class="board" id="board">
+    <svg class="arrows" id="svg"></svg>
+    <div class="grid" id="grid"></div>
+  </div>
+</div>
+
+<div class="legend" id="legend"></div>
+
+<aside class="drawer" id="drawer">
+  <header>
+    <h2 id="drawerTitle">Ramo</h2>
+    <button class="close" id="drawerClose" aria-label="Cerrar">×</button>
+  </header>
+  <div class="content" id="drawerBody"></div>
+</aside>
+
+<div class="toast" id="toast"></div>
+
+<script>
+"use strict";
+
+/* ============================================================
+   1. Datos de la malla (transcritos del PDF y verificados:
+      los totales por semestre coinciden con los impresos)
+   ============================================================ */
+const AREAS = {
+  basicas:      {label:"Cs. Básicas y Matemáticas", color:"#4EA3E8"},
+  ingenieria:   {label:"Cs. de la Ingeniería",      color:"#F96C6C"},
+  especialidad: {label:"Especialidad",              color:"#8FD070"},
+  complementaria:{label:"Formación Complementaria", color:"#C6A2C0"},
+  ingles:       {label:"Inglés",                    color:"#B5B5B5"},
+  fundamental:  {label:"Formación Fundamental",     color:"#52E4EE"},
+  optativo:     {label:"Optativos",                 color:"#F5B430"}
+};
+const YEAR_OF = [1,1,2,2,3,3,4,4,5,5,6]; // año al que pertenece cada semestre (índice 0 = 1er sem)
+const N_SEM = 11;
+
+// c: créditos · a: área · s: semestre (1-11) · p: prerrequisitos · k: asignatura clave
+// b: b-learning · cr: créditos aprobados exigidos (hitos de inserción laboral)
+const ORIGINAL = {
+  meta:{name:"Ing. Civil en Bioprocesos · 11 sem", maxCr:22},
+  courses:[
+    {id:"ICB1101", code:"ICB 1101", name:"Introducción a la Formación Profesional", c:3, a:"especialidad", s:1, p:[]},
+    {id:"FIS1003", code:"FIS 1003", name:"Elementos de Física para Ingeniería", c:3, a:"basicas", s:1, p:[]},
+    {id:"MAT1001", code:"MAT 1001", name:"Fundamentos de Matemáticas para Ingeniería", c:6, a:"basicas", s:1, p:[]},
+    {id:"FIN1007", code:"FIN 100-7", name:"Desarrollo Integral y Comunicación para Ingeniería", c:3, a:"complementaria", s:1, p:[]},
+    {id:"ANTROP",  code:"—", name:"Antropología Cristiana", c:2, a:"fundamental", s:1, p:[]},
+
+    {id:"QUI100",  code:"QUI 100", name:"Química para Ingeniería", c:5, a:"basicas", s:2, p:[]},
+    {id:"ICB1121", code:"ICB 1121", name:"Balance de Masa", c:4, a:"ingenieria", s:2, p:[]},
+    {id:"FIS1002", code:"FIS 1002", name:"Física para Ingeniería", c:5, a:"basicas", s:2, p:["FIS1003","MAT1001"]},
+    {id:"MAT1002", code:"MAT 1002", name:"Cálculo Diferencial e Integral", c:6, a:"basicas", s:2, p:["MAT1001"]},
+
+    {id:"QUI225",  code:"QUI 225", name:"Química Orgánica", c:5, a:"basicas", s:3, p:["QUI100"]},
+    {id:"EIQ242",  code:"EIQ 242", name:"Elementos de Fisico-Química", c:4, a:"ingenieria", s:3, p:["ICB1121"]},
+    {id:"MAT1003", code:"MAT 1003", name:"Cálculo en Varias Variables", c:4, a:"basicas", s:3, p:["MAT1002"]},
+    {id:"EIB1000", code:"EIB 1000", name:"Comunicación en Ingeniería", c:3, a:"complementaria", s:3, p:[]},
+    {id:"ING9001", code:"ING 9001", name:"Inglés 1", c:2, a:"ingles", s:3, p:[]},
+    {id:"ETICA",   code:"—", name:"Ética Cristiana", c:2, a:"fundamental", s:3, p:[]},
+
+    {id:"ICB2101", code:"ICB 2101", name:"Bioquímica Microbiana", c:4, a:"basicas", s:4, p:["QUI225"]},
+    {id:"EIQ311",  code:"EIQ 311", name:"Termodinámica de Procesos", c:4, a:"ingenieria", s:4, p:["EIQ242"]},
+    {id:"MAT1005", code:"MAT 1005", name:"Ecuaciones Diferenciales", c:4, a:"basicas", s:4, p:["MAT1003"]},
+    {id:"EIQ356",  code:"EIQ 356", name:"Mecánica de Fluidos", c:4, a:"ingenieria", s:4, p:["FIS1002"]},
+    {id:"ICA213",  code:"ICA 213", name:"Economía", c:3, a:"complementaria", s:4, p:[]},
+    {id:"ING9002", code:"ING 9002", name:"Inglés 2", c:2, a:"ingles", s:4, p:["ING9001"]},
+
+    {id:"ICB3101", code:"ICB 3101", name:"Ciencia de los Alimentos", c:3, a:"especialidad", s:5, p:["ICB2101"], b:true},
+    {id:"BIO351",  code:"BIO 351", name:"Microbiología", c:4, a:"basicas", s:5, p:["ICB2101"]},
+    {id:"EIQ359",  code:"EIQ 359", name:"Termodinámica de Equilibrio", c:4, a:"ingenieria", s:5, p:["EIQ311"]},
+    {id:"EIQ453",  code:"EIQ 453", name:"Transferencia de Calor", c:4, a:"ingenieria", s:5, p:["EIQ311"]},
+    {id:"ICB3103", code:"ICB 3103", name:"Innovación y Emprendimiento", c:3, a:"complementaria", s:5, p:["EIB1000","ICA213"]},
+    {id:"EIB1002", code:"EIB 1002", name:"Seguridad Industrial", c:2, a:"complementaria", s:5, p:[], b:true},
+
+    {id:"ICB3104", code:"ICB 3104", name:"Ingeniería Genética", c:3, a:"basicas", s:6, p:["BIO351"]},
+    {id:"ICB4101", code:"ICB 4101", name:"Diseño de Reactores y Aplicaciones a Bioprocesos", c:4, a:"ingenieria", s:6, p:["EIQ359"], k:true},
+    {id:"TMASA",   code:"ICB XXX", name:"Transferencia de Masa", c:4, a:"ingenieria", s:6, p:["EIQ453"]},
+    {id:"ICB3102", code:"ICB 3102", name:"Programación y Métodos Numéricos", c:4, a:"ingenieria", s:6, p:["MAT1005"], k:true},
+    {id:"ICB3106", code:"ICB 3106", name:"Taller de Innovación y Emprendimiento", c:2, a:"complementaria", s:6, p:["ICB3103"], k:true},
+    {id:"INSLAB1", code:"ICB XXX", name:"Inserción Laboral 1", c:1, a:"complementaria", s:6, p:["EIB1002"], cr:100},
+    {id:"FF1",     code:"—", name:"Formación Fundamental 1", c:2, a:"fundamental", s:6, p:[]},
+
+    {id:"ICB4104", code:"ICB 4104", name:"Estadística para Ingeniería", c:4, a:"ingenieria", s:7, p:[]},
+    {id:"ICB4205", code:"ICB 4205*", name:"Ingeniería de Fermentaciones", c:4, a:"especialidad", s:7, p:["BIO351","ICB4101","TMASA"]},
+    {id:"ICB4103", code:"ICB 4103", name:"Separaciones en Bioprocesos", c:4, a:"especialidad", s:7, p:["EIQ356"]},
+    {id:"EIB1001", code:"EIB 1001", name:"Energía Eléctrica en la Industria", c:3, a:"ingenieria", s:7, p:["FIS1002"], b:true},
+    {id:"ING9003", code:"ING 9003", name:"Inglés 3", c:2, a:"ingles", s:7, p:["ING9002"]},
+    {id:"FF2",     code:"—", name:"Formación Fundamental 2", c:2, a:"fundamental", s:7, p:[]},
+
+    {id:"ICB4102", code:"ICB 4102", name:"Operaciones de Procesos Alimentarios", c:4, a:"especialidad", s:8, p:["ICB3101"]},
+    {id:"ICB4206", code:"ICB 4206*", name:"Biocatálisis Enzimática", c:3, a:"especialidad", s:8, p:["ICB4101"]},
+    {id:"EIQ1001", code:"EIQ 1001", name:"Lab. de Operaciones Unitarias", c:4, a:"ingenieria", s:8, p:["TMASA"]},
+    {id:"ICB5104", code:"ICB 5104", name:"Análisis de Procesos", c:3, a:"ingenieria", s:8, p:["TMASA","ICB4103"], k:true},
+    {id:"DPI",     code:"ICB XXX", name:"Diseño de Plantas Industriales", c:3, a:"ingenieria", s:8, p:["EIQ356","EIB1001"]},
+    {id:"ING9004", code:"ING 9004", name:"Inglés 4", c:2, a:"ingles", s:8, p:["ING9003"]},
+    {id:"FF3",     code:"—", name:"Formación Fundamental 3", c:2, a:"fundamental", s:8, p:[]},
+
+    {id:"ICB616",  code:"ICB 616", name:"Control y Aseguramiento de Calidad", c:2, a:"complementaria", s:9, p:["ICB4102"], b:true},
+    {id:"ICB5101", code:"ICB 5101", name:"Ingeniería Ambiental", c:4, a:"especialidad", s:9, p:["ICB4205"]},
+    {id:"ICB5103", code:"ICB 5103", name:"Formulación y Evaluación de Proyectos", c:4, a:"complementaria", s:9, p:["ICB5104","DPI"], k:true},
+    {id:"ICB5102", code:"ICB 5102", name:"Modelación y Control de Procesos", c:4, a:"ingenieria", s:9, p:["ICB3102","DPI"]},
+    {id:"ICB5105", code:"ICB 5105", name:"Taller de Proyección Laboral", c:2, a:"complementaria", s:9, p:["ICB3106","INSLAB1"]},
+    {id:"OPT1",    code:"—", name:"Optativo 1", c:3, a:"optativo", s:9, p:[]},
+
+    {id:"ICB5206", code:"ICB 5206", name:"Taller de Ingeniería de Bioprocesos", c:4, a:"especialidad", s:10, p:["ICB4104","ICB5101"], k:true},
+    {id:"ICB5207", code:"ICB 5207", name:"Proyecto de Ingeniería 1", c:9, a:"especialidad", s:10, p:["ICB5101","ICB4205","ICB4206","ICB5103"]},
+    {id:"ICB5208", code:"ICB 5208", name:"Administración y Organización Industrial", c:4, a:"complementaria", s:10, p:["DPI"]},
+    {id:"INSLAB2", code:"ICB XXX", name:"Inserción Laboral 2", c:1, a:"complementaria", s:10, p:["INSLAB1","DPI"], cr:170},
+    {id:"OPT2",    code:"—", name:"Optativo 2", c:3, a:"optativo", s:10, p:[]},
+
+    {id:"ICB6101", code:"ICB 6101", name:"Proyecto de Ingeniería 2", c:13, a:"especialidad", s:11, p:["ICB5207"]},
+    {id:"OPT3",    code:"—", name:"Optativo 3", c:3, a:"optativo", s:11, p:[]},
+    {id:"OPT4",    code:"—", name:"Optativo 4", c:3, a:"optativo", s:11, p:[]}
+  ]
+};
+
+/* ============================================================
+   2. Estado
+   ============================================================ */
+let state = clone(ORIGINAL);
+let selected = null;         // id del ramo seleccionado
+let linkFrom = null;         // origen mientras se conectan flechas
+let linkMode = false;
+let arrowMode = "focus";
+let hovered = null;
+let drawerView = "course";   // "course" | "issues"
+const history = [];
+
+function clone(o){ return JSON.parse(JSON.stringify(o)); }
+function byId(id){ return state.courses.find(c=>c.id===id); }
+function ofSem(s){ return state.courses.filter(c=>c.s===s); }
+function snapshot(){ history.push(JSON.stringify(state)); if(history.length>60) history.shift(); }
+
+/* ============================================================
+   3. Cálculos y validación
+   ============================================================ */
+function semCredits(){
+  const t = Array(N_SEM+1).fill(0);
+  state.courses.forEach(c => { if(c.s>=1 && c.s<=N_SEM) t[c.s]+=Number(c.c)||0; });
+  return t;
+}
+function cumulative(){
+  const t = semCredits(); const cum = Array(N_SEM+1).fill(0); let acc=0;
+  for(let s=1;s<=N_SEM;s++){ acc+=t[s]; cum[s]=acc; }
+  return cum;
+}
+function creditsBefore(sem){
+  return state.courses.reduce((sum,c)=> c.s < sem ? sum + (Number(c.c)||0) : sum, 0);
+}
+
+function validate(){
+  const issues = [];
+  const cum = cumulative();
+  const max = Number(state.meta.maxCr)||0;
+
+  state.courses.forEach(c=>{
+    (c.p||[]).forEach(pid=>{
+      const p = byId(pid);
+      if(!p){
+        issues.push({type:"err", id:c.id, msg:`${c.name} apunta a un prerrequisito que ya no existe (${pid}).`});
+        return;
+      }
+      if(p.s >= c.s){
+        const rel = p.s === c.s ? "en el mismo semestre" : `${p.s - c.s} semestre(s) después`;
+        issues.push({type:"err", id:c.id, other:p.id,
+          msg:`${c.name} (sem ${c.s}) tiene como prerrequisito ${p.name}, que está ${rel} (sem ${p.s}).`});
+      }
+    });
+    if(c.cr){
+      const disp = creditsBefore(c.s);
+      if(disp < c.cr){
+        issues.push({type:"err", id:c.id,
+          msg:`${c.name} exige ${c.cr} créditos aprobados y en sem ${c.s} solo se acumulan ${disp}.`});
+      }
+    }
+  });
+
+  const t = semCredits();
+  for(let s=1;s<=N_SEM;s++){
+    if(max>0 && t[s]>max){
+      issues.push({type:"warn", sem:s, msg:`Semestre ${s} llega a ${t[s]} créditos y el tope fijado es ${max}.`});
+    }
+  }
+  // ciclos
+  const color = {};
+  const cyc = [];
+  function dfs(id, stack){
+    if(color[id]===2) return;
+    if(color[id]===1){ cyc.push(stack.slice(stack.indexOf(id)).join(" → ")); return; }
+    color[id]=1; stack.push(id);
+    const c = byId(id);
+    (c && c.p || []).forEach(p=>{ if(byId(p)) dfs(p, stack); });
+    stack.pop(); color[id]=2;
+  }
+  state.courses.forEach(c=>dfs(c.id,[]));
+  [...new Set(cyc)].forEach(path=> issues.push({type:"err", msg:`Cadena circular de prerrequisitos: ${path}.`}));
+
+  return {issues, cum, sem:t};
+}
+
+/* ============================================================
+   4. Render
+   ============================================================ */
+const grid = document.getElementById("grid");
+const svg  = document.getElementById("svg");
+
+function render(){
+  const {issues, cum, sem} = validate();
+  const badIds = new Set(issues.filter(i=>i.type==="err" && i.id).map(i=>i.id));
+  const max = Number(state.meta.maxCr)||0;
+  const total = cum[N_SEM];
+  const maxSemCr = Math.max(...sem.slice(1), 1);
+
+  grid.innerHTML = "";
+  for(let s=1;s<=N_SEM;s++){
+    const col = document.createElement("div");
+    col.className = "col";
+
+    const band = document.createElement("div");
+    band.className = "yearband";
+    const prevYear = s>1 ? YEAR_OF[s-2] : null;
+    band.innerHTML =
+      `<div class="year">${YEAR_OF[s-1]!==prevYear ? YEAR_OF[s-1]+"º año" : "&nbsp;"}</div>
+       <div class="head${max>0 && sem[s]>max ? " over":""}">
+         <h3>${s}º semestre</h3>
+         <div class="metrics"><span class="cr">${sem[s]}</span><span class="cum">acum ${cum[s]}</span></div>
+       </div>
+       <div class="ruler"><i style="width:${Math.round(sem[s]/maxSemCr*100)}%"></i></div>`;
+    col.appendChild(band);
+
+    // banderas de hito de créditos (100 / 170) en el semestre donde se alcanzan
+    const flags = [];
+    state.courses.filter(c=>c.cr).forEach(c=>{
+      if(cum[s] >= c.cr && (s===1 || cum[s-1] < c.cr)) flags.push(`${c.cr} cr · ${c.name}`);
+    });
+    if(flags.length){
+      const m = document.createElement("div");
+      m.className = "milestone";
+      m.innerHTML = flags.map(f=>`<div class="flag">${f}</div>`).join("");
+      col.appendChild(m);
+      col.style.paddingTop = (flags.length*14)+"px";
+    }
+
+    const body = document.createElement("div");
+    body.className = "body";
+    body.dataset.sem = s;
+    ofSem(s).forEach(c => body.appendChild(cardEl(c, badIds)));
+    wireDrop(body, s);
+    col.appendChild(body);
+    grid.appendChild(col);
+  }
+
+  document.getElementById("kTot").textContent = total;
+  document.getElementById("kCur").textContent = state.courses.length;
+  const nErr = issues.filter(i=>i.type==="err").length;
+  const nWarn = issues.filter(i=>i.type==="warn").length;
+  document.getElementById("kIssues").textContent = nErr + (nWarn?` +${nWarn}`:"");
+  document.getElementById("kIssuesBox").className = nErr ? "bad" : (nWarn ? "" : "good");
+  document.getElementById("planName").textContent = state.meta.name;
+
+  requestAnimationFrame(()=>drawArrows(issues));
+  if(drawerView==="issues") renderIssues(issues);
+  else if(selected) renderInspector();
+}
+
+function cardEl(c, badIds){
+  const el = document.createElement("div");
+  el.className = "card" + (c.k?" key":"") + (c.b?" bl":"") +
+                 (selected===c.id?" sel":"") + (badIds.has(c.id)?" err":"") +
+                 (linkFrom===c.id?" linking-src":"");
+  el.style.background = (AREAS[c.a]||{}).color || "#999";
+  el.draggable = true;
+  el.tabIndex = 0;
+  el.dataset.id = c.id;
+  el.innerHTML =
+    `<span class="cr">${c.c}</span>
+     <div class="code">${escapeHtml(c.code||"")}</div>
+     <div class="name">${escapeHtml(c.name)}</div>`;
+  if(badIds.has(c.id)){
+    const b = document.createElement("span"); b.className="bug"; b.textContent="!"; el.appendChild(b);
+  }
+  el.addEventListener("click", e=>{ e.stopPropagation(); onCardClick(c.id); });
+  el.addEventListener("keydown", e=>{
+    if(e.key==="Enter"||e.key===" "){ e.preventDefault(); onCardClick(c.id); }
+    if(e.key==="Delete"){ e.preventDefault(); removeCourse(c.id); }
+    if(e.key==="["){ e.preventDefault(); moveSem(c.id,-1); }
+    if(e.key==="]"){ e.preventDefault(); moveSem(c.id, 1); }
+  });
+  el.addEventListener("mouseenter", ()=>{ hovered=c.id; if(arrowMode==="focus") drawArrows(validate().issues); });
+  el.addEventListener("mouseleave", ()=>{ hovered=null; if(arrowMode==="focus") drawArrows(validate().issues); });
+  el.addEventListener("dragstart", e=>{
+    dragId = c.id; e.dataTransfer.effectAllowed="move";
+    e.dataTransfer.setData("text/plain", c.id);
+    setTimeout(()=>el.classList.add("dragging"),0);
+  });
+  el.addEventListener("dragend", ()=>{ dragId=null; el.classList.remove("dragging"); clearDropLine(); });
+  return el;
+}
+
+let dragId = null;
+function clearDropLine(){ document.querySelectorAll(".drop-line").forEach(n=>n.remove());
+  document.querySelectorAll(".body.dragover").forEach(n=>n.classList.remove("dragover")); }
+
+function wireDrop(body, sem){
+  body.addEventListener("dragover", e=>{
+    e.preventDefault(); e.dataTransfer.dropEffect="move";
+    clearDropLine(); body.classList.add("dragover");
+    const after = afterElement(body, e.clientY);
+    const line = document.createElement("div"); line.className="drop-line";
+    if(after) body.insertBefore(line, after); else body.appendChild(line);
+  });
+  body.addEventListener("dragleave", e=>{ if(!body.contains(e.relatedTarget)) clearDropLine(); });
+  body.addEventListener("drop", e=>{
+    e.preventDefault();
+    const id = dragId || e.dataTransfer.getData("text/plain");
+    const after = afterElement(body, e.clientY);
+    clearDropLine();
+    if(id) moveCourse(id, sem, after ? after.dataset.id : null);
+  });
+}
+function afterElement(body, y){
+  const cards = [...body.querySelectorAll(".card:not(.dragging)")];
+  return cards.reduce((closest, child)=>{
+    const box = child.getBoundingClientRect();
+    const offset = y - box.top - box.height/2;
+    return (offset < 0 && offset > closest.offset) ? {offset, el:child} : closest;
+  }, {offset: -Infinity, el:null}).el;
+}
+
+/* --- flechas --- */
+function drawArrows(issues){
+  const board = document.getElementById("board");
+  const bRect = board.getBoundingClientRect();
+  svg.setAttribute("width", board.scrollWidth);
+  svg.setAttribute("height", board.scrollHeight);
+  svg.innerHTML = `<defs>
+    <marker id="a" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto">
+      <path d="M0,0 L7,3.5 L0,7 z" fill="#7C90A6" stroke="none"/></marker>
+    <marker id="ah" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto">
+      <path d="M0,0 L7,3.5 L0,7 z" fill="#6D28D9" stroke="none"/></marker>
+    <marker id="ab" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto">
+      <path d="M0,0 L7,3.5 L0,7 z" fill="#D92D3F" stroke="none"/></marker></defs>`;
+
+  const pos = {};
+  document.querySelectorAll(".card").forEach(el=>{
+    const r = el.getBoundingClientRect();
+    pos[el.dataset.id] = {
+      x1: r.left - bRect.left + board.scrollLeft*0, // rects ya incluyen scroll del wrap
+      y:  r.top - bRect.top + r.height/2,
+      l:  r.left - bRect.left,
+      r:  r.right - bRect.left
+    };
+  });
+
+  const focus = selected || hovered;
+  const dim = new Set();
+  const frag = [];
+
+  state.courses.forEach(c=>{
+    (c.p||[]).forEach(pid=>{
+      const p = byId(pid); if(!p) return;
+      const A = pos[pid], B = pos[c.id]; if(!A||!B) return;
+      const bad = p.s >= c.s;
+      const touches = focus && (focus===c.id || focus===pid);
+      let show = false;
+      if(arrowMode==="all") show = true;
+      else if(arrowMode==="errors") show = bad;
+      else show = bad || touches;
+      if(!show) return;
+      if(touches){ dim.add(c.id); dim.add(pid); }
+
+      const x1 = A.r, y1 = A.y, x2 = B.l - 7, y2 = B.y;
+      const dx = Math.max(28, Math.abs(x2-x1)*0.45);
+      const cls = bad ? "bad" : (touches ? "hi" : "");
+      const mk  = bad ? "ab" : (touches ? "ah" : "a");
+      let d;
+      if(x2 > x1){
+        d = `M${x1},${y1} C${x1+dx},${y1} ${x2-dx},${y2} ${x2},${y2}`;
+      }else{ // va hacia atrás: rodea por abajo para que se vea el conflicto
+        const yb = Math.max(y1,y2) + 46;
+        d = `M${x1},${y1} C${x1+40},${yb} ${x2-40},${yb} ${x2},${y2}`;
+      }
+      frag.push(`<path class="${cls}" d="${d}" marker-end="url(#${mk})"/>`);
+    });
+  });
+  svg.insertAdjacentHTML("beforeend", frag.join(""));
+
+  document.querySelectorAll(".card").forEach(el=>{
+    el.classList.toggle("dim", !!focus && arrowMode==="focus" && dim.size>0 && !dim.has(el.dataset.id));
+  });
+}
+
+/* ============================================================
+   5. Acciones sobre la malla
+   ============================================================ */
+function moveCourse(id, sem, beforeId){
+  const c = byId(id); if(!c) return;
+  if(c.s===sem && !beforeId) { /* igual reordena */ }
+  snapshot();
+  const arr = state.courses;
+  const i = arr.findIndex(x=>x.id===id);
+  const [cur] = arr.splice(i,1);
+  cur.s = sem;
+  if(beforeId && beforeId!==id){
+    const j = arr.findIndex(x=>x.id===beforeId);
+    arr.splice(j<0?arr.length:j, 0, cur);
+  }else{
+    let last=-1; arr.forEach((x,k)=>{ if(x.s===sem) last=k; });
+    arr.splice(last+1, 0, cur);
+  }
+  render();
+}
+function moveSem(id, delta){
+  const c = byId(id); if(!c) return;
+  const s = Math.min(N_SEM, Math.max(1, c.s+delta));
+  if(s!==c.s){ moveCourse(id, s, null); toast(`${c.name} → semestre ${s}`); }
+}
+function removeCourse(id){
+  const c = byId(id); if(!c) return;
+  const deps = state.courses.filter(x=>(x.p||[]).includes(id));
+  const msg = deps.length
+    ? `Eliminar ${c.name}. Es prerrequisito de ${deps.length} ramo(s); esas flechas también se borran.`
+    : `Eliminar ${c.name}.`;
+  if(!confirm(msg+"\n\n¿Continuar?")) return;
+  snapshot();
+  state.courses = state.courses.filter(x=>x.id!==id);
+  state.courses.forEach(x=> x.p = (x.p||[]).filter(p=>p!==id));
+  if(selected===id){ selected=null; closeDrawer(); }
+  render(); toast("Ramo eliminado");
+}
+function addCourse(){
+  snapshot();
+  let n=1, id;
+  do{ id = "NUEVO"+n++; }while(byId(id));
+  const c = {id, code:"—", name:"Ramo nuevo", c:3, a:"especialidad", s:1, p:[]};
+  state.courses.push(c);
+  selected = id; drawerView="course"; openDrawer();
+  render();
+  setTimeout(()=>{ const f=document.getElementById("fName"); if(f){f.focus(); f.select();} },60);
+}
+function addPrereq(id, pid){
+  const c = byId(id); if(!c || !pid || pid===id) return;
+  c.p = c.p||[];
+  if(c.p.includes(pid)){ toast("Esa flecha ya existe"); return; }
+  snapshot();
+  c.p.push(pid);
+  render(); toast("Prerrequisito agregado");
+}
+function removePrereq(id, pid){
+  const c = byId(id); if(!c) return;
+  snapshot();
+  c.p = (c.p||[]).filter(p=>p!==pid);
+  render(); toast("Prerrequisito eliminado");
+}
+function onCardClick(id){
+  if(linkMode){
+    if(!linkFrom){ linkFrom = id; toast("Ahora elige el ramo que lo tiene como prerrequisito"); render(); return; }
+    if(linkFrom===id){ linkFrom=null; render(); return; }
+    addPrereq(id, linkFrom);
+    linkFrom = null; setLinkMode(false); return;
+  }
+  selected = id; drawerView="course"; openDrawer(); render();
+}
+function setLinkMode(on){
+  linkMode = on; if(!on) linkFrom=null;
+  document.getElementById("bLink").classList.toggle("on", on);
+  document.body.style.cursor = on ? "crosshair" : "";
+  if(on) toast("Modo conectar: elige el ramo prerrequisito (origen)");
+  render();
+}
+
+/* ============================================================
+   6. Panel lateral
+   ============================================================ */
+const drawer = document.getElementById("drawer");
+const drawerBody = document.getElementById("drawerBody");
+function openDrawer(){ drawer.classList.add("open"); }
+function closeDrawer(){ drawer.classList.remove("open"); selected=null; render(); }
+
+function renderInspector(){
+  const c = byId(selected);
+  document.getElementById("drawerTitle").textContent = "Ramo";
+  if(!c){ drawerBody.innerHTML = `<p class="empty">Ningún ramo seleccionado.</p>`; return; }
+  const opts = Object.entries(AREAS).map(([k,v])=>
+    `<option value="${k}"${c.a===k?" selected":""}>${v.label}</option>`).join("");
+  const sems = Array.from({length:N_SEM},(_,i)=>
+    `<option value="${i+1}"${c.s===i+1?" selected":""}>${i+1}º semestre</option>`).join("");
+  const others = state.courses.filter(x=>x.id!==c.id)
+    .sort((a,b)=>a.s-b.s || a.name.localeCompare(b.name))
+    .map(x=>`<option value="${x.id}">${x.s}· ${escapeHtml(x.code)} ${escapeHtml(x.name)}</option>`).join("");
+
+  const pre = (c.p||[]).map(pid=>{
+    const p = byId(pid);
+    if(!p) return `<div class="chip bad"><span>Referencia rota: ${pid}</span>
+      <button class="x" data-rm="${pid}" title="Quitar">×</button></div>`;
+    const bad = p.s>=c.s;
+    return `<div class="chip${bad?" bad":""}">
+      <span class="c">${p.s}º</span><span>${escapeHtml(p.name)}</span>
+      <button class="x" data-rm="${p.id}" title="Quitar flecha">×</button></div>`;
+  }).join("") || `<p class="empty">Sin prerrequisitos.</p>`;
+
+  const deps = state.courses.filter(x=>(x.p||[]).includes(c.id));
+  const depList = deps.map(d=>`<div class="chip"><span class="c">${d.s}º</span><span>${escapeHtml(d.name)}</span></div>`).join("")
+    || `<p class="empty">Ningún ramo depende de este.</p>`;
+
+  drawerBody.innerHTML = `
+    <label class="lbl">Nombre<input id="fName" value="${escapeAttr(c.name)}"></label>
+    <div class="row2">
+      <label class="lbl">Código<input id="fCode" value="${escapeAttr(c.code||"")}"></label>
+      <label class="lbl">Créditos<input id="fCr" type="number" min="0" max="30" value="${c.c}"></label>
+    </div>
+    <div class="row2">
+      <label class="lbl">Área<select id="fArea">${opts}</select></label>
+      <label class="lbl">Semestre<select id="fSem">${sems}</select></label>
+    </div>
+    <label class="lbl">Créditos aprobados exigidos
+      <input id="fReq" type="number" min="0" max="250" value="${c.cr||0}"></label>
+    <div class="checks">
+      <label><input type="checkbox" id="fKey" ${c.k?"checked":""}> Asignatura clave</label>
+      <label><input type="checkbox" id="fBl" ${c.b?"checked":""}> B-learning</label>
+    </div>
+    <div class="sect">
+      <h4>Prerrequisitos (flechas entrantes)</h4>
+      ${pre}
+      <div style="display:flex;gap:6px;margin-top:8px">
+        <select id="fAddPre" style="flex:1;background:var(--ink-3);border:1px solid var(--line);border-radius:5px;padding:6px;font-size:12px">
+          <option value="">Agregar prerrequisito…</option>${others}
+        </select>
+      </div>
+    </div>
+    <div class="sect">
+      <h4>Lo tienen como prerrequisito</h4>
+      ${depList}
+    </div>
+    <div class="sect" style="display:flex;gap:8px">
+      <button class="btn" id="fDup">Duplicar</button>
+      <button class="btn" id="fDel" style="border-color:#E3AAB1;color:#B31F30">Eliminar ramo</button>
+    </div>
+    <p class="hint">Atajos: arrastra la tarjeta para moverla, <b>[</b> y <b>]</b> la corren de semestre, <b>Supr</b> la elimina.</p>`;
+
+  const upd = (f)=>{ snapshot(); f(); render(); };
+  document.getElementById("fName").addEventListener("change", e=> upd(()=> c.name = e.target.value.trim() || "Sin nombre"));
+  document.getElementById("fCode").addEventListener("change", e=> upd(()=> c.code = e.target.value.trim()));
+  document.getElementById("fCr").addEventListener("change", e=> upd(()=> c.c = Math.max(0, Number(e.target.value)||0)));
+  document.getElementById("fArea").addEventListener("change", e=> upd(()=> c.a = e.target.value));
+  document.getElementById("fSem").addEventListener("change", e=> moveCourse(c.id, Number(e.target.value), null));
+  document.getElementById("fReq").addEventListener("change", e=> upd(()=>{ const v=Number(e.target.value)||0; if(v>0) c.cr=v; else delete c.cr; }));
+  document.getElementById("fKey").addEventListener("change", e=> upd(()=>{ if(e.target.checked) c.k=true; else delete c.k; }));
+  document.getElementById("fBl").addEventListener("change", e=> upd(()=>{ if(e.target.checked) c.b=true; else delete c.b; }));
+  document.getElementById("fAddPre").addEventListener("change", e=>{ if(e.target.value) addPrereq(c.id, e.target.value); });
+  drawerBody.querySelectorAll("[data-rm]").forEach(b=> b.addEventListener("click", ()=> removePrereq(c.id, b.dataset.rm)));
+  document.getElementById("fDel").addEventListener("click", ()=> removeCourse(c.id));
+  document.getElementById("fDup").addEventListener("click", ()=>{
+    snapshot();
+    let n=1,id; do{ id=c.id+"_"+n++; }while(byId(id));
+    const copy = clone(c); copy.id=id; copy.name = c.name+" (copia)";
+    state.courses.push(copy); selected=id; render();
+  });
+}
+
+function renderIssues(issues){
+  document.getElementById("drawerTitle").textContent = "Conflictos";
+  const errs = issues.filter(i=>i.type==="err");
+  const warns = issues.filter(i=>i.type==="warn");
+  if(!issues.length){
+    drawerBody.innerHTML = `<p class="hint">Todo cuadra: cada prerrequisito va antes que su ramo, los hitos de créditos se cumplen y ningún semestre pasa el tope.</p>`;
+    return;
+  }
+  drawerBody.innerHTML =
+    (errs.length ? `<div><h4 style="margin:0 0 8px;font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--danger)">Errores (${errs.length})</h4>
+      ${errs.map(i=>`<div class="issue" data-go="${i.id||""}">${escapeHtml(i.msg)}</div>`).join("")}</div>`:"") +
+    (warns.length ? `<div class="sect"><h4 style="color:var(--warn)">Avisos (${warns.length})</h4>
+      ${warns.map(i=>`<div class="issue warn">${escapeHtml(i.msg)}</div>`).join("")}</div>`:"");
+  drawerBody.querySelectorAll("[data-go]").forEach(d=> d.addEventListener("click", ()=>{
+    const id = d.dataset.go; if(!id) return;
+    selected=id; drawerView="course"; render();
+    const el = document.querySelector(`.card[data-id="${id}"]`);
+    if(el) el.scrollIntoView({behavior:"smooth", block:"center", inline:"center"});
+  }));
+}
+
+/* ============================================================
+   7. Archivos, atajos, utilidades
+   ============================================================ */
+function download(name, text, type){
+  const blob = new Blob([text], {type: type||"application/json;charset=utf-8"});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a"); a.href=url; a.download=name; a.click();
+  setTimeout(()=>URL.revokeObjectURL(url), 1000);
+}
+function toCsv(){
+  const head = ["id","codigo","nombre","creditos","area","semestre","prerrequisitos","creditos_exigidos","clave","blearning"];
+  const rows = state.courses.map(c=>[
+    c.id, c.code||"", c.name, c.c, (AREAS[c.a]||{}).label||c.a, c.s,
+    (c.p||[]).join(" | "), c.cr||"", c.k?"sí":"", c.b?"sí":""
+  ]);
+  return [head,...rows].map(r=>r.map(v=>{
+    const s = String(v??"");
+    return /[";,\n]/.test(s) ? '"'+s.replace(/"/g,'""')+'"' : s;
+  }).join(";")).join("\n");
+}
+function toast(msg){
+  const t = document.getElementById("toast");
+  t.textContent = msg; t.classList.add("show");
+  clearTimeout(t._t); t._t = setTimeout(()=>t.classList.remove("show"), 1900);
+}
+function escapeHtml(s){ return String(s??"").replace(/[&<>]/g, m=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[m])); }
+function escapeAttr(s){ return escapeHtml(s).replace(/"/g,"&quot;"); }
+
+document.getElementById("bAdd").addEventListener("click", addCourse);
+document.getElementById("bLink").addEventListener("click", ()=> setLinkMode(!linkMode));
+document.getElementById("selArrows").addEventListener("change", e=>{ arrowMode = e.target.value; render(); });
+document.getElementById("inMax").addEventListener("change", e=>{ state.meta.maxCr = Number(e.target.value)||0; render(); });
+document.getElementById("bIssues").addEventListener("click", ()=>{ drawerView="issues"; openDrawer(); render(); });
+document.getElementById("drawerClose").addEventListener("click", closeDrawer);
+document.getElementById("bUndo").addEventListener("click", undo);
+document.getElementById("bPrint").addEventListener("click", ()=>window.print());
+document.getElementById("bCsv").addEventListener("click", ()=> download("malla.csv", "\ufeff"+toCsv(), "text/csv;charset=utf-8"));
+document.getElementById("bSave").addEventListener("click", ()=>{
+  const name = (state.meta.name||"malla").replace(/[^\w\-]+/g,"_").slice(0,40);
+  download(name+".json", JSON.stringify(state, null, 2));
+  toast("Archivo descargado — súbelo al repositorio");
+});
+document.getElementById("bLoad").addEventListener("click", ()=> document.getElementById("fileIn").click());
+document.getElementById("fileIn").addEventListener("change", e=>{
+  const f = e.target.files[0]; if(!f) return;
+  const r = new FileReader();
+  r.onload = () => {
+    try{
+      const data = JSON.parse(r.result);
+      if(!data || !Array.isArray(data.courses)) throw new Error("El archivo no tiene una lista de ramos.");
+      snapshot();
+      state = data;
+      state.meta = state.meta || {name:"Malla", maxCr:22};
+      document.getElementById("inMax").value = state.meta.maxCr ?? 22;
+      selected = null; closeDrawer(); render();
+      toast("Malla cargada: "+state.courses.length+" ramos");
+    }catch(err){ alert("No se pudo leer el archivo. "+err.message); }
+    e.target.value = "";
+  };
+  r.readAsText(f);
+});
+document.getElementById("bReset").addEventListener("click", ()=>{
+  if(!confirm("Volver a la malla original del PDF. Se pierden los cambios no guardados.\n\n¿Continuar?")) return;
+  snapshot(); state = clone(ORIGINAL); selected=null; closeDrawer();
+  document.getElementById("inMax").value = state.meta.maxCr;
+  render(); toast("Malla original restaurada");
+});
+function undo(){
+  const prev = history.pop();
+  if(!prev){ toast("No hay nada que deshacer"); return; }
+  state = JSON.parse(prev); render(); toast("Cambio deshecho");
+}
+document.addEventListener("keydown", e=>{
+  if((e.ctrlKey||e.metaKey) && e.key.toLowerCase()==="z" && !/INPUT|TEXTAREA|SELECT/.test(e.target.tagName)){
+    e.preventDefault(); undo();
+  }
+  if(e.key==="Escape"){ if(linkMode) setLinkMode(false); else closeDrawer(); }
+});
+document.getElementById("boardWrap").addEventListener("scroll", ()=>{
+  if(arrowMode!=="focus" || selected || hovered) drawArrows(validate().issues);
+});
+window.addEventListener("resize", ()=> render());
+
+// leyenda
+document.getElementById("legend").innerHTML =
+  Object.values(AREAS).map(a=>`<span><i style="background:${a.color}"></i>${a.label}</span>`).join("") +
+  `<span style="margin-left:auto">Borde grueso: asignatura clave · Borde punteado: b-learning · Rojo: conflicto</span>`;
+
+render();
+</script>
+</body>
+</html>
