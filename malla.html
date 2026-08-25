@@ -21,6 +21,8 @@
   --font-sans:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
   --font-mono:ui-monospace,SFMono-Regular,"JetBrains Mono",Menlo,Consolas,"Liberation Mono",monospace;
   --col-w:186px;
+  --gap-h:20px;
+  --gap-v:17px;
 }
 *{box-sizing:border-box}
 html,body{height:100%}
@@ -64,11 +66,13 @@ button{cursor:pointer}
   font-family:var(--font-mono);font-size:12px;
 }
 .field input[type=number]{width:56px}
+.field input[type=range]{width:78px;accent-color:var(--accent);padding:0}
+.field b{font-family:var(--font-mono);font-size:11px;color:var(--paper);min-width:26px;text-align:right}
 
 /* ---------- tablero ---------- */
 .board-wrap{flex:1 1 auto;overflow:auto;position:relative}
 .board{position:relative;min-height:100%;padding:0 16px 90px;width:max-content}
-.grid{display:flex;gap:20px;align-items:flex-start;position:relative;z-index:2}
+.grid{display:flex;gap:var(--gap-h);align-items:flex-start;position:relative;z-index:2}
 .col{width:var(--col-w);flex:0 0 var(--col-w);display:flex;flex-direction:column}
 
 .yearband{
@@ -94,7 +98,7 @@ button{cursor:pointer}
 .head.over + .ruler i{background:linear-gradient(90deg,#E0A94A,var(--warn))}
 .body{
   background:var(--ink-2);border:1px solid var(--line);border-top:none;border-radius:0 0 8px 8px;
-  padding:10px;min-height:120px;display:flex;flex-direction:column;gap:17px;flex:1 1 auto;
+  padding:10px;min-height:120px;display:flex;flex-direction:column;gap:var(--gap-v);flex:1 1 auto;
 }
 .body.dragover{background:#EDE7FB;border-color:var(--accent)}
 
@@ -262,6 +266,10 @@ table.dist i{display:inline-block;width:11px;height:11px;border-radius:3px;margi
       </select>
     </div>
     <div class="field"><span>Máx cr/sem</span><input type="number" id="inMax" min="0" max="40" value="22"></div>
+    <div class="field" title="Separación horizontal entre semestres"><span>↔</span>
+      <input type="range" id="inGapH" min="10" max="70" step="2" value="20"><b id="lblGapH">20</b></div>
+    <div class="field" title="Separación vertical entre ramos"><span>↕</span>
+      <input type="range" id="inGapV" min="8" max="60" step="2" value="17"><b id="lblGapV">17</b></div>
     <button class="btn" id="bIssues">Conflictos</button>
     <button class="btn" id="bDist">Informe</button>
     <button class="btn" id="bUndo" title="Ctrl+Z">Deshacer</button>
@@ -336,7 +344,7 @@ const N_SEM = 11;
 // c: créditos · a: área · s: semestre (1-11) · p: prerrequisitos · k: asignatura clave
 // b: b-learning · cr: créditos aprobados exigidos (hitos de inserción laboral)
 const ORIGINAL = {
-  meta:{name:"Ing. Civil en Bioprocesos · 11 sem", maxCr:22},
+  meta:{name:"Ing. Civil en Bioprocesos · 11 sem", maxCr:22, gapH:20, gapV:17},
   courses:[
     {id:"ICB1101", code:"ICB 1101", name:"Introducción a la Formación Profesional", c:3, a:"especialidad", s:1, p:[]},
     {id:"FIS1003", code:"FIS 1003", name:"Elementos de Física para Ingeniería", c:3, a:"basicas", s:1, p:[]},
@@ -777,6 +785,31 @@ function routeOrtho(rects, edges, W, H, o){
     return cells;
   }
 
+  /* Puertos: cada flecha entra y sale por su propio punto del borde.
+     Se ordenan por la altura del otro extremo para que no se crucen justo
+     al llegar. Se calculan sobre TODAS las aristas (o.allEdges), no solo
+     las visibles, para que no se muevan al pasar el cursor. */
+  const portIn = {}, portOut = {};
+  {
+    const all = (o.allEdges || edges).filter(e=> rects[e.from] && rects[e.to]);
+    const cy = id => rects[id].y + rects[id].h/2;
+    const inc = {}, outg = {};
+    all.forEach(e=>{ (inc[e.to] = inc[e.to]||[]).push(e); (outg[e.from] = outg[e.from]||[]).push(e); });
+    const spread = (group, store, otherEnd)=>{
+      for(const id in group){
+        const r = rects[id];
+        const arr = group[id].slice().sort((a,b)=> cy(otherEnd(a)) - cy(otherEnd(b)));
+        const k = arr.length;
+        const usable = Math.max(0, r.h - 14);
+        const step = k>1 ? Math.min(o.port||13, usable/(k-1)) : 0;
+        const y0 = r.y + r.h/2 - step*(k-1)/2;
+        arr.forEach((e,i)=> store[e.key] = y0 + i*step);
+      }
+    };
+    spread(inc,  portIn,  e=>e.from);
+    spread(outg, portOut, e=>e.to);
+  }
+
   const out = {};
   const list = edges.slice().sort((a,b)=>{
     const A=rects[a.from], B=rects[a.to], C=rects[b.from], D=rects[b.to];
@@ -787,8 +820,8 @@ function routeOrtho(rects, edges, W, H, o){
   list.forEach(e=>{
     const A = rects[e.from], B = rects[e.to];
     if(!A||!B) return;
-    const sx = A.x+A.w, sy = A.y+A.h/2;
-    const tx = B.x,      ty = B.y+B.h/2;
+    const sx = A.x+A.w, sy = portOut[e.key] ?? (A.y+A.h/2);
+    const tx = B.x,      ty = portIn[e.key]  ?? (B.y+B.h/2);
     const S = {x: Math.round((sx+STUB)/CELL), y: Math.round(sy/CELL)};
     const G = {x: Math.round((tx-STUB)/CELL), y: Math.round(ty/CELL)};
     // abrir un corredor de salida y otro de entrada
@@ -835,6 +868,77 @@ function routeOrtho(rects, edges, W, H, o){
   return out;
 }
 
+/* ============================================================
+   Cruces: en cada intersección se interrumpe el tramo vertical,
+   de modo que se lee cuál pasa por encima y cuál por debajo.
+   Convención fija (siempre corta el vertical) para que el dibujo
+   sea predecible; no altera los ángulos rectos.
+   ============================================================ */
+function bridgeGaps(list, gap){
+  const G = gap || 4;
+  const polys = list.map(e=>({
+    key: e.key,
+    pts: e.d.slice(1).split(" L").map(t=>t.split(",").map(Number))
+  }));
+  const H = [], V = [];
+  polys.forEach((p,pi)=>{
+    for(let i=1;i<p.pts.length;i++){
+      const a = p.pts[i-1], b = p.pts[i];
+      (Math.abs(a[0]-b[0]) < 0.6 ? V : H).push({pi, i, a, b});
+    }
+  });
+  const cuts = {};
+  H.forEach(h=>{
+    const y = h.a[1], hx1 = Math.min(h.a[0],h.b[0]), hx2 = Math.max(h.a[0],h.b[0]);
+    V.forEach(v=>{
+      if(v.pi === h.pi) return;
+      const x = v.a[0], vy1 = Math.min(v.a[1],v.b[1]), vy2 = Math.max(v.a[1],v.b[1]);
+      if(x > hx1+1 && x < hx2-1 && y > vy1+1 && y < vy2-1){
+        const at = Math.abs(y - v.a[1]);            // distancia desde el inicio del tramo
+        ((cuts[v.pi] = cuts[v.pi] || {})[v.i] = cuts[v.pi][v.i] || []).push(at);
+      }
+    });
+  });
+  const out = {};
+  polys.forEach((p,pi)=>{
+    const c = cuts[pi];
+    if(!c){ out[p.key] = "M" + p.pts.map(q=>q[0].toFixed(1)+","+q[1].toFixed(1)).join(" L"); return; }
+    const runs = []; let run = [p.pts[0]];
+    for(let i=1;i<p.pts.length;i++){
+      const a = p.pts[i-1], b = p.pts[i];
+      const len = Math.abs(b[0]-a[0]) + Math.abs(b[1]-a[1]);
+      const at = t => [a[0] + (b[0]-a[0])*(t/len), a[1] + (b[1]-a[1])*(t/len)];
+      let prev = 0;
+      ((c[i]||[]).slice().sort((m,n)=>m-n)).forEach(t=>{
+        // el corte se angosta si el cruce cae cerca de una esquina
+        const g = Math.min(G, t-prev-0.5, len-t-0.5);
+        if(g < 1.5) return;
+        run.push(at(t-g)); runs.push(run); run = [at(t+g)];
+        prev = t + g;
+      });
+      run.push(b);
+    }
+    runs.push(run);
+    const long = r => r.length>1 && r.slice(1).some((q,i)=>
+      Math.abs(q[0]-r[i][0]) + Math.abs(q[1]-r[i][1]) > 1.5);
+    out[p.key] = runs.filter(long)
+      .map(r=>"M" + r.map(q=>q[0].toFixed(1)+","+q[1].toFixed(1)).join(" L")).join(" ");
+  });
+  return out;
+}
+
+/* La punta se dibuja como figura propia y no como marker: al interrumpir
+   la línea en los cruces, el marcador aparecía también en los cortes. */
+function tipOf(d){
+  const p = d.slice(1).split(" L");
+  return p[p.length-1].split(",").map(Number);
+}
+function arrowHead(d, color){
+  const [x,y] = tipOf(d);
+  return `<path d="M${(x-8).toFixed(1)},${(y-2.7).toFixed(1)} L${x.toFixed(1)},${y.toFixed(1)}`
+       + ` L${(x-8).toFixed(1)},${(y+2.7).toFixed(1)} Z" fill="${color}" stroke="none"/>`;
+}
+
 /* --- flechas --- */
 let _routeCache = {sig:"", paths:{}};
 function drawArrows(issues){
@@ -842,11 +946,7 @@ function drawArrows(issues){
   const bRect = board.getBoundingClientRect();
   svg.setAttribute("width", board.scrollWidth);
   svg.setAttribute("height", board.scrollHeight);
-  const mkId = hex => "mk" + hex.replace("#","");
-  const mkDef = hex => `<marker id="${mkId(hex)}" markerUnits="userSpaceOnUse" markerWidth="9" markerHeight="6"`
-    + ` refX="8" refY="3" orient="auto"><path d="M0,0.35 L8,3 L0,5.65 z" fill="${hex}" stroke="none"/></marker>`;
-  const palette = [...new Set(Object.values(AREAS).map(a=>a.line).concat(["#6D28D9","#D92D3F"]))];
-  svg.innerHTML = `<defs>${palette.map(mkDef).join("")}</defs>`;
+  svg.innerHTML = "";
 
   const walls = [];
   document.querySelectorAll(".yearband").forEach(el=>{
@@ -864,11 +964,12 @@ function drawArrows(issues){
 
   const focus = selected || hovered;
   const dim = new Set();
-  const visible = [];
+  const visible = [], allEdges = [];
 
   state.courses.forEach(c=>{
     (c.p||[]).forEach(pid=>{
       const p = byId(pid); if(!p || !rects[pid] || !rects[c.id]) return;
+      allEdges.push({from:pid, to:c.id, key:pid+">"+c.id});
       const bad = p.s >= c.s;
       const touches = focus && (focus===c.id || focus===pid);
       let show = false;
@@ -886,16 +987,19 @@ function drawArrows(issues){
   if(_routeCache.sig !== sig) _routeCache = {sig, paths:{}};
   if(need.length){
     const fresh = routeOrtho(rects, need, board.scrollWidth, board.scrollHeight,
-                             {cell:6, pad:3, stub:10, turn:4, walls});
+                             {cell:6, pad:3, stub:10, turn:4, port:13, walls, allEdges});
     Object.assign(_routeCache.paths, fresh);
   }
 
+  const withD = visible.map(e=>({key:e.key, d:_routeCache.paths[e.key]})).filter(e=>e.d);
+  const gapped = bridgeGaps(withD, 4);
   const frag = visible.map(e=>{
-    const d = _routeCache.paths[e.key]; if(!d) return "";
+    const d = gapped[e.key] || _routeCache.paths[e.key]; if(!d) return "";
     const src = byId(e.from);
     const col = e.bad ? "#D92D3F" : (e.touches ? "#6D28D9" : lineColor(src && src.a));
     const cls = e.bad ? "bad" : (e.touches ? "hi" : "");
-    return `<path class="${cls}" d="${d}" stroke="${col}" marker-end="url(#${mkId(col)})"/>`;
+    return `<path class="${cls}" d="${d}" stroke="${col}"/>`
+         + arrowHead(_routeCache.paths[e.key], col);
   });
   svg.insertAdjacentHTML("beforeend", frag.join(""));
 
@@ -1125,6 +1229,23 @@ document.getElementById("bAdd").addEventListener("click", addCourse);
 document.getElementById("bLink").addEventListener("click", ()=> setLinkMode(!linkMode));
 document.getElementById("bTidy").addEventListener("click", tidyLayout);
 document.getElementById("selArrows").addEventListener("change", e=>{ arrowMode = e.target.value; render(); });
+function applyGaps(){
+  const gh = Number(state.meta.gapH) || 20, gv = Number(state.meta.gapV) || 17;
+  document.documentElement.style.setProperty("--gap-h", gh+"px");
+  document.documentElement.style.setProperty("--gap-v", gv+"px");
+  document.getElementById("inGapH").value = gh; document.getElementById("lblGapH").textContent = gh;
+  document.getElementById("inGapV").value = gv; document.getElementById("lblGapV").textContent = gv;
+}
+let _gapTimer = null;
+function onGap(which, val){
+  state.meta[which] = Number(val);
+  applyGaps();
+  svg.innerHTML = "";                       // las rutas quedan obsoletas mientras se arrastra
+  clearTimeout(_gapTimer);
+  _gapTimer = setTimeout(()=> render(), 140);
+}
+document.getElementById("inGapH").addEventListener("input", e=> onGap("gapH", e.target.value));
+document.getElementById("inGapV").addEventListener("input", e=> onGap("gapV", e.target.value));
 document.getElementById("inMax").addEventListener("change", e=>{ state.meta.maxCr = Number(e.target.value)||0; render(); });
 document.getElementById("bIssues").addEventListener("click", ()=>{ drawerView="issues"; openDrawer(); render(); });
 document.getElementById("drawerClose").addEventListener("click", closeDrawer);
@@ -1148,6 +1269,7 @@ document.getElementById("fileIn").addEventListener("change", e=>{
       state = data;
       state.meta = state.meta || {name:"Malla", maxCr:22};
       document.getElementById("inMax").value = state.meta.maxCr ?? 22;
+      applyGaps();
       selected = null; closeDrawer(); render();
       toast("Malla cargada: "+state.courses.length+" ramos");
     }catch(err){ alert("No se pudo leer el archivo. "+err.message); }
@@ -1159,6 +1281,7 @@ document.getElementById("bReset").addEventListener("click", ()=>{
   if(!confirm("Volver a la malla original del PDF. Se pierden los cambios no guardados.\n\n¿Continuar?")) return;
   snapshot(); state = clone(ORIGINAL); selected=null; closeDrawer();
   document.getElementById("inMax").value = state.meta.maxCr;
+  applyGaps();
   render(); toast("Malla original restaurada");
 });
 function undo(){
@@ -1202,8 +1325,10 @@ function _esc(t){ return String(t??"").replace(/[&<>"]/g, m=>({"&":"&amp;","<":"
 
 function buildSvg(){
   const SANS = "Arial, Helvetica, sans-serif", MONO = "'Courier New', Courier, monospace";
-  const M = 26, COLW = 182, GAP = 22, PAD = 10;
-  const TITLE_H = 52, YEAR_H = 16, HEAD_H = 44, RULER_H = 6, CARD_GAP = 18;
+  const M = 26, COLW = 182, PAD = 10;
+  const GAP = Math.max(12, Number(state.meta.gapH) || 22);
+  const CARD_GAP = Math.max(8, Number(state.meta.gapV) || 18);
+  const TITLE_H = 52, YEAR_H = 16, HEAD_H = 44, RULER_H = 6;
   const {issues, cum, sem} = validate();
   const badIds = new Set(issues.filter(i=>i.type==="err" && i.id).map(i=>i.id));
   const max = Number(state.meta.maxCr)||0;
@@ -1271,17 +1396,18 @@ function buildSvg(){
       if(p && geo[pid] && geo[c.id]) edges.push({from:pid, to:c.id, key:pid+">"+c.id, bad:p.s>=c.s});
     });
   });
-  const routed = routeOrtho(geo, edges, W, H, {cell:6, pad:3, stub:10, turn:4, walls:[
+  const routed = routeOrtho(geo, edges, W, H, {cell:6, pad:3, stub:10, turn:4, port:13, walls:[
     {x:0, y:0, w:W, h:bodyTop-2},
     {x:0, y:maxBottom+8, w:W, h:H-maxBottom}
   ]});
+  const gapped = bridgeGaps(edges.map(e=>({key:e.key, d:routed[e.key]})).filter(e=>e.d), 4);
   edges.forEach(e=>{
-    const d = routed[e.key]; if(!d) return;
+    const d = gapped[e.key] || routed[e.key]; if(!d) return;
     const src = byId(e.from);
     const col = e.bad ? "#D92D3F" : lineColor(src && src.a);
     o += `<path d="${d}" fill="none" stroke="${col}" stroke-width="${e.bad?2:1.4}"`
        + ` stroke-linejoin="miter" stroke-linecap="butt"`
-       + `${e.bad?' stroke-dasharray="6 4"':""} marker-end="url(#mk${col.replace("#","")})"/>`;
+       + `${e.bad?' stroke-dasharray="6 4"':""}/>` + arrowHead(routed[e.key], col);
   });
 
   // tarjetas
@@ -1314,9 +1440,7 @@ function buildSvg(){
      + `Borde grueso: asignatura clave · Punteado: b-learning · Flecha del color del área del prerrequisito · Rojo: conflicto`
      + ` — generado el ${new Date().toLocaleDateString("es-CL")}</text>`;
 
-  const defs = `<defs>` + [...new Set(Object.values(AREAS).map(a=>a.line).concat(["#D92D3F"]))].map(hex=>
-    `<marker id="mk${hex.replace("#","")}" markerUnits="userSpaceOnUse" markerWidth="9" markerHeight="6"`
-    + ` refX="8" refY="3" orient="auto"><path d="M0,0.35 L8,3 L0,5.65 z" fill="${hex}"/></marker>`).join("") + `</defs>`;
+  const defs = "";
 
   return {svg:`<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">${defs}${o}</svg>`,
@@ -1675,6 +1799,7 @@ document.getElementById("legend").innerHTML =
   Object.values(AREAS).map(a=>`<span><i style="background:${a.color}"></i>${a.label}</span>`).join("") +
   `<span style="margin-left:auto">Borde grueso: clave · Punteado: b-learning · Flecha del color del prerrequisito · Rojo: conflicto</span>`;
 
+applyGaps();
 render();
 </script>
 </body>
