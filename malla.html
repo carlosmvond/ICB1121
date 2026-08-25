@@ -92,13 +92,6 @@ button{cursor:pointer}
 .ruler{height:6px;background:var(--ink-3);border-left:1px solid var(--line);border-right:1px solid var(--line);position:relative;overflow:hidden}
 .ruler i{position:absolute;inset:0 auto 0 0;background:linear-gradient(90deg,#93A7BA,#4C627A);display:block}
 .head.over + .ruler i{background:linear-gradient(90deg,#E0A94A,var(--warn))}
-.milestone{
-  position:relative;height:0;
-}
-.flag{
-  position:absolute;top:2px;left:0;right:0;font-family:var(--font-mono);font-size:9.5px;
-  letter-spacing:.05em;color:var(--accent);border-top:1px dashed var(--accent);padding-top:2px;
-}
 .body{
   background:var(--ink-2);border:1px solid var(--line);border-top:none;border-radius:0 0 8px 8px;
   padding:10px;min-height:120px;display:flex;flex-direction:column;gap:17px;flex:1 1 auto;
@@ -511,19 +504,6 @@ function render(){
        </div>
        <div class="ruler"><i style="width:${Math.round(sem[s]/maxSemCr*100)}%"></i></div>`;
     col.appendChild(band);
-
-    // banderas de hito de créditos (100 / 170) en el semestre donde se alcanzan
-    const flags = [];
-    state.courses.filter(c=>c.cr).forEach(c=>{
-      if(cum[s] >= c.cr && (s===1 || cum[s-1] < c.cr)) flags.push(`${c.cr} cr · ${c.name}`);
-    });
-    if(flags.length){
-      const m = document.createElement("div");
-      m.className = "milestone";
-      m.innerHTML = flags.map(f=>`<div class="flag">${f}</div>`).join("");
-      col.appendChild(m);
-      col.style.paddingTop = (flags.length*14)+"px";
-    }
 
     const body = document.createElement("div");
     body.className = "body";
@@ -1208,14 +1188,7 @@ function buildSvg(){
   const max = Number(state.meta.maxCr)||0;
   const maxSemCr = Math.max(...sem.slice(1),1);
 
-  // banda de banderas de hito (100 / 170 créditos)
-  const flagsBy = {}; let maxFlags = 0;
-  for(let sN=1; sN<=N_SEM; sN++){
-    const f = state.courses.filter(c=>c.cr && cum[sN]>=c.cr && (sN===1 || cum[sN-1]<c.cr))
-                           .map(c=>`${c.cr} cr · ${c.name}`);
-    flagsBy[sN]=f; maxFlags = Math.max(maxFlags, f.length);
-  }
-  const FLAG_H = maxFlags*14 + (maxFlags?6:0);
+  const FLAG_H = 0;
 
   // geometría de cada tarjeta
   const geo = {}; const cols = []; let bodyTop = M + TITLE_H + YEAR_H + HEAD_H + RULER_H + FLAG_H;
@@ -1266,15 +1239,6 @@ function buildSvg(){
     const rw = Math.round(sem[sN]/maxSemCr*(COLW-2));
     o += `<rect x="${x+1}" y="${headY+HEAD_H+2}" width="${COLW-2}" height="${RULER_H}" fill="#E4EAF1"/>`;
     o += `<rect x="${x+1}" y="${headY+HEAD_H+2}" width="${rw}" height="${RULER_H}" fill="${over?"#B4700A":"#5C748C"}"/>`;
-    (flagsBy[sN]||[]).forEach((f,i)=>{
-      const fy = headY + HEAD_H + RULER_H + 8 + i*14;
-      o += `<line x1="${x}" y1="${fy-6}" x2="${x+COLW}" y2="${fy-6}" stroke="#6D28D9" stroke-width="1" stroke-dasharray="3 3"/>`;
-      _m.font = "9px "+MONO;
-      let ft = f;
-      while(_m.measureText(ft).width > COLW-6 && ft.length > 6) ft = ft.slice(0,-2);
-      if(ft !== f) ft = ft.slice(0,-1)+"…";
-      o += `<text x="${x+2}" y="${fy+3}" font-family="${MONO}" font-size="9" fill="#6D28D9">${_esc(ft)}</text>`;
-    });
     o += `<rect x="${x}" y="${bodyTop}" width="${COLW}" height="${bodyH}" rx="6" fill="#FBFCFD" stroke="#D7E0E9"/>`;
   });
 
