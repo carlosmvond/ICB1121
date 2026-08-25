@@ -192,6 +192,20 @@ label.lbl input[type=number]{font-family:var(--font-mono)}
 .chart h3{margin:0 0 8px;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
 .chart svg{max-width:100%;height:auto}
 .chart .hole b{font-family:var(--font-mono);font-size:26px;font-weight:600}
+.tabs{display:flex;gap:2px;padding:0 12px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.tab{background:none;border:none;padding:9px 12px;font-size:12.5px;color:var(--muted);
+  border-bottom:2px solid transparent;margin-bottom:-1px}
+.tab:hover{color:var(--paper)}
+.tab.on{color:var(--paper);border-bottom-color:var(--accent);font-weight:600}
+.bar{display:inline-block;height:9px;border-radius:2px;vertical-align:middle;min-width:2px}
+.chain{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:10px}
+.chain span.n{background:var(--ink-3);border:1px solid var(--line);border-radius:5px;padding:5px 9px;font-size:12px}
+.chain span.n b{font-family:var(--font-mono);font-size:10px;color:var(--muted);margin-right:5px}
+.chain span.ar{color:var(--muted);font-size:13px}
+.kpis{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:16px}
+.kpi{flex:1 1 130px;background:var(--ink-3);border:1px solid var(--line);border-radius:7px;padding:10px 12px}
+.kpi b{display:block;font-family:var(--font-mono);font-size:22px;font-weight:600;line-height:1.1}
+.kpi small{font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
 table.dist{width:100%;border-collapse:collapse;margin-top:20px;font-size:12.5px}
 table.dist th{
   text-align:right;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);
@@ -249,7 +263,7 @@ table.dist i{display:inline-block;width:11px;height:11px;border-radius:3px;margi
     </div>
     <div class="field"><span>Máx cr/sem</span><input type="number" id="inMax" min="0" max="40" value="22"></div>
     <button class="btn" id="bIssues">Conflictos</button>
-    <button class="btn" id="bDist">Distribución</button>
+    <button class="btn" id="bDist">Informe</button>
     <button class="btn" id="bUndo" title="Ctrl+Z">Deshacer</button>
     <button class="btn" id="bSave">Guardar JSON</button>
     <button class="btn" id="bLoad">Abrir JSON</button>
@@ -282,10 +296,17 @@ table.dist i{display:inline-block;width:11px;height:11px;border-radius:3px;margi
 <div class="modal-back" id="distBack">
   <div class="modal">
     <header>
-      <h2>Distribución de la malla</h2>
+      <h2>Informe de la malla</h2>
       <button class="btn" id="distPrint">Imprimir</button>
       <button class="close" id="distClose" aria-label="Cerrar">×</button>
     </header>
+    <div class="tabs" id="distTabs">
+      <button class="tab on" data-tab="dist">Distribución</button>
+      <button class="tab" data-tab="crit">Criticidad</button>
+      <button class="tab" data-tab="slack">Holgura</button>
+      <button class="tab" data-tab="health">Estructura</button>
+      <button class="tab" data-tab="prog">Progresión</button>
+    </div>
     <div class="pad" id="distBody"></div>
   </div>
 </div>
@@ -1361,6 +1382,239 @@ function donutSvg(slices, total, unit){
       letter-spacing="1.2" fill="#5E7185">${unit.toUpperCase()}</text></svg>`;
 }
 
+/* --- métricas del grafo de prerrequisitos (se recalculan siempre) --- */
+function graphStats(){
+  const cs = state.courses;
+  const succ = {};
+  cs.forEach(c=>(c.p||[]).forEach(p=>{ if(byId(p)) (succ[p] = succ[p]||[]).push(c.id); }));
+
+  const dcache = {};
+  const desc = id=>{
+    if(dcache[id]) return dcache[id];
+    const seen = new Set(), st = [id]; let guard = 0;
+    while(st.length && guard++ < 8000){
+      const x = st.pop();
+      (succ[x]||[]).forEach(y=>{ if(!seen.has(y)){ seen.add(y); st.push(y); } });
+    }
+    return dcache[id] = seen;
+  };
+
+  const eM = {}, eV = {};
+  const earliest = id=>{
+    if(eM[id] !== undefined) return eM[id];
+    if(eV[id]) return 1;
+    eV[id] = 1; let e = 1;
+    ((byId(id)||{}).p||[]).forEach(p=>{ if(byId(p)) e = Math.max(e, earliest(p)+1); });
+    eV[id] = 0; return eM[id] = e;
+  };
+  const lM = {}, lV = {};
+  const latest = id=>{
+    if(lM[id] !== undefined) return lM[id];
+    if(lV[id]) return N_SEM;
+    lV[id] = 1; let l = N_SEM;
+    (succ[id]||[]).forEach(x=>{ l = Math.min(l, latest(x)-1); });
+    lV[id] = 0; return lM[id] = l;
+  };
+
+  const dM = {}, dV = {};
+  const chain = id=>{                       // cadena más larga que termina en id
+    if(dM[id]) return dM[id];
+    if(dV[id]) return {d:1, path:[id]};
+    dV[id] = 1;
+    let best = {d:1, path:[id]};
+    ((byId(id)||{}).p||[]).forEach(p=>{
+      if(!byId(p)) return;
+      const r = chain(p);
+      if(r.d+1 > best.d) best = {d:r.d+1, path:r.path.concat(id)};
+    });
+    dV[id] = 0; return dM[id] = best;
+  };
+  let longest = {d:0, path:[]};
+  cs.forEach(c=>{ const r = chain(c.id); if(r.d > longest.d) longest = r; });
+
+  const rows = cs.map(c=>{
+    const d = desc(c.id);
+    return {id:c.id, name:c.name, code:c.code, area:c.a, s:c.s, c:c.c,
+            n:d.size, cr:[...d].reduce((t,x)=>t+(Number((byId(x)||{}).c)||0),0),
+            e:earliest(c.id), l:latest(c.id),
+            pre:((c.p||[]).filter(byId)).length, post:(succ[c.id]||[]).length};
+  });
+
+  // flechas implícitas: A→C sobrando porque A ya llega a C por otro prerrequisito de C
+  const redundant = [];
+  cs.forEach(c=>{
+    const ps = (c.p||[]).filter(byId);
+    ps.forEach(pid=>{
+      if(ps.some(q=> q!==pid && desc(pid).has(q))) redundant.push({from:pid, to:c.id});
+    });
+  });
+
+  const sem = Array(N_SEM+1).fill(0), nsem = Array(N_SEM+1).fill(0);
+  cs.forEach(c=>{ if(c.s>=1&&c.s<=N_SEM){ sem[c.s]+=Number(c.c)||0; nsem[c.s]++; } });
+  const tot = sem.reduce((a,b)=>a+b,0);
+  const mean = tot/N_SEM;
+  const sd = Math.sqrt(sem.slice(1).reduce((t,x)=>t+(x-mean)**2,0)/N_SEM);
+
+  const edges = [];
+  cs.forEach(c=>(c.p||[]).forEach(p=>{ if(byId(p)) edges.push([p, c.id]); }));
+  const pos = {};
+  for(let sN=1; sN<=N_SEM; sN++) ofSem(sN).forEach((c,i)=> pos[c.id]={s:sN, i});
+  const cross = countCrossings(pos, edges).x;
+
+  return {rows, longest, redundant, sem, nsem, mean, sd, tot, edges, cross, succ};
+}
+
+const areaTag = a => `<i class="bar" style="width:11px;height:11px;border-radius:3px;background:${(AREAS[a]||{}).color||"#9AA7B4"};border:1px solid rgba(0,0,0,.25);margin-right:7px"></i>`;
+const goRow = (id, html) => `<tr data-go="${id}" style="cursor:pointer">${html}</tr>`;
+
+function renderCrit(g){
+  const rows = g.rows.slice().sort((a,b)=> b.cr-a.cr || b.n-a.n);
+  const maxCr = Math.max(1, rows[0].cr);
+  const hojas = g.rows.filter(r=>r.n===0).length;
+  return `
+    <div class="kpis">
+      <div class="kpi"><b>${rows[0].n}</b><small>ramos que arrastra el más crítico</small></div>
+      <div class="kpi"><b>${rows[0].cr}</b><small>créditos que arrastra</small></div>
+      <div class="kpi"><b>${hojas}</b><small>ramos sin dependientes</small></div>
+      <div class="kpi"><b>${g.longest.d}</b><small>eslabones de la cadena más larga</small></div>
+    </div>
+    <h4 style="margin:0 0 4px;font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)">Cadena más larga de la malla</h4>
+    <p class="hint" style="margin:0">Ningún plan puede ser más corto que esta secuencia: cada ramo exige al anterior.</p>
+    <div class="chain">${g.longest.path.map((id,i)=>{
+      const c = byId(id);
+      return (i?`<span class="ar">→</span>`:"") +
+        `<span class="n">${areaTag(c.a)}<b>${c.s}º</b>${escapeHtml(c.name)}</span>`;
+    }).join("")}</div>
+    <table class="dist">
+      <thead><tr><th>Ramo</th><th>Sem</th><th>Depende de él</th><th>Créditos que arrastra</th><th></th></tr></thead>
+      <tbody>${rows.slice(0,18).map(r=> goRow(r.id,
+        `<td>${areaTag(r.area)}${escapeHtml(r.name)}</td><td>${r.s}</td><td>${r.n}</td><td>${r.cr}</td>
+         <td style="width:120px"><span class="bar" style="width:${Math.round(r.cr/maxCr*110)}px;background:${(AREAS[r.area]||{}).line||"#7C90A6"}"></span></td>`
+      )).join("")}</tbody>
+    </table>
+    <p class="hint" style="margin-top:12px">Mover un ramo de arriba de esta tabla obliga a revisar todo lo que cuelga de él. Clic en una fila para abrirlo.</p>`;
+}
+
+function renderSlack(g){
+  const rows = g.rows.map(r=>({...r, h:r.s-r.e})).sort((a,b)=> b.h-a.h || a.s-b.s);
+  const fijos = rows.filter(r=>r.h===0);
+  const libres = rows.filter(r=>r.h>=3).length;
+  return `
+    <div class="kpis">
+      <div class="kpi"><b>${fijos.length}</b><small>ramos sin holgura (ruta crítica)</small></div>
+      <div class="kpi"><b>${libres}</b><small>con 3+ semestres de holgura</small></div>
+      <div class="kpi"><b>${(rows.reduce((t,r)=>t+r.h,0)/rows.length).toFixed(1).replace(".",",")}</b><small>holgura promedio</small></div>
+    </div>
+    <p class="hint" style="margin:0 0 10px">«Mínimo» es el semestre más temprano posible según la cadena de prerrequisitos; «máximo», el más tardío sin atrasar a los ramos que dependen de él. Entre ambos hay libertad real para reubicar.</p>
+    <table class="dist">
+      <thead><tr><th>Ramo</th><th>Hoy</th><th>Mínimo</th><th>Máximo</th><th>Holgura</th></tr></thead>
+      <tbody>${rows.slice(0,20).map(r=> goRow(r.id,
+        `<td>${areaTag(r.area)}${escapeHtml(r.name)}</td><td>${r.s}</td><td>${r.e}</td>
+         <td>${r.l>=r.s?r.l:"—"}</td>
+         <td style="color:${r.h===0?"var(--danger)":(r.h>=3?"var(--ok)":"inherit")}">${r.h===0?"fija":"−"+r.h}</td>`
+      )).join("")}</tbody>
+    </table>`;
+}
+
+function renderHealth(g){
+  const sinPre = g.rows.filter(r=>r.pre===0).length;
+  const aisl = g.rows.filter(r=>r.pre===0 && r.post===0);
+  const masPre = g.rows.slice().sort((a,b)=>b.pre-a.pre).filter(r=>r.pre>0).slice(0,6);
+  return `
+    <div class="kpis">
+      <div class="kpi"><b>${g.edges.length}</b><small>prerrequisitos declarados</small></div>
+      <div class="kpi"><b>${g.redundant.length}</b><small>flechas implícitas</small></div>
+      <div class="kpi"><b>${g.cross}</b><small>cruces de flechas</small></div>
+      <div class="kpi"><b>${sinPre}</b><small>ramos sin prerrequisito</small></div>
+    </div>
+    <div class="sect" style="border:none;padding:0">
+      <h4>Flechas implícitas (se deducen por cadena)</h4>
+      ${g.redundant.length
+        ? `<p class="hint" style="margin:0 0 8px">Se pueden borrar sin perder información: el prerrequisito ya queda exigido por otro camino.</p>` +
+          g.redundant.map(r=>`<div class="chip"><span class="c">${byId(r.from).s}º</span>
+            <span>${escapeHtml(byId(r.from).name)} → ${escapeHtml(byId(r.to).name)}</span></div>`).join("")
+        : `<p class="empty">Ninguna: cada flecha aporta información propia.</p>`}
+    </div>
+    <div class="sect">
+      <h4>Ramos con más prerrequisitos</h4>
+      ${masPre.map(r=>`<div class="chip"><span class="c">${r.pre}</span><span>${escapeHtml(r.name)}</span></div>`).join("")}
+    </div>
+    <div class="sect">
+      <h4>Ramos aislados (sin prerrequisito ni dependientes)</h4>
+      ${aisl.length ? aisl.map(r=>`<div class="chip"><span class="c">${r.s}º</span><span>${escapeHtml(r.name)}</span></div>`).join("")
+                    : `<p class="empty">Ninguno.</p>`}
+      <p class="hint" style="margin-top:8px">Son los más fáciles de mover: no arrastran ni dependen de nadie.</p>
+    </div>`;
+}
+
+function renderProg(g){
+  const keys = Object.keys(AREAS);
+  const mat = keys.map(k=>({k, label:AREAS[k].label, color:AREAS[k].color,
+    v:Array.from({length:N_SEM},(_,i)=> state.courses.filter(c=>c.s===i+1&&c.a===k).reduce((t,c)=>t+(Number(c.c)||0),0))}));
+  const maxCr = Math.max(...g.sem.slice(1), 1);
+  const W = 720, H = 240, PADL = 34, PADB = 28, bw = (W-PADL)/N_SEM;
+  let bars = "";
+  for(let i=0;i<N_SEM;i++){
+    let y = H-PADB;
+    mat.forEach(m=>{
+      const h = m.v[i]/maxCr*(H-PADB-14);
+      if(h<=0) return;
+      y -= h;
+      bars += `<rect x="${PADL+i*bw+bw*0.16}" y="${y}" width="${bw*0.68}" height="${h}" fill="${m.color}"
+               stroke="rgba(0,0,0,.22)" stroke-width="0.7"><title>${m.label} · sem ${i+1}: ${m.v[i]} cr</title></rect>`;
+    });
+    bars += `<text x="${PADL+i*bw+bw/2}" y="${H-PADB+14}" text-anchor="middle" font-size="10"
+             fill="#5E7185" font-family="var(--font-mono)">${i+1}</text>`;
+    bars += `<text x="${PADL+i*bw+bw/2}" y="${y-4}" text-anchor="middle" font-size="10"
+             fill="#12202E" font-family="var(--font-mono)" font-weight="600">${g.sem[i+1]}</text>`;
+  }
+  const grid = [0,.25,.5,.75,1].map(f=>{
+    const y = H-PADB-(f*(H-PADB-14));
+    return `<line x1="${PADL}" y1="${y}" x2="${W}" y2="${y}" stroke="#E2E8EF"/>
+            <text x="${PADL-6}" y="${y+3}" text-anchor="end" font-size="9" fill="#5E7185"
+             font-family="var(--font-mono)">${Math.round(f*maxCr)}</text>`;
+  }).join("");
+  return `
+    <div class="kpis">
+      <div class="kpi"><b>${g.mean.toFixed(1).replace(".",",")}</b><small>créditos promedio por semestre</small></div>
+      <div class="kpi"><b>${g.sd.toFixed(2).replace(".",",")}</b><small>desviación (equilibrio de carga)</small></div>
+      <div class="kpi"><b>${Math.min(...g.sem.slice(1))}–${Math.max(...g.sem.slice(1))}</b><small>rango de créditos</small></div>
+    </div>
+    <svg viewBox="0 0 ${W} ${H}" width="100%" style="max-height:260px">${grid}${bars}</svg>
+    <table class="dist">
+      <thead><tr><th>Área</th>${Array.from({length:N_SEM},(_,i)=>`<th>${i+1}º</th>`).join("")}<th>Total</th></tr></thead>
+      <tbody>
+        ${mat.filter(m=>m.v.some(x=>x)).map(m=>`<tr><td>${areaTag(m.k)}${escapeHtml(m.label)}</td>
+          ${m.v.map(x=>`<td style="color:${x?"inherit":"var(--muted)"}">${x||"·"}</td>`).join("")}
+          <td><b>${m.v.reduce((a,b)=>a+b,0)}</b></td></tr>`).join("")}
+        <tr class="tot"><td>Créditos</td>${g.sem.slice(1).map(x=>`<td>${x}</td>`).join("")}<td>${g.tot}</td></tr>
+        <tr><td style="color:var(--muted)">Nº de ramos</td>${g.nsem.slice(1).map(x=>`<td style="color:var(--muted)">${x}</td>`).join("")}
+          <td style="color:var(--muted)">${state.courses.length}</td></tr>
+      </tbody>
+    </table>`;
+}
+
+let distTab = "dist";
+function renderReport(){
+  const body = document.getElementById("distBody");
+  document.querySelectorAll("#distTabs .tab").forEach(t=> t.classList.toggle("on", t.dataset.tab===distTab));
+  if(distTab === "dist"){ renderDist(); }
+  else {
+    const g = graphStats();
+    body.innerHTML = distTab==="crit" ? renderCrit(g)
+                   : distTab==="slack" ? renderSlack(g)
+                   : distTab==="health" ? renderHealth(g)
+                   : renderProg(g);
+  }
+  body.querySelectorAll("[data-go]").forEach(tr=> tr.addEventListener("click", ()=>{
+    const id = tr.dataset.go;
+    document.getElementById("distBack").classList.remove("open");
+    selected = id; drawerView = "course"; openDrawer(); render();
+    const el = document.querySelector(`.card[data-id="${id}"]`);
+    if(el) el.scrollIntoView({behavior:"smooth", block:"center", inline:"center"});
+  }));
+}
+
 function renderDist(){
   const rows = Object.entries(AREAS).map(([k,v])=>{
     const list = state.courses.filter(c=>c.a===k);
@@ -1403,7 +1657,11 @@ function renderDist(){
     <p class="hint" style="margin-top:14px">Se recalcula con la malla que tengas en pantalla, así que sirve para comparar una propuesta con la original antes de guardarla.</p>`;
 }
 const distBack = document.getElementById("distBack");
-document.getElementById("bDist").addEventListener("click", ()=>{ renderDist(); distBack.classList.add("open"); });
+document.getElementById("bDist").addEventListener("click", ()=>{ renderReport(); distBack.classList.add("open"); });
+document.getElementById("distTabs").addEventListener("click", e=>{
+  const t = e.target.closest(".tab"); if(!t) return;
+  distTab = t.dataset.tab; renderReport();
+});
 document.getElementById("distClose").addEventListener("click", ()=> distBack.classList.remove("open"));
 distBack.addEventListener("click", e=>{ if(e.target===distBack) distBack.classList.remove("open"); });
 document.getElementById("distPrint").addEventListener("click", ()=>{
