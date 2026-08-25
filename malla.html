@@ -181,6 +181,34 @@ label.lbl input[type=number]{font-family:var(--font-mono)}
 .legend{display:flex;flex-wrap:wrap;gap:6px 10px;font-size:11px;color:var(--muted);padding:8px 16px;background:var(--ink-2);border-top:1px solid var(--line)}
 .legend i{display:inline-block;width:11px;height:11px;border-radius:3px;margin-right:4px;vertical-align:-1px}
 .hint{color:var(--muted);font-size:11.5px;line-height:1.45}
+.modal-back{
+  position:fixed;inset:0;background:rgba(18,32,46,.42);z-index:40;
+  display:none;align-items:center;justify-content:center;padding:24px;
+}
+.modal-back.open{display:flex}
+.modal{
+  background:var(--ink-2);border:1px solid var(--line);border-radius:10px;
+  box-shadow:0 18px 50px rgba(20,40,60,.3);max-width:960px;width:100%;
+  max-height:100%;overflow:auto;
+}
+.modal header{display:flex;align-items:center;gap:10px;padding:14px 18px;border-bottom:1px solid var(--line)}
+.modal header h2{margin:0;font-size:13px;letter-spacing:.1em;text-transform:uppercase;flex:1}
+.modal .pad{padding:18px}
+.charts{display:flex;gap:26px;flex-wrap:wrap;justify-content:center}
+.chart{flex:1 1 300px;min-width:280px;text-align:center}
+.chart h3{margin:0 0 8px;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.chart svg{max-width:100%;height:auto}
+.chart .hole b{font-family:var(--font-mono);font-size:26px;font-weight:600}
+table.dist{width:100%;border-collapse:collapse;margin-top:20px;font-size:12.5px}
+table.dist th{
+  text-align:right;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);
+  padding:6px 8px;border-bottom:1px solid var(--line);font-weight:600;
+}
+table.dist th:first-child{text-align:left}
+table.dist td{padding:6px 8px;border-bottom:1px solid var(--line-soft);text-align:right;font-family:var(--font-mono)}
+table.dist td:first-child{text-align:left;font-family:var(--font-sans)}
+table.dist tr.tot td{border-top:2px solid var(--line);border-bottom:none;font-weight:700}
+table.dist i{display:inline-block;width:11px;height:11px;border-radius:3px;margin-right:7px;vertical-align:-1px;border:1px solid rgba(0,0,0,.28)}
 .toast{
   position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(20px);
   background:#12202E;color:#fff;border:1px solid #12202E;box-shadow:0 4px 14px rgba(20,40,60,.25);border-radius:7px;padding:9px 15px;
@@ -190,7 +218,11 @@ label.lbl input[type=number]{font-family:var(--font-mono)}
 @media (max-width:760px){.drawer{width:100%}.counters{display:none}}
 @media print{
   body{background:#fff;color:#000;overflow:visible;height:auto}
-  .topbar,.drawer,.legend,.toast{display:none}
+  .topbar,.drawer,.legend,.toast,.modal-back{display:none}
+  body.print-dist .board-wrap{display:none}
+  body.print-dist .modal-back{display:block;position:static;background:#fff;padding:0}
+  body.print-dist .modal{box-shadow:none;border:none;max-width:none;overflow:visible}
+  body.print-dist .modal header .btn,body.print-dist .modal header .close{display:none}
   .board-wrap{overflow:visible}
   .head,.body{background:#fff;border-color:#999}
   .head h3,.metrics{color:#000}
@@ -223,10 +255,13 @@ label.lbl input[type=number]{font-family:var(--font-mono)}
     </div>
     <div class="field"><span>Máx cr/sem</span><input type="number" id="inMax" min="0" max="40" value="22"></div>
     <button class="btn" id="bIssues">Conflictos</button>
+    <button class="btn" id="bDist">Distribución</button>
     <button class="btn" id="bUndo" title="Ctrl+Z">Deshacer</button>
     <button class="btn" id="bSave">Guardar JSON</button>
     <button class="btn" id="bLoad">Abrir JSON</button>
     <button class="btn" id="bCsv">CSV</button>
+    <button class="btn" id="bPng">PNG</button>
+    <button class="btn" id="bSvg">SVG</button>
     <button class="btn" id="bPrint">Imprimir</button>
     <button class="btn" id="bReset">Original</button>
     <input type="file" id="fileIn" accept=".json,application/json" hidden>
@@ -249,6 +284,17 @@ label.lbl input[type=number]{font-family:var(--font-mono)}
   </header>
   <div class="content" id="drawerBody"></div>
 </aside>
+
+<div class="modal-back" id="distBack">
+  <div class="modal">
+    <header>
+      <h2>Distribución de la malla</h2>
+      <button class="btn" id="distPrint">Imprimir</button>
+      <button class="close" id="distClose" aria-label="Cerrar">×</button>
+    </header>
+    <div class="pad" id="distBody"></div>
+  </div>
+</div>
 
 <div class="toast" id="toast"></div>
 
@@ -891,12 +937,287 @@ document.addEventListener("keydown", e=>{
   if((e.ctrlKey||e.metaKey) && e.key.toLowerCase()==="z" && !/INPUT|TEXTAREA|SELECT/.test(e.target.tagName)){
     e.preventDefault(); undo();
   }
-  if(e.key==="Escape"){ if(linkMode) setLinkMode(false); else closeDrawer(); }
+  if(e.key==="Escape"){
+    if(document.getElementById("distBack").classList.contains("open")) document.getElementById("distBack").classList.remove("open");
+    else if(linkMode) setLinkMode(false);
+    else closeDrawer();
+  }
 });
 document.getElementById("boardWrap").addEventListener("scroll", ()=>{
   if(arrowMode!=="focus" || selected || hovered) drawArrows(validate().issues);
 });
 window.addEventListener("resize", ()=> render());
+
+/* ============================================================
+   Exportar la malla como imagen (SVG vectorial y PNG)
+   El SVG se dibuja desde cero a partir de los datos, no es una
+   captura de pantalla: sale limpio y editable en Illustrator o Inkscape.
+   ============================================================ */
+const _m = document.createElement("canvas").getContext("2d");
+function _wrap(text, font, maxW){
+  _m.font = font;
+  const words = String(text).split(/\s+/); const lines = []; let cur = "";
+  words.forEach(w=>{
+    const t = cur ? cur+" "+w : w;
+    if(_m.measureText(t).width <= maxW || !cur) cur = t;
+    else { lines.push(cur); cur = w; }
+  });
+  if(cur) lines.push(cur);
+  return lines;
+}
+function _esc(t){ return String(t??"").replace(/[&<>"]/g, m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[m])); }
+
+function buildSvg(){
+  const SANS = "Arial, Helvetica, sans-serif", MONO = "'Courier New', Courier, monospace";
+  const M = 26, COLW = 182, GAP = 12, PAD = 9;
+  const TITLE_H = 52, YEAR_H = 16, HEAD_H = 44, RULER_H = 6, CARD_GAP = 8;
+  const {issues, cum, sem} = validate();
+  const badIds = new Set(issues.filter(i=>i.type==="err" && i.id).map(i=>i.id));
+  const max = Number(state.meta.maxCr)||0;
+  const maxSemCr = Math.max(...sem.slice(1),1);
+
+  // banda de banderas de hito (100 / 170 créditos)
+  const flagsBy = {}; let maxFlags = 0;
+  for(let sN=1; sN<=N_SEM; sN++){
+    const f = state.courses.filter(c=>c.cr && cum[sN]>=c.cr && (sN===1 || cum[sN-1]<c.cr))
+                           .map(c=>`${c.cr} cr · ${c.name}`);
+    flagsBy[sN]=f; maxFlags = Math.max(maxFlags, f.length);
+  }
+  const FLAG_H = maxFlags*14 + (maxFlags?6:0);
+
+  // geometría de cada tarjeta
+  const geo = {}; const cols = []; let bodyTop = M + TITLE_H + YEAR_H + HEAD_H + RULER_H + FLAG_H;
+  let maxBottom = bodyTop;
+  for(let sN=1; sN<=N_SEM; sN++){
+    const x = M + (sN-1)*(COLW+GAP);
+    let y = bodyTop + PAD;
+    const items = ofSem(sN).map(c=>{
+      const nameLines = _wrap(c.name, "600 11.5px "+SANS, COLW-2*PAD-22);
+      const h = 8 + 12 + nameLines.length*13.5 + 6;
+      const g = {x:x+PAD, y, w:COLW-2*PAD, h, lines:nameLines, c};
+      geo[c.id] = g; y += h + CARD_GAP;
+      return g;
+    });
+    const colH = Math.max(y - bodyTop + PAD - CARD_GAP, 90);
+    cols.push({sN, x, items, colH});
+    maxBottom = Math.max(maxBottom, bodyTop + colH);
+  }
+  const bodyH = maxBottom - bodyTop;
+  const legendY = maxBottom + 26;
+  const W = M*2 + N_SEM*COLW + (N_SEM-1)*GAP;
+  const H = legendY + 52;
+
+  let o = "";
+  o += `<rect width="${W}" height="${H}" fill="#FFFFFF"/>`;
+  o += `<text x="${M}" y="${M+16}" font-family="${SANS}" font-size="17" font-weight="700" fill="#12202E">`
+     + `${_esc(state.meta.name)}</text>`;
+  o += `<text x="${M}" y="${M+34}" font-family="${MONO}" font-size="11" fill="#5E7185">`
+     + `${cum[N_SEM]} créditos · ${state.courses.length} asignaturas · ${N_SEM} semestres`
+     + `${badIds.size ? " · "+badIds.size+" con conflicto" : ""}</text>`;
+
+  // columnas: año, cabecera, regla, banderas, marco del cuerpo
+  cols.forEach(({sN,x,colH})=>{
+    const headY = M + TITLE_H + YEAR_H;
+    const over = max>0 && sem[sN]>max;
+    if(YEAR_OF[sN-1] !== (sN>1 ? YEAR_OF[sN-2] : null)){
+      o += `<text x="${x+2}" y="${headY-5}" font-family="${MONO}" font-size="9.5" letter-spacing="1.6" `
+         + `fill="#5E7185">${YEAR_OF[sN-1]}º AÑO</text>`;
+    }
+    o += `<rect x="${x}" y="${headY}" width="${COLW}" height="${HEAD_H}" rx="6" fill="#F7F9FB" `
+       + `stroke="${over?"#B4700A":"#C4D0DD"}"/>`;
+    o += `<text x="${x+10}" y="${headY+16}" font-family="${SANS}" font-size="11.5" font-weight="700" `
+       + `fill="#12202E">${sN}º semestre</text>`;
+    o += `<text x="${x+10}" y="${headY+36}" font-family="${MONO}" font-size="17" font-weight="700" `
+       + `fill="${over?"#B4700A":"#12202E"}">${sem[sN]}</text>`;
+    o += `<text x="${x+10+String(sem[sN]).length*11+6}" y="${headY+36}" font-family="${MONO}" `
+       + `font-size="10" fill="#5E7185">acum ${cum[sN]}</text>`;
+    const rw = Math.round(sem[sN]/maxSemCr*(COLW-2));
+    o += `<rect x="${x+1}" y="${headY+HEAD_H+2}" width="${COLW-2}" height="${RULER_H}" fill="#E4EAF1"/>`;
+    o += `<rect x="${x+1}" y="${headY+HEAD_H+2}" width="${rw}" height="${RULER_H}" fill="${over?"#B4700A":"#5C748C"}"/>`;
+    (flagsBy[sN]||[]).forEach((f,i)=>{
+      const fy = headY + HEAD_H + RULER_H + 8 + i*14;
+      o += `<line x1="${x}" y1="${fy-6}" x2="${x+COLW}" y2="${fy-6}" stroke="#6D28D9" stroke-width="1" stroke-dasharray="3 3"/>`;
+      _m.font = "9px "+MONO;
+      let ft = f;
+      while(_m.measureText(ft).width > COLW-6 && ft.length > 6) ft = ft.slice(0,-2);
+      if(ft !== f) ft = ft.slice(0,-1)+"…";
+      o += `<text x="${x+2}" y="${fy+3}" font-family="${MONO}" font-size="9" fill="#6D28D9">${_esc(ft)}</text>`;
+    });
+    o += `<rect x="${x}" y="${bodyTop}" width="${COLW}" height="${bodyH}" rx="6" fill="#FBFCFD" stroke="#D7E0E9"/>`;
+  });
+
+  // flechas (debajo de las tarjetas)
+  let arrows = "";
+  state.courses.forEach(c=>{
+    (c.p||[]).forEach(pid=>{
+      const p = byId(pid); if(!p) return;
+      const A = geo[pid], B = geo[c.id]; if(!A||!B) return;
+      const bad = p.s >= c.s;
+      const x1 = A.x+A.w, y1 = A.y+A.h/2, x2 = B.x-7, y2 = B.y+B.h/2;
+      let d;
+      if(x2 > x1){
+        const dx = Math.max(26, Math.abs(x2-x1)*0.45);
+        d = `M${x1},${y1} C${x1+dx},${y1} ${x2-dx},${y2} ${x2},${y2}`;
+      }else{
+        const yb = Math.max(y1,y2) + 46;
+        d = `M${x1},${y1} C${x1+40},${yb} ${x2-40},${yb} ${x2},${y2}`;
+      }
+      arrows += `<path d="${d}" fill="none" stroke="${bad?"#D92D3F":"#7C90A6"}" stroke-width="${bad?2:1.4}"`
+              + `${bad?' stroke-dasharray="6 4"':""} marker-end="url(#${bad?"mkBad":"mkOk"})"/>`;
+    });
+  });
+  o += arrows;
+
+  // tarjetas
+  Object.values(geo).forEach(g=>{
+    const c = g.c, col = (AREAS[c.a]||{}).color || "#9AA7B4";
+    const bad = badIds.has(c.id);
+    o += `<rect x="${g.x}" y="${g.y}" width="${g.w}" height="${g.h}" rx="5" fill="${col}" `
+       + `stroke="${bad?"#D92D3F":"#233240"}" stroke-width="${bad?2.5:(c.k?2.5:1.2)}"`
+       + `${c.b?' stroke-dasharray="3 2.5"':""}/>`;
+    o += `<rect x="${g.x+g.w-24}" y="${g.y+5}" width="19" height="13" rx="3" fill="rgba(0,0,0,0.16)"/>`;
+    o += `<text x="${g.x+g.w-14.5}" y="${g.y+15}" text-anchor="middle" font-family="${MONO}" font-size="10.5" `
+       + `font-weight="700" fill="#0E1720">${c.c}</text>`;
+    o += `<text x="${g.x+8}" y="${g.y+15}" font-family="${MONO}" font-size="9.5" font-weight="700" `
+       + `fill="#0E1720" opacity="0.75">${_esc(c.code||"")}</text>`;
+    g.lines.forEach((ln,i)=>{
+      o += `<text x="${g.x+8}" y="${g.y+28+i*13.5}" font-family="${SANS}" font-size="11.5" font-weight="600" `
+         + `fill="#0E1720">${_esc(ln)}</text>`;
+    });
+  });
+
+  // leyenda
+  let lx = M;
+  Object.values(AREAS).forEach(a=>{
+    o += `<rect x="${lx}" y="${legendY}" width="11" height="11" rx="2.5" fill="${a.color}" stroke="#233240" stroke-width="0.8"/>`;
+    o += `<text x="${lx+16}" y="${legendY+9.5}" font-family="${SANS}" font-size="10.5" fill="#3B4C5D">${_esc(a.label)}</text>`;
+    _m.font = "10.5px "+SANS;
+    lx += 16 + _m.measureText(a.label).width + 18;
+  });
+  o += `<text x="${M}" y="${legendY+30}" font-family="${SANS}" font-size="10" fill="#5E7185">`
+     + `Borde grueso: asignatura clave · Borde punteado: b-learning · Rojo: conflicto de prerrequisito`
+     + ` — generado el ${new Date().toLocaleDateString("es-CL")}</text>`;
+
+  const defs = `<defs>
+    <marker id="mkOk" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto">
+      <path d="M0,0 L7,3.5 L0,7 z" fill="#7C90A6"/></marker>
+    <marker id="mkBad" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto">
+      <path d="M0,0 L7,3.5 L0,7 z" fill="#D92D3F"/></marker></defs>`;
+
+  return {svg:`<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">${defs}${o}</svg>`,
+          w:W, h:H};
+}
+
+function fileBase(){ return (state.meta.name||"malla").replace(/[^\w\-]+/g,"_").slice(0,40); }
+function exportSvg(){
+  const {svg} = buildSvg();
+  download(fileBase()+".svg", svg, "image/svg+xml;charset=utf-8");
+  toast("SVG descargado (vectorial, editable)");
+}
+function exportPng(scale){
+  const {svg,w,h} = buildSvg();
+  const img = new Image();
+  img.onload = ()=>{
+    const cv = document.createElement("canvas");
+    cv.width = Math.round(w*scale); cv.height = Math.round(h*scale);
+    const ctx = cv.getContext("2d");
+    ctx.fillStyle = "#FFFFFF"; ctx.fillRect(0,0,cv.width,cv.height);
+    ctx.drawImage(img,0,0,cv.width,cv.height);
+    cv.toBlob(b=>{
+      if(!b){ toast("El navegador no pudo generar el PNG"); return; }
+      const url = URL.createObjectURL(b);
+      const a = document.createElement("a"); a.href=url; a.download=fileBase()+".png"; a.click();
+      setTimeout(()=>URL.revokeObjectURL(url),1000);
+      toast(`PNG descargado (${cv.width}×${cv.height} px)`);
+    }, "image/png");
+  };
+  img.onerror = ()=> toast("No se pudo generar el PNG; prueba con SVG");
+  img.src = "data:image/svg+xml;charset=utf-8,"+encodeURIComponent(svg);
+}
+document.getElementById("bSvg").addEventListener("click", exportSvg);
+document.getElementById("bPng").addEventListener("click", ()=> exportPng(2));
+
+/* --- distribución por área --- */
+function donutSvg(slices, total, unit){
+  const S=230, R=100, r=58, C=S/2;
+  if(!total) return `<svg viewBox="0 0 ${S} ${S}" width="${S}" height="${S}"><circle cx="${C}" cy="${C}" r="${R}" fill="#E4EAF1"/></svg>`;
+  let ang = -Math.PI/2, paths = "";
+  slices.forEach(sl=>{
+    const frac = sl.value/total;
+    if(frac<=0) return;
+    const a0 = ang, a1 = ang + frac*Math.PI*2; ang = a1;
+    const pt=(a,rad)=>[(C+rad*Math.cos(a)).toFixed(2),(C+rad*Math.sin(a)).toFixed(2)];
+    let d;
+    if(frac>=0.9999){
+      d = `M${C-R},${C} A${R},${R} 0 1,1 ${C+R},${C} A${R},${R} 0 1,1 ${C-R},${C} `
+        + `M${C-r},${C} A${r},${r} 0 1,0 ${C+r},${C} A${r},${r} 0 1,0 ${C-r},${C}Z`;
+    }else{
+      const big = (a1-a0) > Math.PI ? 1 : 0;
+      const [x0,y0]=pt(a0,R),[x1,y1]=pt(a1,R),[x2,y2]=pt(a1,r),[x3,y3]=pt(a0,r);
+      d = `M${x0},${y0} A${R},${R} 0 ${big},1 ${x1},${y1} L${x2},${y2} A${r},${r} 0 ${big},0 ${x3},${y3} Z`;
+    }
+    const pct = (frac*100).toFixed(1).replace(".",",");
+    paths += `<path d="${d}" fill="${sl.color}" stroke="#fff" stroke-width="1.5" fill-rule="evenodd">`
+           + `<title>${sl.label}: ${sl.value} ${unit} (${pct}%)</title></path>`;
+  });
+  return `<svg viewBox="0 0 ${S} ${S}" width="${S}" height="${S}">${paths}
+    <text x="${C}" y="${C-2}" text-anchor="middle" font-family="var(--font-mono)" font-size="30"
+      font-weight="600" fill="#12202E">${total}</text>
+    <text x="${C}" y="${C+18}" text-anchor="middle" font-family="var(--font-sans)" font-size="11"
+      letter-spacing="1.2" fill="#5E7185">${unit.toUpperCase()}</text></svg>`;
+}
+
+function renderDist(){
+  const rows = Object.entries(AREAS).map(([k,v])=>{
+    const list = state.courses.filter(c=>c.a===k);
+    return {key:k, label:v.label, color:v.color,
+            n:list.length, cr:list.reduce((t,c)=>t+(Number(c.c)||0),0)};
+  });
+  // áreas creadas a mano que no estén en el catálogo
+  const extra = {};
+  state.courses.filter(c=>!AREAS[c.a]).forEach(c=>{
+    extra[c.a] = extra[c.a] || {key:c.a, label:c.a+" (sin área)", color:"#9AA7B4", n:0, cr:0};
+    extra[c.a].n++; extra[c.a].cr += Number(c.c)||0;
+  });
+  const all = rows.concat(Object.values(extra)).filter(r=>r.n>0);
+  const totN = all.reduce((t,r)=>t+r.n,0);
+  const totC = all.reduce((t,r)=>t+r.cr,0);
+  const pct = (v,t)=> t ? (v/t*100).toFixed(1).replace(".",",")+"%" : "—";
+
+  const byCr = [...all].sort((a,b)=>b.cr-a.cr);
+  const byN  = [...all].sort((a,b)=>b.n-a.n);
+
+  document.getElementById("distBody").innerHTML = `
+    <div class="charts">
+      <div class="chart"><h3>Por créditos</h3>
+        ${donutSvg(byCr.map(r=>({label:r.label,color:r.color,value:r.cr})), totC, "créditos")}</div>
+      <div class="chart"><h3>Por número de asignaturas</h3>
+        ${donutSvg(byN.map(r=>({label:r.label,color:r.color,value:r.n})), totN, "ramos")}</div>
+    </div>
+    <table class="dist">
+      <thead><tr><th>Área</th><th>Asignaturas</th><th>% ramos</th><th>Créditos</th><th>% créditos</th><th>Cr/ramo</th></tr></thead>
+      <tbody>
+        ${byCr.map(r=>`<tr>
+          <td><i style="background:${r.color}"></i>${escapeHtml(r.label)}</td>
+          <td>${r.n}</td><td>${pct(r.n,totN)}</td>
+          <td>${r.cr}</td><td>${pct(r.cr,totC)}</td>
+          <td>${r.n ? (r.cr/r.n).toFixed(1).replace(".",",") : "—"}</td></tr>`).join("")}
+        <tr class="tot"><td>Total</td><td>${totN}</td><td>100%</td><td>${totC}</td><td>100%</td>
+          <td>${totN ? (totC/totN).toFixed(1).replace(".",",") : "—"}</td></tr>
+      </tbody>
+    </table>
+    <p class="hint" style="margin-top:14px">Se recalcula con la malla que tengas en pantalla, así que sirve para comparar una propuesta con la original antes de guardarla.</p>`;
+}
+const distBack = document.getElementById("distBack");
+document.getElementById("bDist").addEventListener("click", ()=>{ renderDist(); distBack.classList.add("open"); });
+document.getElementById("distClose").addEventListener("click", ()=> distBack.classList.remove("open"));
+distBack.addEventListener("click", e=>{ if(e.target===distBack) distBack.classList.remove("open"); });
+document.getElementById("distPrint").addEventListener("click", ()=>{
+  document.body.classList.add("print-dist");
+  window.print();
+  setTimeout(()=>document.body.classList.remove("print-dist"), 500);
+});
 
 // leyenda
 document.getElementById("legend").innerHTML =
