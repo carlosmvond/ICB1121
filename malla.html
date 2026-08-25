@@ -134,9 +134,9 @@ button{cursor:pointer}
 .drop-line{height:3px;background:var(--accent);border-radius:2px;margin:-10px 0}
 
 svg.arrows{position:absolute;inset:0;pointer-events:none;z-index:3;overflow:visible}
-svg.arrows path{fill:none;stroke:#7C90A6;stroke-width:1.5;stroke-linejoin:miter;stroke-linecap:butt}
-svg.arrows path.hi{stroke:var(--accent);stroke-width:2.4}
-svg.arrows path.bad{stroke:var(--danger);stroke-width:2.4;stroke-dasharray:6 4}
+svg.arrows path{fill:none;stroke-width:1.5;stroke-linejoin:miter;stroke-linecap:butt;opacity:.92}
+svg.arrows path.hi{stroke-width:2.6;opacity:1}
+svg.arrows path.bad{stroke-width:2.4;stroke-dasharray:6 4;opacity:1}
 
 /* ---------- panel lateral ---------- */
 .drawer{
@@ -246,6 +246,7 @@ table.dist i{display:inline-block;width:11px;height:11px;border-radius:3px;margi
   <div class="tools">
     <button class="btn primary" id="bAdd">+ Ramo</button>
     <button class="btn" id="bLink" title="Clic aquí, luego el ramo origen y el ramo destino">Conectar</button>
+    <button class="btn" id="bTidy" title="Reordena los ramos dentro de cada semestre para que se crucen menos flechas">Ordenar</button>
     <div class="field"><span>Flechas</span>
       <select id="selArrows">
         <option value="focus">al seleccionar</option>
@@ -306,14 +307,15 @@ table.dist i{display:inline-block;width:11px;height:11px;border-radius:3px;margi
       los totales por semestre coinciden con los impresos)
    ============================================================ */
 const AREAS = {
-  basicas:      {label:"Cs. Básicas y Matemáticas", color:"#4EA3E8"},
-  ingenieria:   {label:"Cs. de la Ingeniería",      color:"#F96C6C"},
-  especialidad: {label:"Especialidad",              color:"#8FD070"},
-  complementaria:{label:"Formación Complementaria", color:"#C6A2C0"},
-  ingles:       {label:"Inglés",                    color:"#B5B5B5"},
-  fundamental:  {label:"Formación Fundamental",     color:"#52E4EE"},
-  optativo:     {label:"Optativos",                 color:"#F5B430"}
+  basicas:      {label:"Cs. Básicas y Matemáticas", color:"#4EA3E8", line:"#1E6FB4"},
+  ingenieria:   {label:"Cs. de la Ingeniería",      color:"#F96C6C", line:"#C33636"},
+  especialidad: {label:"Especialidad",              color:"#8FD070", line:"#4A8C2E"},
+  complementaria:{label:"Formación Complementaria", color:"#C6A2C0", line:"#8A5A84"},
+  ingles:       {label:"Inglés",                    color:"#B5B5B5", line:"#6C7883"},
+  fundamental:  {label:"Formación Fundamental",     color:"#52E4EE", line:"#0C8C97"},
+  optativo:     {label:"Optativos",                 color:"#F5B430", line:"#AE7607"}
 };
+const lineColor = a => (AREAS[a]||{}).line || "#7C90A6";
 const YEAR_OF = [1,1,2,2,3,3,4,4,5,5,6]; // año al que pertenece cada semestre (índice 0 = 1er sem)
 const N_SEM = 11;
 
@@ -610,6 +612,97 @@ function afterElement(body, y){
 }
 
 /* ============================================================
+   Reordenamiento vertical dentro de cada semestre para minimizar
+   cruces de flechas (heurística de mediana, barridos alternados).
+   No cambia ningún ramo de semestre: solo el orden en la columna.
+   ============================================================ */
+function countCrossings(pos, edges){
+  const side = (p,q,r)=> Math.sign((q.x-p.x)*(r.y-p.y) - (q.y-p.y)*(r.x-p.x));
+  let x = 0, len = 0;
+  for(let i=0;i<edges.length;i++){
+    const [a1,b1] = edges[i];
+    len += Math.abs(pos[a1].i - pos[b1].i);
+    for(let j=i+1;j<edges.length;j++){
+      const [a2,b2] = edges[j];
+      if(a1===a2||a1===b2||b1===a2||b1===b2) continue;
+      const A={x:pos[a1].s,y:pos[a1].i}, B={x:pos[b1].s,y:pos[b1].i};
+      const C={x:pos[a2].s,y:pos[a2].i}, D={x:pos[b2].s,y:pos[b2].i};
+      if(side(A,B,C)!==side(A,B,D) && side(C,D,A)!==side(C,D,B)) x++;
+    }
+  }
+  return {x, score: x + 0.05*len};
+}
+
+function tidyLayout(){
+  const layers = {};
+  for(let sN=1; sN<=N_SEM; sN++) layers[sN] = ofSem(sN).map(c=>c.id);
+  const edges = [];
+  const succ = {};
+  state.courses.forEach(c=>(c.p||[]).forEach(pid=>{
+    if(!byId(pid)) return;
+    edges.push([pid, c.id]);
+    (succ[pid] = succ[pid] || []).push(c.id);
+  }));
+  const posOf = ()=>{ const p={};
+    for(let sN=1; sN<=N_SEM; sN++) layers[sN].forEach((id,i)=> p[id]={s:sN, i});
+    return p; };
+  const norm = (p,id)=> p[id].i / Math.max(1, layers[p[id].s].length-1);
+  const median = a=>{ const b=a.slice().sort((x,y)=>x-y); const n=b.length;
+    return n%2 ? b[(n-1)/2] : (b[n/2-1]+b[n/2])/2; };
+
+  const before = countCrossings(posOf(), edges);
+  let best = JSON.parse(JSON.stringify(layers)), bestScore = before.score;
+
+  for(let pass=0; pass<12; pass++){
+    const down = pass%2===0;
+    const seq = down ? [...Array(N_SEM).keys()].map(i=>i+1) : [...Array(N_SEM).keys()].map(i=>N_SEM-i);
+    seq.forEach(sN=>{
+      const p = posOf();
+      const items = layers[sN].map((id,i)=>{
+        const c = byId(id);
+        const nb = down
+          ? (c.p||[]).filter(x=>byId(x) && byId(x).s < sN)
+          : (succ[id]||[]).filter(x=>byId(x) && byId(x).s > sN);
+        const vals = nb.map(x=>norm(p,x));
+        return {id, i, v: vals.length ? median(vals) : i/Math.max(1,layers[sN].length-1)};
+      });
+      items.sort((a,b)=> a.v-b.v || a.i-b.i);
+      layers[sN] = items.map(o=>o.id);
+    });
+    const now = countCrossings(posOf(), edges);
+    if(now.score < bestScore - 1e-9){ bestScore = now.score; best = JSON.parse(JSON.stringify(layers)); }
+  }
+
+  for(let sN=1; sN<=N_SEM; sN++) layers[sN] = best[sN];
+
+  // fase 2: intercambio de vecinos, se conserva solo si baja el puntaje
+  let cur = countCrossings(posOf(), edges).score;
+  for(let round=0; round<25; round++){
+    let improved = false;
+    for(let sN=1; sN<=N_SEM; sN++){
+      for(let i=0; i+1<layers[sN].length; i++){
+        const L = layers[sN];
+        [L[i], L[i+1]] = [L[i+1], L[i]];
+        const sc = countCrossings(posOf(), edges).score;
+        if(sc < cur - 1e-9){ cur = sc; improved = true; }
+        else { [L[i], L[i+1]] = [L[i+1], L[i]]; }
+      }
+    }
+    if(!improved) break;
+  }
+  const after = countCrossings(posOf(), edges);
+
+  snapshot();
+  const rank = {};
+  for(let sN=1; sN<=N_SEM; sN++) layers[sN].forEach((id,i)=> rank[id] = sN*1000 + i);
+  state.courses.sort((a,b)=> (rank[a.id] ?? 9e6) - (rank[b.id] ?? 9e6));
+  render();
+  toast(after.x < before.x
+    ? `Cruces de flechas: ${before.x} → ${after.x}`
+    : `Ya estaba en el mejor orden encontrado (${before.x} cruces)`);
+}
+
+/* ============================================================
    Ruteo ortogonal de las flechas.
    Las tarjetas son obstáculos en una grilla; cada flecha se traza
    con A* en 4 direcciones, con castigo por giro (prefiere tramos
@@ -748,13 +841,11 @@ function drawArrows(issues){
   const bRect = board.getBoundingClientRect();
   svg.setAttribute("width", board.scrollWidth);
   svg.setAttribute("height", board.scrollHeight);
-  svg.innerHTML = `<defs>
-    <marker id="a" markerUnits="userSpaceOnUse" markerWidth="9" markerHeight="6" refX="8" refY="3" orient="auto">
-      <path d="M0,0.35 L8,3 L0,5.65 z" fill="#7C90A6" stroke="none"/></marker>
-    <marker id="ah" markerUnits="userSpaceOnUse" markerWidth="9" markerHeight="6" refX="8" refY="3" orient="auto">
-      <path d="M0,0.35 L8,3 L0,5.65 z" fill="#6D28D9" stroke="none"/></marker>
-    <marker id="ab" markerUnits="userSpaceOnUse" markerWidth="9" markerHeight="6" refX="8" refY="3" orient="auto">
-      <path d="M0,0.35 L8,3 L0,5.65 z" fill="#D92D3F" stroke="none"/></marker></defs>`;
+  const mkId = hex => "mk" + hex.replace("#","");
+  const mkDef = hex => `<marker id="${mkId(hex)}" markerUnits="userSpaceOnUse" markerWidth="9" markerHeight="6"`
+    + ` refX="8" refY="3" orient="auto"><path d="M0,0.35 L8,3 L0,5.65 z" fill="${hex}" stroke="none"/></marker>`;
+  const palette = [...new Set(Object.values(AREAS).map(a=>a.line).concat(["#6D28D9","#D92D3F"]))];
+  svg.innerHTML = `<defs>${palette.map(mkDef).join("")}</defs>`;
 
   const walls = [];
   document.querySelectorAll(".yearband").forEach(el=>{
@@ -800,9 +891,10 @@ function drawArrows(issues){
 
   const frag = visible.map(e=>{
     const d = _routeCache.paths[e.key]; if(!d) return "";
+    const src = byId(e.from);
+    const col = e.bad ? "#D92D3F" : (e.touches ? "#6D28D9" : lineColor(src && src.a));
     const cls = e.bad ? "bad" : (e.touches ? "hi" : "");
-    const mk  = e.bad ? "ab" : (e.touches ? "ah" : "a");
-    return `<path class="${cls}" d="${d}" marker-end="url(#${mk})"/>`;
+    return `<path class="${cls}" d="${d}" stroke="${col}" marker-end="url(#${mkId(col)})"/>`;
   });
   svg.insertAdjacentHTML("beforeend", frag.join(""));
 
@@ -1030,6 +1122,7 @@ function escapeAttr(s){ return escapeHtml(s).replace(/"/g,"&quot;"); }
 
 document.getElementById("bAdd").addEventListener("click", addCourse);
 document.getElementById("bLink").addEventListener("click", ()=> setLinkMode(!linkMode));
+document.getElementById("bTidy").addEventListener("click", tidyLayout);
 document.getElementById("selArrows").addEventListener("change", e=>{ arrowMode = e.target.value; render(); });
 document.getElementById("inMax").addEventListener("change", e=>{ state.meta.maxCr = Number(e.target.value)||0; render(); });
 document.getElementById("bIssues").addEventListener("click", ()=>{ drawerView="issues"; openDrawer(); render(); });
@@ -1199,9 +1292,11 @@ function buildSvg(){
   ]});
   edges.forEach(e=>{
     const d = routed[e.key]; if(!d) return;
-    o += `<path d="${d}" fill="none" stroke="${e.bad?"#D92D3F":"#7C90A6"}" stroke-width="${e.bad?2:1.4}"`
+    const src = byId(e.from);
+    const col = e.bad ? "#D92D3F" : lineColor(src && src.a);
+    o += `<path d="${d}" fill="none" stroke="${col}" stroke-width="${e.bad?2:1.4}"`
        + ` stroke-linejoin="miter" stroke-linecap="butt"`
-       + `${e.bad?' stroke-dasharray="6 4"':""} marker-end="url(#${e.bad?"mkBad":"mkOk"})"/>`;
+       + `${e.bad?' stroke-dasharray="6 4"':""} marker-end="url(#mk${col.replace("#","")})"/>`;
   });
 
   // tarjetas
@@ -1231,14 +1326,12 @@ function buildSvg(){
     lx += 16 + _m.measureText(a.label).width + 18;
   });
   o += `<text x="${M}" y="${legendY+30}" font-family="${SANS}" font-size="10" fill="#5E7185">`
-     + `Borde grueso: asignatura clave · Borde punteado: b-learning · Rojo: conflicto de prerrequisito`
+     + `Borde grueso: asignatura clave · Punteado: b-learning · Flecha del color del área del prerrequisito · Rojo: conflicto`
      + ` — generado el ${new Date().toLocaleDateString("es-CL")}</text>`;
 
-  const defs = `<defs>
-    <marker id="mkOk" markerUnits="userSpaceOnUse" markerWidth="9" markerHeight="6" refX="8" refY="3"
-      orient="auto"><path d="M0,0.35 L8,3 L0,5.65 z" fill="#7C90A6"/></marker>
-    <marker id="mkBad" markerUnits="userSpaceOnUse" markerWidth="9" markerHeight="6" refX="8" refY="3"
-      orient="auto"><path d="M0,0.35 L8,3 L0,5.65 z" fill="#D92D3F"/></marker></defs>`;
+  const defs = `<defs>` + [...new Set(Object.values(AREAS).map(a=>a.line).concat(["#D92D3F"]))].map(hex=>
+    `<marker id="mk${hex.replace("#","")}" markerUnits="userSpaceOnUse" markerWidth="9" markerHeight="6"`
+    + ` refX="8" refY="3" orient="auto"><path d="M0,0.35 L8,3 L0,5.65 z" fill="${hex}"/></marker>`).join("") + `</defs>`;
 
   return {svg:`<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">${defs}${o}</svg>`,
@@ -1358,7 +1451,7 @@ document.getElementById("distPrint").addEventListener("click", ()=>{
 // leyenda
 document.getElementById("legend").innerHTML =
   Object.values(AREAS).map(a=>`<span><i style="background:${a.color}"></i>${a.label}</span>`).join("") +
-  `<span style="margin-left:auto">Borde grueso: asignatura clave · Borde punteado: b-learning · Rojo: conflicto</span>`;
+  `<span style="margin-left:auto">Borde grueso: clave · Punteado: b-learning · Flecha del color del prerrequisito · Rojo: conflicto</span>`;
 
 render();
 </script>
