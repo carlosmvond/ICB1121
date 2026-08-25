@@ -68,7 +68,7 @@ button{cursor:pointer}
 /* ---------- tablero ---------- */
 .board-wrap{flex:1 1 auto;overflow:auto;position:relative}
 .board{position:relative;min-height:100%;padding:0 16px 90px;width:max-content}
-.grid{display:flex;gap:10px;align-items:flex-start;position:relative;z-index:2}
+.grid{display:flex;gap:20px;align-items:flex-start;position:relative;z-index:2}
 .col{width:var(--col-w);flex:0 0 var(--col-w);display:flex;flex-direction:column}
 
 .yearband{
@@ -101,7 +101,7 @@ button{cursor:pointer}
 }
 .body{
   background:var(--ink-2);border:1px solid var(--line);border-top:none;border-radius:0 0 8px 8px;
-  padding:8px;min-height:120px;display:flex;flex-direction:column;gap:7px;flex:1 1 auto;
+  padding:10px;min-height:120px;display:flex;flex-direction:column;gap:17px;flex:1 1 auto;
 }
 .body.dragover{background:#EDE7FB;border-color:var(--accent)}
 
@@ -131,10 +131,10 @@ button{cursor:pointer}
   font-family:var(--font-mono);
 }
 .card.linking-src{box-shadow:0 0 0 2.5px var(--ok)}
-.drop-line{height:2px;background:var(--accent);border-radius:2px;margin:-3px 0}
+.drop-line{height:3px;background:var(--accent);border-radius:2px;margin:-10px 0}
 
 svg.arrows{position:absolute;inset:0;pointer-events:none;z-index:3;overflow:visible}
-svg.arrows path{fill:none;stroke:#7C90A6;stroke-width:1.6}
+svg.arrows path{fill:none;stroke:#7C90A6;stroke-width:1.5;stroke-linejoin:miter;stroke-linecap:butt}
 svg.arrows path.hi{stroke:var(--accent);stroke-width:2.4}
 svg.arrows path.bad{stroke:var(--danger);stroke-width:2.4;stroke-dasharray:6 4}
 
@@ -609,39 +609,174 @@ function afterElement(body, y){
   }, {offset: -Infinity, el:null}).el;
 }
 
+/* ============================================================
+   Ruteo ortogonal de las flechas.
+   Las tarjetas son obstáculos en una grilla; cada flecha se traza
+   con A* en 4 direcciones, con castigo por giro (prefiere tramos
+   largos y rectos) y por reutilizar celdas (separa flechas paralelas).
+   ============================================================ */
+function routeOrtho(rects, edges, W, H, o){
+  const CELL = o.cell, PAD = o.pad, STUB = o.stub;
+  const cols = Math.ceil(W/CELL)+3, rows = Math.ceil(H/CELL)+3;
+  const N = cols*rows;
+  const blocked = new Uint8Array(N);
+  const used = new Float32Array(N);
+  const idx = (x,y)=> y*cols+x;
+  const inside = (x,y)=> x>=0 && x<cols && y>=0 && y<rows;
+
+  const mark = (r,pad)=>{
+    const x0 = Math.ceil((r.x-pad)/CELL),  x1 = Math.floor((r.x+r.w+pad)/CELL);
+    const y0 = Math.ceil((r.y-pad)/CELL),  y1 = Math.floor((r.y+r.h+pad)/CELL);
+    for(let y=y0;y<=y1;y++) for(let x=x0;x<=x1;x++) if(inside(x,y)) blocked[idx(x,y)] = 1;
+  };
+  for(const id in rects) mark(rects[id], PAD);
+  (o.walls||[]).forEach(r=> mark(r, 0));
+
+  const DX=[1,-1,0,0], DY=[0,0,1,-1];
+  function astar(sx,sy,gx,gy){
+    if(!inside(sx,sy)||!inside(gx,gy)) return null;
+    const g = new Float32Array(N*4).fill(Infinity);
+    const prev = new Int32Array(N*4).fill(-1);
+    const heapV = []; const heapK = [];
+    const push=(k,v)=>{ heapK.push(k); heapV.push(v); let i=heapK.length-1;
+      while(i>0){ const p=(i-1)>>1; if(heapK[p]<=heapK[i]) break;
+        [heapK[p],heapK[i]]=[heapK[i],heapK[p]]; [heapV[p],heapV[i]]=[heapV[i],heapV[p]]; i=p; } };
+    const pop=()=>{ const top=heapV[0]; const lk=heapK.pop(), lv=heapV.pop();
+      if(heapK.length){ heapK[0]=lk; heapV[0]=lv; let i=0;
+        for(;;){ const l=2*i+1, r=l+1; let m=i;
+          if(l<heapK.length&&heapK[l]<heapK[m]) m=l;
+          if(r<heapK.length&&heapK[r]<heapK[m]) m=r;
+          if(m===i) break;
+          [heapK[m],heapK[i]]=[heapK[i],heapK[m]]; [heapV[m],heapV[i]]=[heapV[i],heapV[m]]; i=m; } }
+      return top; };
+    const h=(x,y)=> Math.abs(x-gx)+Math.abs(y-gy);
+    const s0 = idx(sx,sy)*4 + 0;
+    g[s0]=0; push(h(sx,sy), s0);
+    let guard = 0, goalState = -1;
+    while(heapK.length){
+      if(++guard > 240000) break;
+      const st = pop();
+      const dir = st & 3, cell = st >> 2;
+      const cx = cell % cols, cy = (cell - cx)/cols;
+      if(cx===gx && cy===gy && dir!==1){ goalState = st; break; }
+      const gc = g[st];
+      for(let d=0; d<4; d++){
+        if((d^1)===dir) continue;              // no retroceder
+        const nx = cx+DX[d], ny = cy+DY[d];
+        if(!inside(nx,ny)) continue;
+        const ni = idx(nx,ny);
+        if(blocked[ni] && !(nx===gx&&ny===gy)) continue;
+        const cost = gc + 1 + used[ni]*1.1 + (d===dir ? 0 : o.turn);
+        const ns = ni*4 + d;
+        if(cost < g[ns]){ g[ns]=cost; prev[ns]=st; push(cost + h(nx,ny), ns); }
+      }
+    }
+    if(goalState < 0) return null;
+    const cells = [];
+    for(let st=goalState; st>=0; st=prev[st]){
+      const c = st>>2; cells.push([c%cols, (c-(c%cols))/cols]);
+      if(prev[st]<0) break;
+    }
+    cells.reverse();
+    cells.forEach(([x,y])=>{ used[idx(x,y)] += 1;
+      for(let d=0;d<4;d++){ const a=x+DX[d], b=y+DY[d]; if(inside(a,b)) used[idx(a,b)] += .35; } });
+    return cells;
+  }
+
+  const out = {};
+  const list = edges.slice().sort((a,b)=>{
+    const A=rects[a.from], B=rects[a.to], C=rects[b.from], D=rects[b.to];
+    if(!A||!B) return 1; if(!C||!D) return -1;
+    return (Math.abs(B.x-A.x)+Math.abs(B.y-A.y)) - (Math.abs(D.x-C.x)+Math.abs(D.y-C.y));
+  });
+
+  list.forEach(e=>{
+    const A = rects[e.from], B = rects[e.to];
+    if(!A||!B) return;
+    const sx = A.x+A.w, sy = A.y+A.h/2;
+    const tx = B.x,      ty = B.y+B.h/2;
+    const S = {x: Math.round((sx+STUB)/CELL), y: Math.round(sy/CELL)};
+    const G = {x: Math.round((tx-STUB)/CELL), y: Math.round(ty/CELL)};
+    // abrir un corredor de salida y otro de entrada
+    const freed = [];
+    const carve = (x,y)=>{ if(!inside(x,y)) return; const i=idx(x,y); if(blocked[i]){ blocked[i]=0; freed.push(i); } };
+    for(let x=Math.floor(sx/CELL); x<=S.x; x++) carve(x, S.y);
+    for(let x=G.x; x<=Math.ceil(tx/CELL); x++) carve(x, G.y);
+    const cells = astar(S.x, S.y, G.x, G.y);
+    freed.forEach(i=> blocked[i]=1);
+
+    let pts;
+    if(cells && cells.length){
+      pts = cells.map(([x,y])=>({x:x*CELL, y:y*CELL}));
+      pts[0].y = sy; pts[pts.length-1].y = ty;
+      pts.unshift({x:sx, y:sy});
+      pts.push({x:tx-2, y:ty});
+    }else{
+      const mx = (sx+tx)/2;                       // respaldo: Z simple
+      pts = [{x:sx,y:sy},{x:mx,y:sy},{x:mx,y:ty},{x:tx-2,y:ty}];
+    }
+    // limpiar: quitar repetidos y fundir tramos colineales
+    const clean = [];
+    pts.forEach(p=>{
+      const q = clean[clean.length-1];
+      if(q && Math.abs(q.x-p.x)<0.6 && Math.abs(q.y-p.y)<0.6) return;
+      if(clean.length>=2){
+        const a = clean[clean.length-2], b = q;
+        const sameH = Math.abs(a.y-b.y)<0.6 && Math.abs(b.y-p.y)<0.6;
+        const sameV = Math.abs(a.x-b.x)<0.6 && Math.abs(b.x-p.x)<0.6;
+        if(sameH || sameV){ clean[clean.length-1] = p; return; }
+      }
+      clean.push(p);
+    });
+    // forzar ángulos rectos exactos (por si quedó algún desfase de media celda)
+    for(let i=1;i<clean.length;i++){
+      const a = clean[i-1], b = clean[i];
+      if(Math.abs(a.x-b.x) >= Math.abs(a.y-b.y)) b.y = a.y; else b.x = a.x;
+    }
+    const last = clean[clean.length-1];
+    if(Math.abs(last.y-ty) > .6){ clean.push({x:last.x, y:ty}); }
+    clean[clean.length-1].x = tx-2; clean[clean.length-1].y = ty;
+    out[e.key] = "M" + clean.map(p=>`${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(" L");
+  });
+  return out;
+}
+
 /* --- flechas --- */
+let _routeCache = {sig:"", paths:{}};
 function drawArrows(issues){
   const board = document.getElementById("board");
   const bRect = board.getBoundingClientRect();
   svg.setAttribute("width", board.scrollWidth);
   svg.setAttribute("height", board.scrollHeight);
   svg.innerHTML = `<defs>
-    <marker id="a" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto">
-      <path d="M0,0 L7,3.5 L0,7 z" fill="#7C90A6" stroke="none"/></marker>
-    <marker id="ah" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto">
-      <path d="M0,0 L7,3.5 L0,7 z" fill="#6D28D9" stroke="none"/></marker>
-    <marker id="ab" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto">
-      <path d="M0,0 L7,3.5 L0,7 z" fill="#D92D3F" stroke="none"/></marker></defs>`;
+    <marker id="a" markerUnits="userSpaceOnUse" markerWidth="9" markerHeight="6" refX="8" refY="3" orient="auto">
+      <path d="M0,0.35 L8,3 L0,5.65 z" fill="#7C90A6" stroke="none"/></marker>
+    <marker id="ah" markerUnits="userSpaceOnUse" markerWidth="9" markerHeight="6" refX="8" refY="3" orient="auto">
+      <path d="M0,0.35 L8,3 L0,5.65 z" fill="#6D28D9" stroke="none"/></marker>
+    <marker id="ab" markerUnits="userSpaceOnUse" markerWidth="9" markerHeight="6" refX="8" refY="3" orient="auto">
+      <path d="M0,0.35 L8,3 L0,5.65 z" fill="#D92D3F" stroke="none"/></marker></defs>`;
 
-  const pos = {};
+  const walls = [];
+  document.querySelectorAll(".yearband").forEach(el=>{
+    const r = el.getBoundingClientRect();
+    walls.push({x:r.left-bRect.left, y:0, w:r.width, h:r.bottom-bRect.top});
+  });
+  const rects = {};
+  let sig = "";
   document.querySelectorAll(".card").forEach(el=>{
     const r = el.getBoundingClientRect();
-    pos[el.dataset.id] = {
-      x1: r.left - bRect.left + board.scrollLeft*0, // rects ya incluyen scroll del wrap
-      y:  r.top - bRect.top + r.height/2,
-      l:  r.left - bRect.left,
-      r:  r.right - bRect.left
-    };
+    const g = {x: r.left-bRect.left, y: r.top-bRect.top, w: r.width, h: r.height};
+    rects[el.dataset.id] = g;
+    sig += el.dataset.id + Math.round(g.x) + "," + Math.round(g.y) + "," + Math.round(g.h) + ";";
   });
 
   const focus = selected || hovered;
   const dim = new Set();
-  const frag = [];
+  const visible = [];
 
   state.courses.forEach(c=>{
     (c.p||[]).forEach(pid=>{
-      const p = byId(pid); if(!p) return;
-      const A = pos[pid], B = pos[c.id]; if(!A||!B) return;
+      const p = byId(pid); if(!p || !rects[pid] || !rects[c.id]) return;
       const bad = p.s >= c.s;
       const touches = focus && (focus===c.id || focus===pid);
       let show = false;
@@ -650,20 +785,24 @@ function drawArrows(issues){
       else show = bad || touches;
       if(!show) return;
       if(touches){ dim.add(c.id); dim.add(pid); }
-
-      const x1 = A.r, y1 = A.y, x2 = B.l - 7, y2 = B.y;
-      const dx = Math.max(28, Math.abs(x2-x1)*0.45);
-      const cls = bad ? "bad" : (touches ? "hi" : "");
-      const mk  = bad ? "ab" : (touches ? "ah" : "a");
-      let d;
-      if(x2 > x1){
-        d = `M${x1},${y1} C${x1+dx},${y1} ${x2-dx},${y2} ${x2},${y2}`;
-      }else{ // va hacia atrás: rodea por abajo para que se vea el conflicto
-        const yb = Math.max(y1,y2) + 46;
-        d = `M${x1},${y1} C${x1+40},${yb} ${x2-40},${yb} ${x2},${y2}`;
-      }
-      frag.push(`<path class="${cls}" d="${d}" marker-end="url(#${mk})"/>`);
+      visible.push({from:pid, to:c.id, key:pid+">"+c.id, bad, touches});
     });
+  });
+
+  // el ruteo es caro: se recalcula solo si cambió la posición de las tarjetas
+  const need = visible.filter(e=> !(_routeCache.sig===sig && _routeCache.paths[e.key]));
+  if(_routeCache.sig !== sig) _routeCache = {sig, paths:{}};
+  if(need.length){
+    const fresh = routeOrtho(rects, need, board.scrollWidth, board.scrollHeight,
+                             {cell:6, pad:3, stub:10, turn:4, walls});
+    Object.assign(_routeCache.paths, fresh);
+  }
+
+  const frag = visible.map(e=>{
+    const d = _routeCache.paths[e.key]; if(!d) return "";
+    const cls = e.bad ? "bad" : (e.touches ? "hi" : "");
+    const mk  = e.bad ? "ab" : (e.touches ? "ah" : "a");
+    return `<path class="${cls}" d="${d}" marker-end="url(#${mk})"/>`;
   });
   svg.insertAdjacentHTML("beforeend", frag.join(""));
 
@@ -969,8 +1108,8 @@ function _esc(t){ return String(t??"").replace(/[&<>"]/g, m=>({"&":"&amp;","<":"
 
 function buildSvg(){
   const SANS = "Arial, Helvetica, sans-serif", MONO = "'Courier New', Courier, monospace";
-  const M = 26, COLW = 182, GAP = 12, PAD = 9;
-  const TITLE_H = 52, YEAR_H = 16, HEAD_H = 44, RULER_H = 6, CARD_GAP = 8;
+  const M = 26, COLW = 182, GAP = 22, PAD = 10;
+  const TITLE_H = 52, YEAR_H = 16, HEAD_H = 44, RULER_H = 6, CARD_GAP = 18;
   const {issues, cum, sem} = validate();
   const badIds = new Set(issues.filter(i=>i.type==="err" && i.id).map(i=>i.id));
   const max = Number(state.meta.maxCr)||0;
@@ -1046,27 +1185,24 @@ function buildSvg(){
     o += `<rect x="${x}" y="${bodyTop}" width="${COLW}" height="${bodyH}" rx="6" fill="#FBFCFD" stroke="#D7E0E9"/>`;
   });
 
-  // flechas (debajo de las tarjetas)
-  let arrows = "";
+  // flechas ortogonales, ruteadas esquivando las tarjetas
+  const edges = [];
   state.courses.forEach(c=>{
     (c.p||[]).forEach(pid=>{
-      const p = byId(pid); if(!p) return;
-      const A = geo[pid], B = geo[c.id]; if(!A||!B) return;
-      const bad = p.s >= c.s;
-      const x1 = A.x+A.w, y1 = A.y+A.h/2, x2 = B.x-7, y2 = B.y+B.h/2;
-      let d;
-      if(x2 > x1){
-        const dx = Math.max(26, Math.abs(x2-x1)*0.45);
-        d = `M${x1},${y1} C${x1+dx},${y1} ${x2-dx},${y2} ${x2},${y2}`;
-      }else{
-        const yb = Math.max(y1,y2) + 46;
-        d = `M${x1},${y1} C${x1+40},${yb} ${x2-40},${yb} ${x2},${y2}`;
-      }
-      arrows += `<path d="${d}" fill="none" stroke="${bad?"#D92D3F":"#7C90A6"}" stroke-width="${bad?2:1.4}"`
-              + `${bad?' stroke-dasharray="6 4"':""} marker-end="url(#${bad?"mkBad":"mkOk"})"/>`;
+      const p = byId(pid);
+      if(p && geo[pid] && geo[c.id]) edges.push({from:pid, to:c.id, key:pid+">"+c.id, bad:p.s>=c.s});
     });
   });
-  o += arrows;
+  const routed = routeOrtho(geo, edges, W, H, {cell:6, pad:3, stub:10, turn:4, walls:[
+    {x:0, y:0, w:W, h:bodyTop-2},
+    {x:0, y:maxBottom+8, w:W, h:H-maxBottom}
+  ]});
+  edges.forEach(e=>{
+    const d = routed[e.key]; if(!d) return;
+    o += `<path d="${d}" fill="none" stroke="${e.bad?"#D92D3F":"#7C90A6"}" stroke-width="${e.bad?2:1.4}"`
+       + ` stroke-linejoin="miter" stroke-linecap="butt"`
+       + `${e.bad?' stroke-dasharray="6 4"':""} marker-end="url(#${e.bad?"mkBad":"mkOk"})"/>`;
+  });
 
   // tarjetas
   Object.values(geo).forEach(g=>{
@@ -1099,10 +1235,10 @@ function buildSvg(){
      + ` — generado el ${new Date().toLocaleDateString("es-CL")}</text>`;
 
   const defs = `<defs>
-    <marker id="mkOk" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto">
-      <path d="M0,0 L7,3.5 L0,7 z" fill="#7C90A6"/></marker>
-    <marker id="mkBad" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto">
-      <path d="M0,0 L7,3.5 L0,7 z" fill="#D92D3F"/></marker></defs>`;
+    <marker id="mkOk" markerUnits="userSpaceOnUse" markerWidth="9" markerHeight="6" refX="8" refY="3"
+      orient="auto"><path d="M0,0.35 L8,3 L0,5.65 z" fill="#7C90A6"/></marker>
+    <marker id="mkBad" markerUnits="userSpaceOnUse" markerWidth="9" markerHeight="6" refX="8" refY="3"
+      orient="auto"><path d="M0,0.35 L8,3 L0,5.65 z" fill="#D92D3F"/></marker></defs>`;
 
   return {svg:`<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">${defs}${o}</svg>`,
