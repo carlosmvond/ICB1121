@@ -250,6 +250,9 @@ table.dist i{display:inline-block;width:11px;height:11px;border-radius:3px;margi
   </div>
   <div class="field">
     <select id="selPlan" style="font-family:var(--font-sans);font-size:13px;font-weight:600;padding:6px 8px"></select>
+    <button class="btn" id="bSave" title="Descargar esta malla como archivo JSON">Guardar JSON</button>
+    <button class="btn" id="bLoad" title="Cargar una malla desde un archivo JSON y agregarla a la lista">Abrir JSON</button>
+    <input type="file" id="fileIn" accept=".json,application/json" hidden>
     <button class="btn" id="bPlanDup" title="Crear una copia de esta malla para trabajarla aparte">Duplicar</button>
     <button class="btn" id="bPlanRen" title="Cambiar el nombre de esta malla">Renombrar</button>
     <button class="btn" id="bPlanDel" title="Eliminar esta malla">Eliminar</button>
@@ -279,13 +282,10 @@ table.dist i{display:inline-block;width:11px;height:11px;border-radius:3px;margi
     <button class="btn" id="bIssues">Conflictos</button>
     <button class="btn" id="bDist">Informe</button>
     <button class="btn" id="bUndo" title="Ctrl+Z">Deshacer</button>
-    <button class="btn" id="bSave">Guardar JSON</button>
-    <button class="btn" id="bLoad">Abrir JSON</button>
     <button class="btn" id="bCsv">CSV</button>
     <button class="btn" id="bPng">PNG</button>
     <button class="btn" id="bSvg">SVG</button>
     <button class="btn" id="bPrint">Imprimir</button>
-    <input type="file" id="fileIn" accept=".json,application/json" hidden>
   </div>
 </div>
 
@@ -535,6 +535,23 @@ function setActivePlan(id){
   selected = null; linkFrom = null; _routeCache = {sig:"", paths:{}};
   closeDrawer(); refreshPlanUI(); applyGaps(); render();
 }
+function addPlan(obj, fallbackName){
+  if(!obj || !Array.isArray(obj.courses)) throw new Error("La malla no trae lista de ramos.");
+  let id, n = 1;
+  do{ id = "plan" + (Date.now()%1000000) + "_" + n++; }while(library.plans.some(p=>p.id===id));
+  // el nombre puede venir en «name» (formato actual) o en «meta.name» (versiones antiguas)
+  let name = (obj.name || (obj.meta && obj.meta.name) || fallbackName || "Malla importada").trim();
+  if(library.plans.some(p=>p.name === name)){
+    let k = 2; while(library.plans.some(p=>p.name === `${name} (${k})`)) k++;
+    name = `${name} (${k})`;
+  }
+  const m = obj.meta || {};
+  const pl = {id, name, meta:{maxCr: m.maxCr ?? 22, gapH: m.gapH ?? 20, gapV: m.gapV ?? 17},
+              courses: obj.courses};
+  library.plans.push(pl);
+  return pl;
+}
+
 function refreshPlanUI(){
   const sel = document.getElementById("selPlan");
   sel.innerHTML = library.plans.map(p=>
@@ -1378,8 +1395,9 @@ document.getElementById("bUndo").addEventListener("click", undo);
 document.getElementById("bPrint").addEventListener("click", ()=>window.print());
 document.getElementById("bCsv").addEventListener("click", ()=> download("malla.csv", "\ufeff"+toCsv(), "text/csv;charset=utf-8"));
 document.getElementById("bSave").addEventListener("click", ()=>{
-  download("mallas_icb.json", JSON.stringify(library, null, 2));
-  toast(`Archivo con ${library.plans.length} malla(s) descargado`);
+  const {id, ...rest} = state;                 // el id se reasigna al abrirla
+  download(fileBase()+".json", JSON.stringify(rest, null, 2));
+  toast(`«${state.name}» descargada`);
 });
 document.getElementById("bLoad").addEventListener("click", ()=> document.getElementById("fileIn").click());
 document.getElementById("fileIn").addEventListener("change", e=>{
@@ -1388,17 +1406,15 @@ document.getElementById("fileIn").addEventListener("change", e=>{
   r.onload = () => {
     try{
       const data = JSON.parse(r.result);
-      if(data && Array.isArray(data.plans)){
-        library = data;
-      }else if(data && Array.isArray(data.courses)){        // formato antiguo: una sola malla
-        library = {plans:[{id:"import", name:(data.meta&&data.meta.name)||"Malla importada",
-                           meta:data.meta||{maxCr:22}, courses:data.courses}], activeId:"import"};
-      }else throw new Error("El archivo no contiene mallas.");
-      library.plans.forEach(pl=>{ pl.meta = pl.meta || {maxCr:22}; pl.name = pl.name || pl.id; });
-      library.activeId = library.plans.some(p=>p.id===library.activeId) ? library.activeId : library.plans[0].id;
-      history.length = 0;
-      setActivePlan(library.activeId);
-      toast(`Cargadas ${library.plans.length} malla(s)`);
+      const base = f.name.replace(/\.json$/i, "");
+      let añadidas = [];
+      if(data && Array.isArray(data.plans)){          // archivo con varias mallas
+        data.plans.forEach(pl=> añadidas.push(addPlan(pl, base)));
+      }else if(data && Array.isArray(data.courses)){  // una sola malla (formato actual o antiguo)
+        añadidas.push(addPlan(data, base));
+      }else throw new Error("El archivo no contiene una malla válida.");
+      setActivePlan(añadidas[añadidas.length-1].id);
+      toast(añadidas.length===1 ? `«${añadidas[0].name}» agregada` : `${añadidas.length} mallas agregadas`);
     }catch(err){ alert("No se pudo leer el archivo. "+err.message); }
     e.target.value = "";
   };
