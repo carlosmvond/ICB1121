@@ -285,7 +285,6 @@ table.dist i{display:inline-block;width:11px;height:11px;border-radius:3px;margi
     <button class="btn" id="bPng">PNG</button>
     <button class="btn" id="bSvg">SVG</button>
     <button class="btn" id="bPrint">Imprimir</button>
-    <button class="btn" id="bReset">Original</button>
     <input type="file" id="fileIn" accept=".json,application/json" hidden>
   </div>
 </div>
@@ -404,7 +403,7 @@ const ORIGINAL = {
     {id:"ICB4102", code:"ICB 4102", name:"Operaciones de Procesos Alimentarios", c:4, a:"especialidad", s:8, p:["ICB3101"]},
     {id:"ICB4206", code:"ICB 4206*", name:"Biocatálisis Enzimática", c:3, a:"especialidad", s:8, p:["ICB4101"]},
     {id:"EIQ1001", code:"EIQ 1001", name:"Lab. de Operaciones Unitarias", c:4, a:"ingenieria", s:8, p:["TMASA"]},
-    {id:"ICB5104", code:"ICB 5104", name:"Análisis de Procesos", c:3, a:"ingenieria", s:8, p:["TMASA","ICB4103"], k:true},
+    {id:"ICB5104", code:"ICB 5104", name:"Análisis de Procesos", c:3, a:"ingenieria", s:8, p:["EIQ453","ICB4103"], k:true},
     {id:"DPI",     code:"ICB XXX", name:"Diseño de Plantas Industriales", c:3, a:"ingenieria", s:8, p:["EIQ356","EIB1001"]},
     {id:"ING9004", code:"ING 9004", name:"Inglés 4", c:2, a:"ingles", s:8, p:["ING9003"]},
     {id:"FF3",     code:"—", name:"Formación Fundamental 3", c:2, a:"fundamental", s:8, p:[]},
@@ -1404,12 +1403,6 @@ document.getElementById("fileIn").addEventListener("change", e=>{
     e.target.value = "";
   };
   r.readAsText(f);
-});
-document.getElementById("bReset").addEventListener("click", ()=>{
-  if(!confirm("Volver a las mallas originales de los PDF. Se pierden los cambios no guardados.\n\n¿Continuar?")) return;
-  history.length = 0;
-  library = clone(LIBRARY_ORIGINAL);
-  setActivePlan(library.activeId); toast("Mallas originales restauradas");
 });
 function undo(){
   const h = history.pop();
