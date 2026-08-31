@@ -152,12 +152,17 @@ let urchinAnim=0;
 let explodeParticles=[];
 let urchinX=240, urchinY=0; // position in aquarium
 let urchinVisible=false;
-let pourTicker=null;
 
+// FIX: cada jarra tiene su propio ticker de vertido (antes era una sola
+// variable global "pourTicker" que se cancelaba y recreaba en cada
+// mousemove/touchmove, por lo que el intervalo nunca llegaba a disparar
+// su callback y nunca se acumulaba líquido).
 const beakers=[
   {key:'A', x:72, y:155, homeX:72, homeY:155, w:72, h:110, angle:0, dragging:false, poured:0,
+   pourTicker:null,
    color:'rgba(247,169,74,0.8)', bright:'rgba(255,200,100,0.95)', conc:C1, maxVol:MAX1},
   {key:'B', x:408, y:155, homeX:408, homeY:155, w:72, h:110, angle:0, dragging:false, poured:0,
+   pourTicker:null,
    color:'rgba(74,158,255,0.8)', bright:'rgba(120,190,255,0.95)', conc:C2, maxVol:MAX2},
 ];
 
@@ -292,7 +297,7 @@ function executeMix(){
   fb.textContent=''; fb.className='feedback';
   // reset poured amounts first
   v1poured=0; v2poured=0;
-  beakers.forEach(bk=>{bk.poured=0; bk.angle=0;});
+  beakers.forEach(bk=>{bk.poured=0; bk.angle=0; stopPour(bk);});
   const target1=r1, target2=r2;
   // animate: tilt both jugs and fill gradually
   if(autoTicker) clearInterval(autoTicker);
@@ -663,16 +668,16 @@ function addUrchin(){
 
   if(atGoal()){
     urchinState='alive';
-    
+
     document.getElementById('status').textContent='Concentración ideal — el erizo sobrevive y nada tranquilo.';
   } else if(mc < GOAL_C-GOAL_TOL){
     urchinState='explode';
     initExplodeParticles();
-    
+
     document.getElementById('status').textContent=`C = ${fmt(mc,1)} g/L — muy baja. El erizo explota por ósmosis.`;
   } else {
     urchinState='shrink';
-    
+
     document.getElementById('status').textContent=`C = ${fmt(mc,1)} g/L — muy alta. El erizo se deshidrata y encoge.`;
   }
 
@@ -697,21 +702,26 @@ function initExplodeParticles(){
 }
 
 // ── POUR LOGIC ──
-function startPour(bkIdx){
-  if(pourTicker) clearInterval(pourTicker);
-  pourTicker=setInterval(()=>{
-    const bk=beakers[bkIdx];
+// FIX: startPour/stopPour ahora reciben la jarra (bk) directamente y usan
+// su propio "pourTicker". Si ya hay un intervalo corriendo para esa jarra,
+// no se vuelve a crear (evita el bug de reinicio infinito en cada
+// mousemove/touchmove que impedía verter).
+function startPour(bk){
+  if(bk.pourTicker) return; // ya está vertiendo esta jarra
+  bk.pourTicker=setInterval(()=>{
     const vol=bk.maxVol-bk.poured;
-    if(vol<=0||mixVol()>=MAXAQ){ stopPour(); return; }
+    if(vol<=0||mixVol()>=MAXAQ){ stopPour(bk); return; }
     const tilt=Math.min((Math.abs(bk.angle)-0.35)/0.7,1);
     const rate=tilt*8;
     const pour=Math.min(rate, vol, MAXAQ-mixVol());
     bk.poured+=pour;
-    if(bkIdx===0) v1poured+=pour; else v2poured+=pour;
+    if(bk.key==='A') v1poured+=pour; else v2poured+=pour;
     updateMetrics();
   },40);
 }
-function stopPour(){ if(pourTicker){clearInterval(pourTicker);pourTicker=null;} }
+function stopPour(bk){
+  if(bk.pourTicker){ clearInterval(bk.pourTicker); bk.pourTicker=null; }
+}
 
 // ── TOUCH / MOUSE ──
 function canvasPoint(e){
@@ -734,7 +744,7 @@ function onMove(e){
   if(!beakers.some(b=>b.dragging)) return;
   e.preventDefault();
   const p=canvasPoint(e);
-  beakers.forEach((bk,i)=>{
+  beakers.forEach(bk=>{
     if(!bk.dragging) return;
     bk.x=p.x; bk.y=p.y;
     const overAq=p.x>AQ.x&&p.x<AQ.right&&p.y>AQ.y-60&&p.y<AQ.bot;
@@ -743,11 +753,11 @@ function onMove(e){
       const dx=AQ.x+AQ.w/2-bk.x;
       const proximity=Math.min(Math.abs(dx)/80,1);
       bk.angle=(bk.key==='A'?1:-1)*proximity*maxTilt;
-      if(Math.abs(bk.angle)>0.35) startPour(i);
-      else stopPour();
+      if(Math.abs(bk.angle)>0.35) startPour(bk);
+      else stopPour(bk);
       document.getElementById('status').textContent=Math.abs(bk.angle)>0.35?'¡Vertiendo!':'Inclina más...';
     } else {
-      bk.angle=0; stopPour();
+      bk.angle=0; stopPour(bk);
     }
   });
 }
@@ -757,7 +767,7 @@ function onEnd(e){
   beakers.forEach(bk=>{
     if(bk.dragging){
       e.preventDefault();
-      bk.dragging=false; bk.angle=0; stopPour();
+      bk.dragging=false; bk.angle=0; stopPour(bk);
       bk.x=bk.homeX; bk.y=bk.homeY;
       document.getElementById('status').textContent='Arrastra las jarras hacia el acuario para verter';
     }
@@ -834,8 +844,10 @@ function checkAnswers(){
 
 function resetAll(){
   v1poured=0; v2poured=0; urchinState='none'; urchinAnim=0; explodeParticles=[];
-  beakers.forEach(bk=>{bk.x=bk.homeX;bk.y=bk.homeY;bk.angle=0;bk.dragging=false;bk.poured=0;});
-  stopPour();
+  beakers.forEach(bk=>{
+    bk.x=bk.homeX; bk.y=bk.homeY; bk.angle=0; bk.dragging=false; bk.poured=0;
+    stopPour(bk);
+  });
   if(autoTicker){clearInterval(autoTicker);autoTicker=null;}
   if(urchinAnimTicker){clearInterval(urchinAnimTicker);urchinAnimTicker=null;}
   document.getElementById('inp-v1').value='';
