@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Proceso continuo y proceso discontinuo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#eef2f4;
+    --surface:#ffffff;
+    --ink:#10222c;
+    --muted:#5a6f7b;
+    --rule:#c9d6dd;
+    --rule-soft:#e3ebee;
+    --liquid:#127a8a;
+    --liquid-2:#0d5f6d;
+    --steel:#b7c4cb;
+    --steel-dark:#8b9aa3;
+    --open:#2c7a4b;
+    --shut:#94a2aa;
+    --acc:#127a8a;        /* cambia según el modo */
+    --acc-soft:#e0f0f1;
+  }
+  body[data-mode="batch"]{
+    --acc:#8d2a52;
+    --acc-soft:#f6e6ec;
+  }
+
+  *{box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%}
+  body{
+    margin:0;
+    background:var(--paper);
+    color:var(--ink);
+    font-family:"Archivo",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    font-size:16px;
+    line-height:1.55;
+  }
+  .wrap{max-width:860px;margin:0 auto;padding:22px 16px 56px}
+
+  header h1{
+    font-size:clamp(1.5rem,5.2vw,2.3rem);
+    font-weight:700;
+    letter-spacing:-0.02em;
+    line-height:1.12;
+    margin:0 0 .4rem;
+  }
+  header p{
+    margin:0;
+    max-width:62ch;
+    color:var(--muted);
+    font-size:clamp(.95rem,2.6vw,1.05rem);
+  }
+  .eq{
+    margin-top:.9rem;
+    padding:.55rem .8rem;
+    background:var(--surface);
+    border:1px solid var(--rule);
+    border-radius:2px;
+    display:inline-block;
+    font-size:clamp(.88rem,2.5vw,1rem);
+    font-weight:500;
+  }
+  .eq span{color:var(--muted);font-weight:400}
+
+  /* --- selector de modo --- */
+  .modes{
+    display:flex;gap:0;margin:26px 0 0;
+    border:1px solid var(--rule);border-radius:2px;overflow:hidden;background:var(--surface);
+  }
+  .modes button{
+    flex:1;appearance:none;border:0;background:transparent;cursor:pointer;
+    font:inherit;font-weight:600;color:var(--muted);
+    padding:.7rem .5rem;text-align:center;line-height:1.25;
+    border-right:1px solid var(--rule);
+  }
+  .modes button:last-child{border-right:0}
+  .modes button small{display:block;font-weight:400;font-size:.76rem;opacity:.85}
+  .modes button[aria-pressed="true"]{background:var(--acc);color:#fff}
+  .modes button:focus-visible{outline:3px solid var(--ink);outline-offset:-3px}
+
+  /* --- panel del diagrama --- */
+  .panel{
+    background:var(--surface);
+    border:1px solid var(--rule);
+    border-top:0;
+    border-radius:0 0 2px 2px;
+    background-image:
+      linear-gradient(var(--rule-soft) 1px,transparent 1px),
+      linear-gradient(90deg,var(--rule-soft) 1px,transparent 1px);
+    background-size:22px 22px;
+  }
+  svg.scheme{display:block;width:100%;height:auto}
+
+  .phase{
+    display:flex;align-items:baseline;gap:.55rem;flex-wrap:wrap;
+    padding:.6rem .85rem;border-top:1px solid var(--rule);
+    background:var(--acc-soft);
+  }
+  .phase b{font-weight:600;font-size:1rem}
+  .phase span{color:var(--muted);font-size:.88rem}
+
+  /* --- lecturas --- */
+  .reads{
+    display:grid;grid-template-columns:repeat(3,1fr);
+    border:1px solid var(--rule);border-top:0;background:var(--surface);
+  }
+  .read{padding:.65rem .7rem;border-right:1px solid var(--rule)}
+  .read:last-child{border-right:0}
+  .read i{
+    display:block;font-style:normal;font-size:.76rem;color:var(--muted);
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  }
+  .read b{
+    display:block;font-weight:600;font-variant-numeric:tabular-nums;
+    font-size:clamp(1rem,4.4vw,1.35rem);letter-spacing:-0.01em;
+  }
+  .read b u{text-decoration:none;font-size:.7em;font-weight:500;color:var(--muted)}
+  .bar{height:4px;background:var(--rule-soft);margin-top:.35rem;overflow:hidden}
+  .bar i{display:block;height:100%;background:var(--liquid);width:0;transition:width .12s linear}
+  #accum b{color:var(--acc)}
+  #accum .bar i{background:var(--acc)}
+
+  /* --- controles --- */
+  .ctrl{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap}
+  .ctrl button{
+    appearance:none;background:var(--surface);border:1px solid var(--rule);
+    border-radius:2px;font:inherit;font-weight:500;color:var(--ink);
+    padding:.5rem .95rem;cursor:pointer;
+  }
+  .ctrl button:hover{border-color:var(--ink)}
+  .ctrl button:focus-visible{outline:3px solid var(--acc);outline-offset:2px}
+
+  /* --- gráfico --- */
+  .trace{margin-top:30px}
+  .trace h2,section h2{
+    font-size:1.05rem;font-weight:600;margin:0 0 .5rem;letter-spacing:-0.01em;
+  }
+  .trace .box{background:var(--surface);border:1px solid var(--rule);border-radius:2px;padding:10px 12px 6px}
+  .trace svg{display:block;width:100%;height:auto}
+  .trace p{margin:.5rem 0 0;color:var(--muted);font-size:.86rem}
+
+  /* --- texto --- */
+  section{margin-top:34px}
+  .cards{display:grid;gap:14px;grid-template-columns:1fr 1fr}
+  .card{
+    background:var(--surface);border:1px solid var(--rule);border-radius:2px;
+    padding:14px 16px 16px;border-top:3px solid var(--tone);
+  }
+  .card:first-child{--tone:#127a8a}
+  .card:last-child{--tone:#8d2a52}
+  .card h3{margin:0 0 .35rem;font-size:1.02rem;font-weight:600}
+  .card p{margin:0 0 .6rem;font-size:.92rem;color:var(--muted)}
+  .card ul{margin:0;padding-left:1.1rem;font-size:.92rem}
+  .card li{margin-bottom:.3rem}
+  .card li b{font-weight:600}
+
+  table{
+    width:100%;border-collapse:collapse;background:var(--surface);
+    border:1px solid var(--rule);font-size:.9rem;
+  }
+  th,td{padding:.55rem .7rem;text-align:left;border-bottom:1px solid var(--rule-soft);vertical-align:top}
+  thead th{font-weight:600;border-bottom:1px solid var(--rule);white-space:nowrap}
+  tbody th{font-weight:500;color:var(--muted);width:30%}
+  tr:last-child td,tr:last-child th{border-bottom:0}
+
+  .note{
+    margin-top:18px;font-size:.9rem;color:var(--muted);
+    border-left:3px solid var(--rule);padding-left:.8rem;max-width:70ch;
+  }
+  footer{margin-top:40px;font-size:.82rem;color:var(--muted)}
+
+  @media (max-width:560px){
+    .cards{grid-template-columns:1fr}
+    .reads{grid-template-columns:1fr;}
+    .read{border-right:0;border-bottom:1px solid var(--rule-soft)}
+    .read:last-child{border-bottom:0}
+    .read b{font-size:1.15rem}
+    tbody th{width:38%}
+  }
+  @media (prefers-reduced-motion:reduce){
+    .bar i{transition:none}
+  }
+</style>
+</head>
+<body data-mode="continuo">
+<div class="wrap">
+
+<header>
+  <h1>Proceso continuo y proceso discontinuo</h1>
+  <p>El mismo estanque, los mismos dos flujos de entrada y la misma salida. Lo único que cambia es <em>cuándo</em> se abre cada válvula, y eso cambia todo el balance de materia.</p>
+  <div class="eq">acumulación = entrada − salida &nbsp;<span>· kg/s</span></div>
+</header>
+
+<div class="modes" role="group" aria-label="Tipo de proceso">
+  <button id="btnCont" aria-pressed="true">Continuo<small>entra y sale a la vez</small></button>
+  <button id="btnBatch" aria-pressed="false">Discontinuo<small>por lotes (batch)</small></button>
+</div>
+
+<div class="panel">
+  <svg class="scheme" viewBox="0 0 360 300" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Esquema animado de un estanque con dos entradas y una salida">
+    <defs>
+      <clipPath id="tankClip"><rect x="121" y="91" width="118" height="168"/></clipPath>
+      <linearGradient id="liq" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#1a93a4"/><stop offset="1" stop-color="#0d5f6d"/>
+      </linearGradient>
+    </defs>
+
+    <!-- cañerías (trazo grueso = tubo, trazo fino = línea de centro) -->
+    <g fill="none" stroke="var(--steel)" stroke-width="13" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M 24 44 L 150 44 L 150 92"/>
+      <path d="M 336 44 L 210 44 L 210 92"/>
+      <path d="M 180 258 L 180 282 L 336 282"/>
+    </g>
+    <g fill="none" stroke="#fff" stroke-width="9" stroke-linecap="round" stroke-linejoin="round">
+      <path id="p1" d="M 24 44 L 150 44 L 150 92"/>
+      <path id="p2" d="M 336 44 L 210 44 L 210 92"/>
+      <path id="p3" d="M 180 258 L 180 282 L 336 282"/>
+    </g>
+
+    <!-- partículas de flujo -->
+    <g id="dots1" fill="url(#liq)"></g>
+    <g id="dots2" fill="url(#liq)"></g>
+    <g id="dots3" fill="url(#liq)"></g>
+
+    <!-- estanque -->
+    <g clip-path="url(#tankClip)">
+      <path id="liquid" fill="url(#liq)" d=""/>
+      <g id="bubbles" fill="#ffffff" opacity="0"></g>
+    </g>
+    <rect x="120" y="90" width="120" height="170" rx="3" fill="none" stroke="var(--ink)" stroke-width="2.5"/>
+    <!-- marcas de nivel -->
+    <g stroke="var(--steel-dark)" stroke-width="1" opacity=".75">
+      <line x1="240" y1="133" x2="248" y2="133"/>
+      <line x1="240" y1="175" x2="248" y2="175"/>
+      <line x1="240" y1="217" x2="248" y2="217"/>
+    </g>
+    <g fill="var(--muted)" font-size="8.5" font-family="Archivo,sans-serif">
+      <text x="251" y="136">75%</text><text x="251" y="178">50%</text><text x="251" y="220">25%</text>
+    </g>
+
+    <!-- válvulas -->
+    <g id="v1"><circle cx="150" cy="66" r="9" fill="#fff" stroke="var(--ink)" stroke-width="2"/><path d="M 145 61 L 155 71 M 155 61 L 145 71" stroke="var(--shut)" stroke-width="2.6" stroke-linecap="round"/></g>
+    <g id="v2"><circle cx="210" cy="66" r="9" fill="#fff" stroke="var(--ink)" stroke-width="2"/><path d="M 205 61 L 215 71 M 215 61 L 205 71" stroke="var(--shut)" stroke-width="2.6" stroke-linecap="round"/></g>
+    <g id="v3"><circle cx="270" cy="282" r="9" fill="#fff" stroke="var(--ink)" stroke-width="2"/><path d="M 265 277 L 275 287 M 275 277 L 265 287" stroke="var(--shut)" stroke-width="2.6" stroke-linecap="round"/></g>
+
+    <!-- rótulos -->
+    <g font-family="Archivo,sans-serif" fill="var(--ink)">
+      <text x="24" y="30" font-size="12" font-weight="600">Entrada 1</text>
+      <text x="24" y="86" font-size="11.5" fill="var(--muted)" id="lbl1">0,0 kg/s</text>
+      <text x="336" y="30" font-size="12" font-weight="600" text-anchor="end">Entrada 2</text>
+      <text x="336" y="86" font-size="11.5" fill="var(--muted)" text-anchor="end" id="lbl2">0,0 kg/s</text>
+      <text x="336" y="268" font-size="12" font-weight="600" text-anchor="end">Salida</text>
+      <text x="336" y="300" font-size="11.5" fill="var(--muted)" text-anchor="end" id="lbl3">0,0 kg/s</text>
+      <text x="180" y="112" font-size="12" font-weight="600" text-anchor="middle" fill="#fff" id="lvlTxt">0%</text>
+    </g>
+  </svg>
+
+  <div class="phase">
+    <b id="phaseName">—</b><span id="phaseNote"></span>
+  </div>
+
+  <div class="reads">
+    <div class="read">
+      <i>Entra al estanque</i>
+      <b id="fin">0,0 <u>kg/s</u></b>
+      <div class="bar"><i id="barIn"></i></div>
+    </div>
+    <div class="read">
+      <i>Sale del estanque</i>
+      <b id="fout">0,0 <u>kg/s</u></b>
+      <div class="bar"><i id="barOut"></i></div>
+    </div>
+    <div class="read" id="accum">
+      <i>Se acumula (entrada − salida)</i>
+      <b id="facc">0,0 <u>kg/s</u></b>
+      <div class="bar"><i id="barAcc"></i></div>
+    </div>
+  </div>
+</div>
+
+<div class="ctrl">
+  <button id="btnPlay">Pausar</button>
+  <button id="btnReset">Reiniciar</button>
+  <span class="read" style="border:0;padding:.5rem 0;color:var(--muted);font-size:.86rem" id="counter"></span>
+</div>
+
+<div class="trace">
+  <h2>Nivel del estanque en el tiempo</h2>
+  <div class="box">
+    <svg viewBox="0 0 340 92" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Gráfico del nivel del estanque en función del tiempo">
+      <g stroke="var(--rule-soft)" stroke-width="1">
+        <line x1="26" y1="10" x2="336" y2="10"/>
+        <line x1="26" y1="40" x2="336" y2="40"/>
+        <line x1="26" y1="70" x2="336" y2="70"/>
+      </g>
+      <line x1="26" y1="80" x2="336" y2="80" stroke="var(--rule)" stroke-width="1.2"/>
+      <line x1="26" y1="6" x2="26" y2="80" stroke="var(--rule)" stroke-width="1.2"/>
+      <g fill="var(--muted)" font-size="8" font-family="Archivo,sans-serif" text-anchor="end">
+        <text x="21" y="13">100%</text><text x="21" y="83">0</text>
+      </g>
+      <polyline id="curve" fill="none" stroke="var(--acc)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" points=""/>
+    </svg>
+    <p id="traceNote">La forma de esta curva es la diferencia entre los dos procesos.</p>
+  </div>
+</div>
+
+<section>
+  <h2>Qué está pasando en cada caso</h2>
+  <div class="cards">
+    <div class="card">
+      <h3>Continuo</h3>
+      <p>Las tres válvulas terminan abiertas al mismo tiempo. El proceso no se detiene.</p>
+      <ul>
+        <li><b>Partida:</b> las entradas llenan el estanque y la salida está cerrada. Hay acumulación positiva; es el período <b>transiente</b>.</li>
+        <li><b>Régimen permanente:</b> al alcanzar el nivel de operación se abre la salida hasta igualar a las entradas. La acumulación se hace cero y el nivel queda fijo.</li>
+        <li>Las variables ya no dependen del tiempo: se diseña el equipo para ese punto de operación.</li>
+        <li>Ejemplos: destilación, planta de tratamiento de aguas, síntesis de amoníaco.</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3>Discontinuo (batch)</h3>
+      <p>Las válvulas nunca están todas abiertas a la vez. El proceso se hace por etapas y se repite.</p>
+      <ul>
+        <li><b>Carga:</b> entra toda la masa con la salida cerrada.</li>
+        <li><b>Operación:</b> se cierran las entradas y el sistema queda cerrado; aquí ocurre la reacción, la mezcla o el calentamiento.</li>
+        <li><b>Descarga:</b> se abre la salida y se vacía el estanque. Luego parte otro lote.</li>
+        <li>Nunca hay régimen permanente: todo depende del tiempo, y entre lotes hay tiempos muertos de carga, limpieza y descarga.</li>
+        <li>Ejemplos: fermentación cervecera, fabricación de un lote de medicamento, autoclave.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>Comparación</h2>
+  <table>
+    <thead>
+      <tr><th></th><th>Continuo</th><th>Discontinuo</th></tr>
+    </thead>
+    <tbody>
+      <tr><th>Entrada y salida</th><td>Simultáneas y permanentes</td><td>Separadas en el tiempo</td></tr>
+      <tr><th>Acumulación</th><td>Cero en régimen permanente</td><td>Siempre distinta de cero</td></tr>
+      <tr><th>Variables</th><td>Constantes en el tiempo</td><td>Cambian durante el lote</td></tr>
+      <tr><th>Balance de materia</th><td>Por unidad de tiempo (kg/s)</td><td>Por lote (kg por batch)</td></tr>
+      <tr><th>Le acomoda a</th><td>Producción grande de un mismo producto</td><td>Producción chica, variada o de alto valor</td></tr>
+      <tr><th>Control</th><td>Mantener el punto de operación</td><td>Seguir una secuencia de etapas</td></tr>
+    </tbody>
+  </table>
+  <p class="note">Entre medio existe el proceso <b>semicontinuo</b>: por ejemplo, cargar un reactivo de una sola vez y alimentar el otro de a poco, o vaciar un estanque que no recibe alimentación. Basta con que una corriente sea continua y otra no.</p>
+</section>
+
+<footer>Material de apoyo para clases de balances de materia.</footer>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  var F1MAX = 3.0, F2MAX = 2.0, FINMAX = 5.0;
+  var CAP = 22;                 // kg equivalentes al estanque lleno (fija la velocidad)
+  var TOP = 0.80, BATCH_TOP = 0.92;
+
+  var svgNS = "http://www.w3.org/2000/svg";
+  var pipes = [
+    {path: document.getElementById("p1"), g: document.getElementById("dots1"), dots: [], len: 0},
+    {path: document.getElementById("p2"), g: document.getElementById("dots2"), dots: [], len: 0},
+    {path: document.getElementById("p3"), g: document.getElementById("dots3"), dots: [], len: 0}
+  ];
+  pipes.forEach(function(p){
+    p.len = p.path.getTotalLength();
+    var n = Math.max(3, Math.floor(p.len / 24));
+    for (var i = 0; i < n; i++){
+      var c = document.createElementNS(svgNS, "circle");
+      c.setAttribute("r", "3.4");
+      p.g.appendChild(c);
+      p.dots.push({s: (i / n) * p.len, el: c});
+    }
+  });
+
+  var bubblesG = document.getElementById("bubbles"), bubbles = [];
+  for (var b = 0; b < 9; b++){
+    var bc = document.createElementNS(svgNS, "circle");
+    bc.setAttribute("r", (1.4 + Math.random() * 2).toFixed(1));
+    bubblesG.appendChild(bc);
+    bubbles.push({x: 128 + Math.random() * 104, y: Math.random(), v: 0.18 + Math.random() * 0.22, el: bc});
+  }
+
+  var liquid = document.getElementById("liquid");
+  var TX0 = 121, TX1 = 239, TY0 = 91, TY1 = 259, TH = TY1 - TY0;
+
+  var el = {
+    phaseName: document.getElementById("phaseName"),
+    phaseNote: document.getElementById("phaseNote"),
+    fin: document.getElementById("fin"), fout: document.getElementById("fout"), facc: document.getElementById("facc"),
+    barIn: document.getElementById("barIn"), barOut: document.getElementById("barOut"), barAcc: document.getElementById("barAcc"),
+    lbl1: document.getElementById("lbl1"), lbl2: document.getElementById("lbl2"), lbl3: document.getElementById("lbl3"),
+    lvlTxt: document.getElementById("lvlTxt"), counter: document.getElementById("counter"),
+    curve: document.getElementById("curve"), traceNote: document.getElementById("traceNote"),
+    v: [document.getElementById("v1"), document.getElementById("v2"), document.getElementById("v3")]
+  };
+
+  var S = {};
+  function reset(mode){
+    S = {mode: mode, t: 0, level: 0, F1: 0, F2: 0, Fout: 0,
+         phase: "carga", hold: 0, cycles: 0, wave: 1, hist: [], acc: 0};
+    document.body.setAttribute("data-mode", mode === "continuo" ? "continuo" : "batch");
+  }
+  reset("continuo");
+
+  function num(v){ return v.toFixed(1).replace(".", ","); }
+
+  function step(dt){
+    S.t += dt;
+
+    if (S.mode === "continuo"){
+      S.F1 = F1MAX; S.F2 = F2MAX;
+      if (S.phase === "carga"){
+        S.Fout = 0;
+        if (S.level >= TOP) S.phase = "estacionario";
+      } else {
+        S.Fout = Math.min(FINMAX, S.Fout + 4.5 * dt);
+        if (FINMAX - S.Fout < 0.02) S.Fout = FINMAX;
+      }
+    } else {
+      if (S.phase === "carga"){
+        S.F1 = F1MAX; S.F2 = F2MAX; S.Fout = 0;
+        if (S.level >= BATCH_TOP){ S.phase = "proceso"; S.hold = 2.6; }
+      } else if (S.phase === "proceso"){
+        S.F1 = 0; S.F2 = 0; S.Fout = 0;
+        S.hold -= dt;
+        if (S.hold <= 0) S.phase = "descarga";
+      } else if (S.phase === "descarga"){
+        S.F1 = 0; S.F2 = 0; S.Fout = FINMAX;
+        if (S.level <= 0.004){ S.level = 0; S.Fout = 0; S.phase = "pausa"; S.hold = 1.1; S.cycles++; }
+      } else {
+        S.F1 = 0; S.F2 = 0; S.Fout = 0;
+        S.hold -= dt;
+        if (S.hold <= 0) S.phase = "carga";
+      }
+    }
+
+    var fin = S.F1 + S.F2;
+    S.acc = fin - S.Fout;
+    S.level = Math.max(0, Math.min(0.97, S.level + (S.acc / CAP) * dt));
+
+    var target = (fin + S.Fout) > 0.1 ? 1 : 0.18;
+    S.wave += (target - S.wave) * Math.min(1, dt * 3);
+
+    // partículas
+    pipes.forEach(function(p, i){
+      var f = i === 2 ? S.Fout : (i === 0 ? S.F1 : S.F2);
+      var on = f > 0.05;
+      p.g.setAttribute("opacity", on ? "1" : "0");
+      if (!on) return;
+      var v = 34 + 16 * (f / F1MAX);
+      p.dots.forEach(function(d){
+        d.s = (d.s + v * dt) % p.len;
+        var pt = p.path.getPointAtLength(d.s);
+        d.el.setAttribute("cx", pt.x.toFixed(2));
+        d.el.setAttribute("cy", pt.y.toFixed(2));
+      });
+    });
+
+    // burbujas (solo cuando el sistema está cerrado y hay contenido)
+    var showB = (S.mode !== "continuo" && S.phase === "proceso");
+    bubblesG.setAttribute("opacity", showB ? "0.45" : "0");
+    if (showB){
+      bubbles.forEach(function(bb){
+        bb.y += bb.v * dt;
+        if (bb.y > 1){ bb.y = 0; bb.x = 128 + Math.random() * 104; }
+        bb.el.setAttribute("cx", bb.x.toFixed(1));
+        bb.el.setAttribute("cy", (TY1 - bb.y * S.level * TH).toFixed(1));
+      });
+    }
+
+    draw(fin);
+  }
+
+  function draw(fin){
+    // superficie del líquido con una onda suave
+    var yTop = TY1 - S.level * TH;
+    var amp = S.level > 0.01 ? 2.6 * S.wave : 0;
+    var d = "M " + TX0 + " " + TY1 + " L " + TX0 + " " + yTop.toFixed(2);
+    for (var x = 0; x <= 10; x++){
+      var px = TX0 + (TX1 - TX0) * (x / 10);
+      var py = yTop + Math.sin(S.t * 3.4 + x * 0.85) * amp;
+      d += " L " + px.toFixed(2) + " " + py.toFixed(2);
+    }
+    d += " L " + TX1 + " " + TY1 + " Z";
+    liquid.setAttribute("d", S.level > 0.002 ? d : "");
+
+    el.lvlTxt.textContent = Math.round(S.level * 100) + "%";
+    el.lvlTxt.setAttribute("fill", S.level > 0.13 ? "#ffffff" : "var(--muted)");
+
+    // válvulas
+    var open = [S.F1 > 0.05, S.F2 > 0.05, S.Fout > 0.05];
+    el.v.forEach(function(g, i){
+      g.querySelector("path").setAttribute("stroke", open[i] ? "var(--open)" : "var(--shut)");
+      g.querySelector("circle").setAttribute("fill", open[i] ? "#eaf5ee" : "#fff");
+    });
+
+    el.lbl1.textContent = num(S.F1) + " kg/s";
+    el.lbl2.textContent = num(S.F2) + " kg/s";
+    el.lbl3.textContent = num(S.Fout) + " kg/s";
+    el.fin.innerHTML = num(fin) + ' <u>kg/s</u>';
+    el.fout.innerHTML = num(S.Fout) + ' <u>kg/s</u>';
+    el.facc.innerHTML = (S.acc > 0.05 ? "+" : "") + num(S.acc) + ' <u>kg/s</u>';
+    el.barIn.style.width = (fin / FINMAX * 100) + "%";
+    el.barOut.style.width = (S.Fout / FINMAX * 100) + "%";
+    el.barAcc.style.width = (Math.abs(S.acc) / FINMAX * 100) + "%";
+
+    var name, note;
+    if (S.mode === "continuo"){
+      if (S.phase === "carga"){ name = "Partida"; note = "entra masa, la salida sigue cerrada y el nivel sube"; }
+      else if (S.Fout < FINMAX){ name = "Se abre la salida"; note = "el flujo de salida crece hasta igualar a las entradas"; }
+      else { name = "Régimen permanente"; note = "entrada = salida, la acumulación es cero y el nivel no cambia"; }
+      el.counter.textContent = "Entradas fijas: 3,0 + 2,0 kg/s";
+    } else {
+      if (S.phase === "carga"){ name = "Carga"; note = "se llena el estanque con la salida cerrada"; }
+      else if (S.phase === "proceso"){ name = "Operación"; note = "sistema cerrado: no entra ni sale masa (" + S.hold.toFixed(1).replace(".", ",") + " s)"; }
+      else if (S.phase === "descarga"){ name = "Descarga"; note = "se vacía el lote, sin alimentación"; }
+      else { name = "Entre lotes"; note = "tiempo muerto antes de la siguiente carga"; }
+      el.counter.textContent = "Lotes completados: " + S.cycles;
+    }
+    el.phaseName.textContent = name;
+    el.phaseNote.textContent = "— " + note;
+
+    // curva nivel vs tiempo
+    var last = S.hist.length ? S.hist[S.hist.length - 1] : null;
+    if (!last || S.t - last[0] > 0.07) S.hist.push([S.t, S.level]);
+    var WIN = 22, t0 = Math.max(0, S.t - WIN);
+    while (S.hist.length && S.hist[0][0] < t0) S.hist.shift();
+    var pts = "";
+    for (var i = 0; i < S.hist.length; i++){
+      var px2 = 26 + ((S.hist[i][0] - t0) / WIN) * 310;
+      var py2 = 80 - S.hist[i][1] * 70;
+      pts += px2.toFixed(1) + "," + py2.toFixed(1) + " ";
+    }
+    el.curve.setAttribute("points", pts);
+    el.traceNote.textContent = S.mode === "continuo"
+      ? "Sube y después se aplana: el estanque alcanza un nivel constante y se queda ahí."
+      : "Diente de sierra: cada lote sube, se mantiene, baja a cero y vuelve a empezar.";
+  }
+
+  // --- animación ---
+  var running = true, prev = null;
+  function loop(ts){
+    if (prev === null) prev = ts;
+    var dt = Math.min(0.05, (ts - prev) / 1000);
+    prev = ts;
+    if (running) step(dt);
+    requestAnimationFrame(loop);
+  }
+  requestAnimationFrame(loop);
+
+  // --- controles ---
+  var btnCont = document.getElementById("btnCont"), btnBatch = document.getElementById("btnBatch");
+  function setMode(m){
+    reset(m);
+    btnCont.setAttribute("aria-pressed", m === "continuo" ? "true" : "false");
+    btnBatch.setAttribute("aria-pressed", m === "continuo" ? "false" : "true");
+    step(0.0001);
+  }
+  btnCont.addEventListener("click", function(){ setMode("continuo"); });
+  btnBatch.addEventListener("click", function(){ setMode("batch"); });
+
+  var btnPlay = document.getElementById("btnPlay");
+  btnPlay.addEventListener("click", function(){
+    running = !running;
+    btnPlay.textContent = running ? "Pausar" : "Continuar";
+  });
+  document.getElementById("btnReset").addEventListener("click", function(){
+    setMode(S.mode);
+    running = true;
+    btnPlay.textContent = "Pausar";
+  });
+
+  step(0.0001);
+})();
+</script>
+</body>
+</html>
