@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light only">
+<title>Balances de masa · Ejercitación</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=Spectral:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+<style>
+:root{
+  color-scheme: light only;
+  --paper:#F5F7FA;
+  --card:#FFFFFF;
+  --ink:#16202E;
+  --muted:#5B6676;
+  --line:#D9DEE6;
+  --blue:#2456A6;
+  --blue-soft:#E5ECF7;
+  --red:#B3453A;
+  --red-soft:#F8EAE8;
+  --green:#2E7D5B;
+  --green-soft:#E4F1EA;
+  --amber:#B07A22;
+  --amber-soft:#FBF2E0;
+  --sans:"IBM Plex Sans", "Segoe UI", system-ui, -apple-system, Roboto, Arial, sans-serif;
+  --serif:"Spectral", Georgia, "Times New Roman", serif;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+*,*::before,*::after{box-sizing:inherit}
+html{-webkit-text-size-adjust:100%}
+body{
+  margin:0;
+  background:var(--paper);
+  color:var(--ink);
+  font-family:var(--sans);
+  font-size:16px;
+  line-height:1.55;
+}
+.wrap{max-width:640px;margin:0 auto;padding:20px 16px 56px}
+
+/* ---------- encabezado ---------- */
+.masthead{display:flex;align-items:center;gap:14px;margin-bottom:22px}
+.mark{flex:0 0 auto}
+.masthead h1{
+  font-family:var(--serif);font-weight:600;
+  font-size:1.35rem;line-height:1.2;margin:0;
+}
+.masthead p{margin:3px 0 0;font-size:.8rem;color:var(--muted)}
+
+/* ---------- progreso ---------- */
+.track{display:flex;gap:8px;margin-bottom:18px}
+.pip{
+  flex:1;height:32px;border-radius:16px;
+  border:1.5px solid var(--line);background:var(--card);
+  display:flex;align-items:center;justify-content:center;
+  font-size:.78rem;font-weight:600;color:var(--muted);
+}
+.pip.now{border-color:var(--blue);background:var(--blue);color:#fff}
+.pip.ok{border-color:var(--green);background:var(--green-soft);color:var(--green)}
+.pip.no{border-color:var(--red);background:var(--red-soft);color:var(--red)}
+
+/* ---------- tarjeta ---------- */
+.card{
+  background:var(--card);border:1px solid var(--line);
+  border-radius:12px;padding:20px 17px;
+}
+.tag{font-size:.74rem;color:var(--muted);margin:0 0 8px}
+.stem{
+  font-family:var(--serif);font-size:1.08rem;line-height:1.5;
+  margin:0 0 16px;
+}
+.stem em{font-style:italic}
+
+/* ---------- diagramas ---------- */
+.dgwrap{margin:0 0 18px}
+.dg{display:block;width:100%;max-width:340px;height:auto;margin:0 auto}
+.dg text{font-family:var(--sans);fill:var(--ink)}
+.dg .lbl{font-size:11px;font-weight:600}
+.dg .sm{font-size:9px;fill:var(--muted)}
+.dg .op{font-size:11px;font-weight:600}
+.dg .b1{fill:var(--blue-soft);stroke:var(--blue);stroke-width:1.3}
+.dg .b2{fill:var(--red-soft);stroke:var(--red);stroke-width:1.3}
+.dg .b3{fill:var(--amber-soft);stroke:var(--amber);stroke-width:1.3}
+.dg .t1{fill:var(--blue)}.dg .t2{fill:var(--red)}.dg .t3{fill:var(--amber)}
+.dg .arw{stroke:var(--ink);stroke-width:1.3;fill:none}
+.dg .num{fill:#fff;stroke:var(--ink);stroke-width:1.1}
+.dg .numt{font-size:9px;font-weight:600}
+.dg .bnd{fill:none;stroke:var(--green);stroke-width:1.4;stroke-dasharray:5 4}
+.dg .bndt{font-size:9px;fill:var(--green);font-weight:600}
+
+/* ---------- opciones ---------- */
+.opts{display:flex;flex-direction:column;gap:9px}
+.opt{
+  display:flex;gap:11px;align-items:flex-start;width:100%;
+  min-height:48px;padding:11px 13px;
+  font-family:var(--serif);font-size:1rem;line-height:1.45;
+  text-align:left;color:var(--ink);
+  background:var(--card);border:1.5px solid var(--line);
+  border-radius:9px;cursor:pointer;
+}
+.opt .key{
+  flex:0 0 auto;width:22px;height:22px;margin-top:1px;border-radius:50%;
+  border:1.5px solid var(--line);
+  font-family:var(--sans);font-size:.74rem;font-weight:600;color:var(--muted);
+  display:flex;align-items:center;justify-content:center;
+}
+.opt:hover:not(:disabled){border-color:var(--blue)}
+.opt:focus-visible{outline:2.5px solid var(--blue);outline-offset:2px}
+.opt:disabled{cursor:default}
+.opt.right{border-color:var(--green);background:var(--green-soft)}
+.opt.right .key{border-color:var(--green);background:var(--green);color:#fff}
+.opt.wrong{border-color:var(--red);background:var(--red-soft)}
+.opt.wrong .key{border-color:var(--red);background:var(--red);color:#fff}
+.opt.dim{opacity:.55}
+.eq{font-family:var(--serif)}
+.eq i{font-style:italic}
+sub{font-size:.68em}
+
+/* ---------- retroalimentación ---------- */
+.fb{margin-top:16px;padding:14px 15px;border-radius:9px;border-left:4px solid}
+.fb.right{background:var(--green-soft);border-color:var(--green)}
+.fb.wrong{background:var(--red-soft);border-color:var(--red)}
+.fb h3{margin:0 0 6px;font-size:.92rem;font-weight:600}
+.fb.right h3{color:var(--green)}
+.fb.wrong h3{color:var(--red)}
+.fb p{margin:0;font-family:var(--serif);font-size:.97rem;line-height:1.55}
+.fb p + p{margin-top:8px}
+
+.go{
+  display:block;width:100%;margin-top:16px;min-height:50px;
+  padding:13px;border:0;border-radius:9px;
+  background:var(--blue);color:#fff;
+  font-family:var(--sans);font-size:1rem;font-weight:600;cursor:pointer;
+}
+.go:hover{background:#1d4789}
+.go:focus-visible{outline:2.5px solid var(--ink);outline-offset:2px}
+.go.ghost{background:var(--card);color:var(--blue);border:1.5px solid var(--blue)}
+.go.ghost:hover{background:var(--blue-soft)}
+
+/* ---------- resultado ---------- */
+.score{text-align:center;padding:6px 0 4px}
+.score .n{font-family:var(--serif);font-size:3.2rem;line-height:1;font-weight:600}
+.score .of{font-size:1.1rem;color:var(--muted)}
+.score .msg{margin:10px auto 0;max-width:34ch;font-family:var(--serif);font-size:1rem}
+.recap{list-style:none;margin:20px 0 0;padding:0;border-top:1px solid var(--line)}
+.recap li{
+  display:flex;gap:11px;align-items:flex-start;
+  padding:11px 2px;border-bottom:1px solid var(--line);font-size:.92rem;
+}
+.recap .st{flex:0 0 auto;width:20px;height:20px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  font-size:.72rem;font-weight:700;color:#fff;margin-top:2px}
+.recap .st.ok{background:var(--green)}
+.recap .st.no{background:var(--red)}
+.foot{margin-top:22px;font-size:.78rem;color:var(--muted);text-align:center}
+
+@media (min-width:600px){
+  .wrap{padding:36px 24px 64px}
+  .masthead h1{font-size:1.6rem}
+  .card{padding:26px 24px}
+  .stem{font-size:1.14rem}
+}
+@media (prefers-reduced-motion:no-preference){
+  .card{animation:rise .32s ease-out both}
+}
+@keyframes rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10 z" fill="#16202E"></path>
+    </marker>
+  </defs>
+</svg>
+
+<div class="wrap">
+
+  <header class="masthead">
+    <svg class="mark" width="52" height="46" viewBox="0 0 52 46" aria-hidden="true">
+      <rect x="14" y="5" width="24" height="15" rx="2.5" fill="#E5ECF7" stroke="#2456A6" stroke-width="1.4"/>
+      <rect x="14" y="27" width="24" height="15" rx="2.5" fill="#F8EAE8" stroke="#B3453A" stroke-width="1.4"/>
+      <path d="M26 0 L26 4.2" stroke="#16202E" stroke-width="1.4" marker-end="url(#ah)"/>
+      <path d="M26 20 L26 26.2" stroke="#16202E" stroke-width="1.4" marker-end="url(#ah)"/>
+      <path d="M26 42 L26 46" stroke="#16202E" stroke-width="1.4" marker-end="url(#ah)"/>
+      <path d="M38 12.5 L50 12.5" stroke="#16202E" stroke-width="1.4" marker-end="url(#ah)"/>
+      <path d="M38 34.5 L50 34.5" stroke="#16202E" stroke-width="1.4" marker-end="url(#ah)"/>
+    </svg>
+    <div>
+      <h1>Balances de masa sin reacción</h1>
+      <p>Cinco preguntas para practicar la lectura de diagramas y el planteamiento de balances.</p>
+    </div>
+  </header>
+
+  <nav class="track" id="track" aria-label="Progreso"></nav>
+
+  <main id="stage" aria-live="polite"></main>
+
+  <p class="foot">Ingeniería bioquímica · Capítulo de balances de masa</p>
+</div>
+
+<script>
+/* ---------------- diagramas ---------------- */
+
+function num(cx, cy, n){
+  return '<circle class="num" cx="'+cx+'" cy="'+cy+'" r="8"/>'+
+         '<text class="numt" x="'+cx+'" y="'+(cy+3.2)+'" text-anchor="middle">'+n+'</text>';
+}
+
+/* Proceso de jugo concentrado: 3 operaciones, 8 corrientes */
+const DG_JUGO = `
+<svg class="dg" viewBox="0 0 330 266" role="img"
+     aria-label="Diagrama: fruta entra a trituración, que recibe agua y descarta sólidos agotados; luego filtración, que descarta sólidos filtrados; luego evaporador, que retira agua; sale jugo concentrado.">
+  <text class="lbl" x="150" y="20" text-anchor="middle">Fruta</text>
+  <path class="arw" d="M150 28 L150 56" marker-end="url(#ah)"/>${num(168,44,'1')}
+
+  <rect class="b1" x="95" y="58" width="110" height="30" rx="3"/>
+  <text class="op t1" x="150" y="77" text-anchor="middle">Trituración</text>
+  <path class="arw" d="M46 73 L93 73" marker-end="url(#ah)"/>${num(64,62,'2')}
+  <text class="lbl" x="42" y="77" text-anchor="end">Agua</text>
+  <path class="arw" d="M207 73 L256 73" marker-end="url(#ah)"/>${num(238,62,'3')}
+  <text class="sm" x="260" y="70">Sól.</text><text class="sm" x="260" y="80">agotados</text>
+
+  <path class="arw" d="M150 88 L150 112" marker-end="url(#ah)"/>${num(168,100,'4')}
+  <rect class="b2" x="95" y="114" width="110" height="30" rx="3"/>
+  <text class="op t2" x="150" y="133" text-anchor="middle">Filtración</text>
+  <path class="arw" d="M207 129 L256 129" marker-end="url(#ah)"/>${num(238,118,'5')}
+  <text class="sm" x="260" y="126">Sól.</text><text class="sm" x="260" y="136">filtrados</text>
+
+  <path class="arw" d="M150 144 L150 168" marker-end="url(#ah)"/>${num(168,156,'6')}
+  <rect class="b3" x="95" y="170" width="110" height="30" rx="3"/>
+  <text class="op t3" x="150" y="189" text-anchor="middle">Evaporador</text>
+  <path class="arw" d="M207 185 L256 185" marker-end="url(#ah)"/>${num(238,174,'7')}
+  <text class="sm" x="260" y="188">Agua</text>
+
+  <path class="arw" d="M150 200 L150 230" marker-end="url(#ah)"/>${num(168,215,'8')}
+  <text class="lbl" x="150" y="246" text-anchor="middle">Jugo</text>
+  <text class="lbl" x="150" y="258" text-anchor="middle">concentrado</text>
+</svg>`;
+
+/* Evaporador de leche, 3 corrientes */
+const DG_EVAP = `
+<svg class="dg" viewBox="0 0 330 172" role="img"
+     aria-label="Diagrama: leche entera de 1000 kg por hora con fracción másica de agua 0,88 entra a un evaporador; sale agua por arriba y leche concentrada por abajo.">
+  <text class="lbl" x="150" y="16" text-anchor="middle">Leche entera</text>
+  <text class="sm" x="150" y="29" text-anchor="middle" font-style="italic">M<tspan dy="2" font-size="7">1</tspan><tspan dy="-2" font-style="normal"> = 1000 kg/h</tspan></text>
+  <text class="sm" x="150" y="41" text-anchor="middle" font-style="italic">X<tspan dy="2" font-size="7">A,1</tspan><tspan dy="-2" font-style="normal"> = 0,88</tspan></text>
+
+  <path class="arw" d="M150 48 L150 74" marker-end="url(#ah)"/>${num(168,61,'1')}
+  <rect class="b1" x="92" y="76" width="116" height="30" rx="3"/>
+  <text class="op t1" x="150" y="95" text-anchor="middle">Evaporación</text>
+  <path class="arw" d="M210 91 L256 91" marker-end="url(#ah)"/>${num(238,80,'2')}
+  <text class="sm" x="260" y="94">Agua</text>
+
+  <path class="arw" d="M150 106 L150 136" marker-end="url(#ah)"/>${num(168,120,'3')}
+  <text class="lbl" x="150" y="152" text-anchor="middle">Leche</text>
+  <text class="lbl" x="150" y="164" text-anchor="middle">concentrada</text>
+</svg>`;
+
+/* Leche en polvo, 2 etapas. flag = mostrar frontera global */
+function dgLeche(frontera){
+  return `
+<svg class="dg" viewBox="0 0 330 196" role="img"
+     aria-label="Diagrama: leche entera entra a evaporación, que retira agua; el concentrado pasa a secado, que retira agua; sale leche en polvo.">
+  ${frontera ? '<rect class="bnd" x="74" y="48" width="152" height="106" rx="10"/><text class="bndt" x="74" y="42">Frontera global</text>' : ''}
+  <text class="lbl" x="150" y="22" text-anchor="middle">Leche entera</text>
+  <path class="arw" d="M150 30 L150 56" marker-end="url(#ah)"/>${num(168,43,'1')}
+
+  <rect class="b1" x="94" y="58" width="112" height="30" rx="3"/>
+  <text class="op t1" x="150" y="77" text-anchor="middle">Evaporación</text>
+  <path class="arw" d="M208 73 L256 73" marker-end="url(#ah)"/>${num(238,62,'2')}
+  <text class="sm" x="260" y="76">Agua</text>
+
+  <path class="arw" d="M150 88 L150 110" marker-end="url(#ah)"/>${num(168,99,'3')}
+  <rect class="b2" x="94" y="112" width="112" height="30" rx="3"/>
+  <text class="op t2" x="150" y="131" text-anchor="middle">Secado</text>
+  <path class="arw" d="M208 127 L256 127" marker-end="url(#ah)"/>${num(238,116,'4')}
+  <text class="sm" x="260" y="130">Agua</text>
+
+  <path class="arw" d="M150 142 L150 170" marker-end="url(#ah)"/>${num(168,155,'5')}
+  <text class="lbl" x="150" y="186" text-anchor="middle">Leche en polvo</text>
+</svg>`;
+}
+
+/* ---------------- preguntas ---------------- */
+
+const Q = [
+{
+  tag:"Fracciones másicas",
+  stem:"La leche entera contiene un 88% en peso de agua, y el resto son sólidos totales. ¿Cuáles son las fracciones másicas de la corriente?",
+  opts:[
+    '<span class="eq"><i>X</i><sub>A</sub> = 88 &nbsp;y&nbsp; <i>X</i><sub>S</sub> = 12</span>',
+    '<span class="eq"><i>X</i><sub>A</sub> = 0,88 &nbsp;y&nbsp; <i>X</i><sub>S</sub> = 0,12</span>',
+    '<span class="eq"><i>X</i><sub>A</sub> = 0,12 &nbsp;y&nbsp; <i>X</i><sub>S</sub> = 0,88</span>',
+    '<span class="eq"><i>X</i><sub>A</sub> = 0,88 &nbsp;y&nbsp; <i>X</i><sub>S</sub> = 1</span>'
+  ],
+  ok:1,
+  why:'La fracción másica es adimensional y siempre va entre 0 y 1: se obtiene dividiendo el porcentaje por 100. Como agua y sólidos son los únicos componentes, deben sumar 1, así que <span class="eq"><i>X</i><sub>S</sub> = 1 − 0,88 = 0,12</span>. Ese chequeo, que las fracciones de cada corriente sumen 1, es la verificación más rápida que tienes al final de cualquier problema.'
+},
+{
+  tag:"Lectura del diagrama",
+  dg:DG_JUGO,
+  stem:"¿Cuántas operaciones unitarias tiene este proceso?",
+  opts:["2","3","5","8"],
+  ok:1,
+  why:'Cada <strong>bloque</strong> es una operación unitaria y cada <strong>flecha</strong> es una corriente. Aquí hay 3 bloques (trituración, filtración y evaporación) y 8 corrientes. Confundir bloques con corrientes es el error más común al empezar: las corrientes son las que aparecen en las ecuaciones, los bloques son los que definen dónde puedes trazar una frontera.'
+},
+{
+  tag:"Del enunciado a la ecuación",
+  dg:DG_EVAP,
+  stem:'El enunciado dice: <em>«en el evaporador se retira el 85% del agua contenida en la leche»</em>. ¿Cómo se escribe eso como ecuación?',
+  opts:[
+    '<span class="eq"><i>M</i><sub>2</sub> = 0,85 · <i>M</i><sub>1</sub></span>',
+    '<span class="eq"><i>M</i><sub>2</sub> = 0,85 · <i>X</i><sub>A,1</sub> · <i>M</i><sub>1</sub></span>',
+    '<span class="eq"><i>X</i><sub>A,2</sub> · <i>M</i><sub>2</sub> = 0,85 · <i>M</i><sub>1</sub></span>',
+    '<span class="eq"><i>M</i><sub>2</sub> = 0,85 · <i>X</i><sub>A,3</sub> · <i>M</i><sub>3</sub></span>'
+  ],
+  ok:1,
+  why:'El 85% está referido al <strong>agua</strong> de la corriente 1, no a su masa total. El agua que entra es <span class="eq"><i>X</i><sub>A,1</sub><i>M</i><sub>1</sub> = 0,88 × 1000 = 880 kg/h</span>, y el evaporador retira el 85% de esa cantidad: <span class="eq"><i>M</i><sub>2</sub> = 0,85 × 880 = 748 kg/h</span>.<br><br>Escribir <span class="eq"><i>M</i><sub>2</sub> = 0,85 <i>M</i><sub>1</sub></span> daría 850 kg/h, es decir, más agua de la que la leche contiene en total. Antes de aplicar un porcentaje, pregúntate siempre: ¿porcentaje <em>de qué</em>?'
+},
+{
+  tag:"Elección de la frontera",
+  dg:dgLeche(true),
+  stem:"Se plantea un balance sobre la frontera global. ¿Cuál corriente <strong>no</strong> aparece en ese balance?",
+  opts:["La corriente 1","La corriente 3","La corriente 5","Todas aparecen"],
+  ok:1,
+  why:'La corriente 3 conecta dos etapas que están <strong>ambas dentro</strong> de la frontera, así que es una corriente interna: no cruza la frontera y por lo tanto no aparece en el balance. Las corrientes 2 y 4 sí la cruzan, aunque salgan por el costado.<br><br>Esto es justamente lo que hace útil al balance global: permite relacionar la alimentación con el producto sin saber nada de la corriente intermedia.'
+},
+{
+  tag:"Balance por componente",
+  dg:dgLeche(false),
+  stem:'Entran 1000 kg/h de leche entera con 12% de sólidos, y la leche en polvo sale seca (sólidos puros). ¿Cuánta leche en polvo se produce?',
+  opts:["120 kg/h","132 kg/h","880 kg/h","No se puede saber sin conocer la corriente 3"],
+  ok:0,
+  why:'Los sólidos son un <strong>componente conservativo</strong>: no salen en ninguna de las dos corrientes de agua, así que todos los que entran terminan en el producto. El balance de sólidos sobre la frontera global es <span class="eq"><i>X</i><sub>S,1</sub><i>M</i><sub>1</sub> = <i>X</i><sub>S,5</sub><i>M</i><sub>5</sub></span>, o sea <span class="eq">0,12 × 1000 = 1 · <i>M</i><sub>5</sub></span>, de donde <span class="eq"><i>M</i><sub>5</sub> = 120 kg/h</span>.<br><br>Una sola ecuación basta, y no hace falta conocer la corriente 3. Los 132 kg/h son el agua que retira el secador y los 880 kg/h son el agua que entra con la leche.'
+}
+];
+
+/* ---------------- lógica ---------------- */
+
+const KEY = ["A","B","C","D"];
+const track = document.getElementById('track');
+const stage = document.getElementById('stage');
+let i = 0, answered = false, results = [];
+
+function paintTrack(){
+  track.innerHTML = Q.map((q,n)=>{
+    let c = 'pip';
+    if(results[n] === true) c += ' ok';
+    else if(results[n] === false) c += ' no';
+    else if(n === i) c += ' now';
+    return '<div class="'+c+'">'+(n+1)+'</div>';
+  }).join('');
+}
+
+function question(){
+  const q = Q[i];
+  answered = false;
+  stage.innerHTML =
+    '<section class="card">'+
+      '<p class="tag">Pregunta '+(i+1)+' de '+Q.length+' · '+q.tag+'</p>'+
+      '<p class="stem">'+q.stem+'</p>'+
+      (q.dg ? '<div class="dgwrap">'+q.dg+'</div>' : '')+
+      '<div class="opts">'+
+        q.opts.map((o,n)=>'<button class="opt" data-n="'+n+'"><span class="key">'+KEY[n]+'</span><span>'+o+'</span></button>').join('')+
+      '</div>'+
+      '<div id="fb"></div>'+
+    '</section>';
+  stage.querySelectorAll('.opt').forEach(b=>b.addEventListener('click',()=>choose(+b.dataset.n)));
+  paintTrack();
+}
+
+function choose(n){
+  if(answered) return;
+  answered = true;
+  const q = Q[i];
+  const right = n === q.ok;
+  results[i] = right;
+
+  stage.querySelectorAll('.opt').forEach(b=>{
+    const k = +b.dataset.n;
+    b.disabled = true;
+    if(k === q.ok) b.classList.add('right');
+    else if(k === n) b.classList.add('wrong');
+    else b.classList.add('dim');
+  });
+
+  document.getElementById('fb').innerHTML =
+    '<div class="fb '+(right?'right':'wrong')+'">'+
+      '<h3>'+(right?'Correcto':'Revisemos esto')+'</h3>'+
+      '<p>'+q.why+'</p>'+
+    '</div>'+
+    '<button class="go" id="next">'+(i < Q.length-1 ? 'Siguiente pregunta' : 'Ver mi puntaje')+'</button>';
+
+  document.getElementById('next').addEventListener('click',()=>{
+    i++;
+    if(i < Q.length) question(); else final();
+    window.scrollTo({top:0, behavior:'smooth'});
+  });
+  paintTrack();
+}
+
+function final(){
+  const s = results.filter(Boolean).length;
+  const msg = s===5 ? 'Dominas la lectura de diagramas y el planteamiento de balances. Sigue con los problemas propuestos del capítulo.'
+            : s===4 ? 'Muy bien. Revisa la pregunta que fallaste y vuelve a intentarlo.'
+            : s===3 ? 'Vas encaminado. Vuelve sobre la sección de fronteras y balance por componente antes de seguir.'
+            : 'Conviene releer el capítulo desde el diagrama de bloques. Dibujar el diagrama antes de escribir ecuaciones resuelve la mitad del problema.';
+  stage.innerHTML =
+    '<section class="card">'+
+      '<div class="score"><div class="n">'+s+'<span class="of"> / '+Q.length+'</span></div>'+
+      '<p class="msg">'+msg+'</p></div>'+
+      '<ul class="recap">'+
+        Q.map((q,n)=>'<li><span class="st '+(results[n]?'ok':'no')+'">'+(results[n]?'✓':'✕')+'</span><span>'+q.tag+'</span></li>').join('')+
+      '</ul>'+
+      '<button class="go ghost" id="again">Intentar de nuevo</button>'+
+    '</section>';
+  document.getElementById('again').addEventListener('click',()=>{
+    i = 0; results = []; question(); window.scrollTo({top:0});
+  });
+  paintTrack();
+}
+
+question();
+</script>
+</body>
+</html>
