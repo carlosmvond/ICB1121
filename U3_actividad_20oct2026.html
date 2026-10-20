@@ -1,0 +1,1033 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ICB 1121 · Manjar de leche con lúcuma — Resolución guiada</title>
+<style>
+:root{
+  --bg:#f4f1ec; --card:#ffffff; --ink:#1b2127; --muted:#6b7682; --line:#d9d2c7;
+  --accent:#1b4f8f; --accent-soft:#e8eff8; --gold:#a97a1e; --gold-soft:#fbf2dd;
+  --ok:#0f7b55; --ok-soft:#e4f3ed; --bad:#b3261e; --bad-soft:#fbe9e7;
+  --shadow:0 1px 2px rgba(20,25,30,.06),0 8px 24px rgba(20,25,30,.07);
+  --serif:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,"Times New Roman",serif;
+  --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme:dark){
+  :root{
+    --bg:#10141a; --card:#171d25; --ink:#e6ecf3; --muted:#97a3b2; --line:#2b3542;
+    --accent:#7fb0ef; --accent-soft:#17283d; --gold:#e0b45f; --gold-soft:#2b2415;
+    --ok:#5ed6a5; --ok-soft:#10291f; --bad:#ff9b90; --bad-soft:#2d1614;
+    --shadow:0 1px 2px rgba(0,0,0,.4),0 10px 28px rgba(0,0,0,.35);
+  }
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  background:var(--bg); color:var(--ink); font-family:var(--sans);
+  font-size:16px; line-height:1.55; -webkit-text-size-adjust:100%;
+}
+.wrap{max-width:1120px;margin:0 auto;padding:0 16px 80px}
+
+/* ---------- header ---------- */
+header.top{
+  background:var(--card); border-bottom:1px solid var(--line);
+  position:sticky; top:0; z-index:40; box-shadow:0 1px 0 rgba(0,0,0,.03);
+}
+.top-in{max-width:1120px;margin:0 auto;padding:10px 16px;display:flex;align-items:center;gap:14px}
+.brand{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;min-width:0}
+.brand .code{font-family:var(--serif);font-weight:700;font-size:1.05rem;letter-spacing:.01em}
+.brand .sub{color:var(--muted);font-size:.82rem}
+.top-actions{margin-left:auto;display:flex;gap:8px;align-items:center}
+.lives{font-size:.78rem;color:var(--muted);white-space:nowrap}
+.lives b{color:var(--bad)}
+
+/* ---------- generic ---------- */
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow)}
+h1{font-family:var(--serif);font-size:1.6rem;line-height:1.25;margin:26px 0 6px;font-weight:700}
+h2{font-family:var(--serif);font-size:1.12rem;margin:0 0 10px;font-weight:700}
+.lead{color:var(--muted);margin:0 0 18px;font-size:.95rem}
+button{font-family:inherit;font-size:1rem;cursor:pointer}
+.btn{
+  border:1px solid var(--line);background:var(--card);color:var(--ink);
+  padding:9px 15px;border-radius:9px;font-size:.9rem;transition:.15s;
+}
+.btn:hover{border-color:var(--accent);color:var(--accent)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn.primary:hover{filter:brightness(1.08);color:#fff}
+.btn.ghost{background:transparent}
+.btn.sm{padding:5px 10px;font-size:.8rem;border-radius:7px}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+
+/* ---------- enunciado ---------- */
+details.stmt{margin:0 0 18px;padding:0;overflow:hidden}
+details.stmt>summary{
+  list-style:none;cursor:pointer;padding:13px 18px;font-family:var(--serif);
+  font-weight:700;display:flex;align-items:center;gap:10px;
+}
+details.stmt>summary::-webkit-details-marker{display:none}
+details.stmt>summary::after{content:"▾";margin-left:auto;color:var(--muted);transition:.2s}
+details.stmt[open]>summary::after{transform:rotate(180deg)}
+.stmt-body{padding:0 18px 16px;border-top:1px solid var(--line);font-size:.94rem}
+.stmt-body p{margin:12px 0}
+.data{background:var(--gold-soft);border:1px solid var(--line);border-radius:10px;padding:10px 14px;margin-top:6px}
+.data ul{margin:6px 0 0;padding-left:20px}
+.data li{margin:3px 0;font-size:.9rem}
+.data b{font-weight:700}
+
+/* ---------- diagrama ---------- */
+.dgm-card{padding:14px 14px 10px;margin-bottom:18px}
+.dgm-head{display:flex;align-items:center;gap:10px;margin-bottom:8px;flex-wrap:wrap}
+.dgm-head h2{margin:0}
+.zoom{margin-left:auto;display:flex;gap:6px;align-items:center}
+.zoom .btn{min-width:34px;text-align:center}
+.scroller{overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;border-radius:8px}
+.scroller::-webkit-scrollbar{height:8px}
+.scroller::-webkit-scrollbar-thumb{background:var(--line);border-radius:8px}
+svg#dgm{display:block;height:auto}
+.hint{font-size:.78rem;color:var(--muted);margin:6px 2px 0;display:none}
+.hint.on{display:block}
+
+/* svg styles */
+#dgm .blk rect{fill:var(--card);stroke:var(--ink);stroke-width:1.6}
+#dgm .blk text{fill:var(--ink);font-family:var(--sans);font-size:14px;font-weight:600;text-anchor:middle}
+#dgm .arrow{stroke:var(--ink);stroke-width:1.6;fill:none}
+#dgm .lbl{fill:var(--ink);font-family:var(--sans);font-size:13.5px;font-weight:700}
+#dgm .num{fill:var(--ink);stroke:none}
+#dgm .numt{fill:var(--card);font-family:var(--sans);font-size:10px;font-weight:700;text-anchor:middle}
+#dgm text.ann{font-family:var(--sans);font-size:12px}
+#dgm text.ann.dato{fill:var(--muted)}
+#dgm text.ann.calc{fill:var(--accent);font-weight:700}
+#dgm text.ann.new{animation:pop .9s ease}
+@keyframes pop{0%{opacity:0;transform:translateY(-4px)}60%{opacity:1}100%{opacity:1}}
+
+/* relaciones */
+.rels{margin-top:12px;border-top:1px dashed var(--line);padding-top:10px}
+.rels h3{font-size:.82rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin:0 0 8px;font-weight:700}
+.rels ol{margin:0;padding-left:20px}
+.rels li{font-family:var(--serif);font-size:1rem;margin:5px 0;animation:pop .9s ease}
+.rels .empty{color:var(--muted);font-size:.85rem;font-style:italic;font-family:var(--sans);margin:0}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.chip{background:var(--accent-soft);color:var(--accent);border-radius:999px;padding:3px 11px;font-size:.78rem;font-weight:600;animation:pop .9s ease}
+
+/* ---------- quiz ---------- */
+.progress{display:flex;align-items:center;gap:10px;margin:0 0 10px}
+.bar{flex:1;height:6px;background:var(--line);border-radius:999px;overflow:hidden}
+.bar>i{display:block;height:100%;background:var(--accent);width:0;transition:width .4s ease}
+.pnum{font-size:.8rem;color:var(--muted);white-space:nowrap}
+.q-card{padding:18px}
+.q-tag{font-size:.75rem;text-transform:uppercase;letter-spacing:.07em;color:var(--gold);font-weight:700}
+.q-text{font-family:var(--serif);font-size:1.18rem;line-height:1.4;margin:6px 0 14px}
+.q-note{font-size:.86rem;color:var(--muted);margin:-8px 0 14px}
+.opts{display:flex;flex-direction:column;gap:8px;margin-bottom:14px}
+.opt{
+  display:flex;gap:11px;align-items:flex-start;padding:11px 13px;border:1px solid var(--line);
+  border-radius:10px;background:transparent;text-align:left;font-size:.95rem;width:100%;transition:.13s;color:inherit;
+}
+.opt:hover:not(.locked){border-color:var(--accent);background:var(--accent-soft)}
+.opt .mk{
+  flex:0 0 22px;height:22px;border-radius:50%;border:1.6px solid var(--line);
+  display:grid;place-items:center;font-size:.75rem;font-weight:700;color:var(--muted);margin-top:1px
+}
+.opt.sel{border-color:var(--accent);background:var(--accent-soft)}
+.opt.sel .mk{border-color:var(--accent);background:var(--accent);color:#fff}
+.opt.good{border-color:var(--ok);background:var(--ok-soft)}
+.opt.good .mk{border-color:var(--ok);background:var(--ok);color:#fff}
+.opt.bad{border-color:var(--bad);background:var(--bad-soft)}
+.opt.bad .mk{border-color:var(--bad);background:var(--bad);color:#fff}
+.opt.locked{cursor:default}
+.opt .txt{flex:1;min-width:0}
+.fields{display:flex;flex-wrap:wrap;gap:12px;margin-bottom:14px}
+.field{flex:1 1 160px;min-width:150px}
+.field label{display:block;font-size:.84rem;color:var(--muted);margin-bottom:4px;font-weight:600}
+.field input{
+  width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:9px;background:var(--bg);
+  color:var(--ink);font-size:1.02rem;font-family:var(--mono)
+}
+.field input:focus{outline:2px solid var(--accent);outline-offset:1px}
+.field.good input{border-color:var(--ok);background:var(--ok-soft)}
+.field.bad input{border-color:var(--bad);background:var(--bad-soft)}
+.fb{border-radius:11px;padding:13px 15px;margin-bottom:13px;font-size:.93rem;animation:pop .5s ease}
+.fb.ok{background:var(--ok-soft);border:1px solid var(--ok)}
+.fb.err{background:var(--bad-soft);border:1px solid var(--bad)}
+.fb .h{font-weight:700;margin-bottom:5px;display:flex;align-items:center;gap:7px}
+.fb.ok .h{color:var(--ok)} .fb.err .h{color:var(--bad)}
+.fb p{margin:7px 0}
+.fb .eq{font-family:var(--serif);font-size:1.02rem;background:rgba(127,127,127,.1);padding:7px 10px;border-radius:7px;margin:7px 0;display:block;overflow-x:auto}
+.actions{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.warn{font-size:.84rem;color:var(--bad);font-weight:600}
+
+/* ---------- final ---------- */
+.final{padding:24px 20px;text-align:center}
+.final h2{font-size:1.5rem}
+.codebox{
+  font-family:var(--mono);font-size:clamp(1.05rem,4.6vw,1.6rem);font-weight:700;letter-spacing:.08em;
+  background:var(--accent-soft);color:var(--accent);border:1.5px dashed var(--accent);
+  border-radius:12px;padding:14px 10px;margin:14px auto;max-width:460px;word-break:break-all
+}
+.summary{text-align:left;max-width:560px;margin:18px auto 0;border-top:1px solid var(--line);padding-top:14px}
+.summary table{width:100%;border-collapse:collapse;font-size:.9rem}
+.summary td{padding:5px 4px;border-bottom:1px solid var(--line)}
+.summary td:first-child{font-family:var(--serif);width:52%}
+.summary td:last-child{text-align:right;font-family:var(--mono)}
+
+/* ---------- footer / profesor ---------- */
+footer{max-width:1120px;margin:0 auto;padding:24px 16px 40px;color:var(--muted);font-size:.82rem;display:flex;gap:14px;flex-wrap:wrap;align-items:center}
+footer a{color:var(--muted);cursor:pointer;text-decoration:underline;text-underline-offset:3px}
+.overlay{position:fixed;inset:0;background:rgba(10,14,18,.55);z-index:90;display:none;align-items:center;justify-content:center;padding:16px}
+.overlay.on{display:flex}
+.modal{background:var(--card);border-radius:14px;max-width:460px;width:100%;padding:20px;box-shadow:var(--shadow);max-height:90vh;overflow:auto}
+.modal h2{margin-bottom:4px}
+.modal p.small{color:var(--muted);font-size:.85rem;margin:0 0 14px}
+.modal input{width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:9px;background:var(--bg);color:var(--ink);font-size:1rem;margin-bottom:10px}
+.modal input.mono{font-family:var(--mono);text-transform:uppercase;letter-spacing:.06em}
+.res{border-radius:10px;padding:12px 14px;font-size:.9rem;margin-top:12px}
+.res.ok{background:var(--ok-soft);border:1px solid var(--ok)}
+.res.err{background:var(--bad-soft);border:1px solid var(--bad)}
+.res ul{margin:8px 0 0;padding-left:18px}
+
+/* jump button */
+.jump{
+  position:fixed;right:14px;bottom:14px;z-index:50;display:none;
+  background:var(--accent);color:#fff;border:none;border-radius:999px;padding:11px 16px;
+  font-size:.85rem;font-weight:600;box-shadow:var(--shadow)
+}
+.jump.on{display:block}
+
+@media (max-width:640px){
+  body{font-size:15px}
+  h1{font-size:1.32rem;margin-top:18px}
+  .q-text{font-size:1.06rem}
+  .q-card{padding:15px}
+  .brand .sub{display:none}
+}
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="top-in">
+    <div class="brand">
+      <span class="code">ICB 1121 · Balance de Masa</span>
+      <span class="sub">Manjar de leche con lúcuma · resolución guiada</span>
+    </div>
+    <div class="top-actions">
+      <span class="lives" id="lives"></span>
+      <button class="btn sm ghost" id="btnRestart">Reiniciar</button>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <h1>Resolución guiada: manjar de leche con lúcuma</h1>
+  <p class="lead">Responde las preguntas en orden. Cada respuesta correcta agrega información al diagrama de bloques. Tienes margen para <b>un</b> error: al segundo error debes comenzar de nuevo.</p>
+
+  <details class="stmt card" id="stmt">
+    <summary>Enunciado y datos</summary>
+    <div class="stmt-body">
+      <p>Una vieja receta para elaborar manjar de leche con lúcuma indica que se deben mezclar <b>1 kg de azúcar por cada 2 L de leche</b>, junto con benzoato de potasio como preservante. En la mezcla obtenida (corriente 4), el benzoato debe ser el <b>2 % de la masa total</b>. Posteriormente, la mezcla se somete a evaporación en una marmita, bajo constante agitación. Una vez que la mezcla llega a <b>54 % de sólidos</b>, la agitación se detiene y se añade concentrado de lúcuma. Luego, se reanuda la evaporación donde se retira un <b>50 % del agua de la mezcla</b>, obteniéndose el manjar con un <b>72 % de sólidos</b>.</p>
+      <div class="data">
+        <b>Datos</b>
+        <ul>
+          <li>Densidad de la leche: 1,05 kg/L. Composición: 12 % sólidos y 88 % agua.</li>
+          <li>Concentrado de lúcuma: 60 % sólidos y 40 % agua.</li>
+          <li>El azúcar y el benzoato no tienen humedad.</li>
+          <li>Base de cálculo: 1 kg de azúcar (corriente 1).</li>
+        </ul>
+      </div>
+    </div>
+  </details>
+
+  <section class="card dgm-card" id="dgmCard">
+    <div class="dgm-head">
+      <h2>Diagrama de bloques</h2>
+      <div class="zoom">
+        <button class="btn sm" id="zOut" title="Alejar">−</button>
+        <button class="btn sm" id="zIn" title="Acercar">+</button>
+        <button class="btn sm" id="zFit" title="Ajustar al ancho">Ajustar</button>
+      </div>
+    </div>
+    <div class="scroller" id="scroller">
+<svg id="dgm" viewBox="0 80 1060 300" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Diagrama de bloques del proceso">
+  <defs>
+    <marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="context-stroke"/>
+    </marker>
+  </defs>
+
+  <line class="arrow" x1="64"  y1="228" x2="166" y2="228" marker-end="url(#ah)"/>
+  <line class="arrow" x1="288" y1="228" x2="386" y2="228" marker-end="url(#ah)"/>
+  <line class="arrow" x1="508" y1="228" x2="606" y2="228" marker-end="url(#ah)"/>
+  <line class="arrow" x1="728" y1="228" x2="826" y2="228" marker-end="url(#ah)"/>
+  <line class="arrow" x1="948" y1="228" x2="998" y2="228" marker-end="url(#ah)"/>
+  <line class="arrow" x1="229" y1="118" x2="229" y2="197" marker-end="url(#ah)"/>
+  <line class="arrow" x1="229" y1="334" x2="229" y2="259" marker-end="url(#ah)"/>
+  <line class="arrow" x1="449" y1="200" x2="449" y2="121" marker-end="url(#ah)"/>
+  <line class="arrow" x1="669" y1="118" x2="669" y2="197" marker-end="url(#ah)"/>
+  <line class="arrow" x1="889" y1="200" x2="889" y2="121" marker-end="url(#ah)"/>
+
+  <g class="blk"><rect x="170" y="200" width="118" height="56" rx="4"/><text x="229" y="228" dominant-baseline="middle">Mezcla 1</text></g>
+  <g class="blk"><rect x="390" y="200" width="118" height="56" rx="4"/><text x="449" y="228" dominant-baseline="middle">Evaporación 1</text></g>
+  <g class="blk"><rect x="610" y="200" width="118" height="56" rx="4"/><text x="669" y="228" dominant-baseline="middle">Mezcla 2</text></g>
+  <g class="blk"><rect x="830" y="200" width="118" height="56" rx="4"/><text x="889" y="228" dominant-baseline="middle">Evaporación 2</text></g>
+
+  <text class="lbl" x="58"   y="228" text-anchor="end"   dominant-baseline="middle">Azúcar</text>
+  <text class="lbl" x="1006" y="228" text-anchor="start" dominant-baseline="middle">Manjar</text>
+  <text class="lbl" x="229"  y="106" text-anchor="middle">Leche</text>
+  <text class="lbl" x="449"  y="106" text-anchor="middle">Vapor de agua</text>
+  <text class="lbl" x="669"  y="106" text-anchor="middle">Lúcuma</text>
+  <text class="lbl" x="889"  y="106" text-anchor="middle">Vapor de agua</text>
+  <text class="lbl" x="229"  y="352" text-anchor="middle">Benzoato</text>
+
+  <g><circle class="num" cx="112" cy="211" r="9.5"/><text class="numt" x="112" y="211" dominant-baseline="middle">1</text></g>
+  <g><circle class="num" cx="212" cy="152" r="9.5"/><text class="numt" x="212" y="152" dominant-baseline="middle">2</text></g>
+  <g><circle class="num" cx="246" cy="300" r="9.5"/><text class="numt" x="246" y="300" dominant-baseline="middle">3</text></g>
+  <g><circle class="num" cx="335" cy="211" r="9.5"/><text class="numt" x="335" y="211" dominant-baseline="middle">4</text></g>
+  <g><circle class="num" cx="432" cy="152" r="9.5"/><text class="numt" x="432" y="152" dominant-baseline="middle">5</text></g>
+  <g><circle class="num" cx="555" cy="211" r="9.5"/><text class="numt" x="555" y="211" dominant-baseline="middle">6</text></g>
+  <g><circle class="num" cx="652" cy="152" r="9.5"/><text class="numt" x="652" y="152" dominant-baseline="middle">7</text></g>
+  <g><circle class="num" cx="775" cy="211" r="9.5"/><text class="numt" x="775" y="211" dominant-baseline="middle">8</text></g>
+  <g><circle class="num" cx="872" cy="152" r="9.5"/><text class="numt" x="872" y="152" dominant-baseline="middle">9</text></g>
+  <g><circle class="num" cx="972" cy="211" r="9.5"/><text class="numt" x="972" y="211" dominant-baseline="middle" style="font-size:9px">10</text></g>
+
+  <g id="anns"></g>
+</svg>
+    </div>
+    <p class="hint" id="scrollHint">Desliza el diagrama horizontalmente para verlo completo →</p>
+
+    <div class="rels">
+      <h3>Relaciones establecidas</h3>
+      <ol id="rels"></ol>
+      <p class="empty" id="relsEmpty">Aún no has establecido ninguna relación.</p>
+      <div class="chips" id="chips"></div>
+    </div>
+  </section>
+
+  <section id="quizZone">
+    <div class="progress">
+      <span class="pnum" id="pnum">Pregunta 1 de 12</span>
+      <span class="bar"><i id="barFill"></i></span>
+    </div>
+    <div class="card q-card" id="qCard"></div>
+  </section>
+
+</div>
+
+<footer>
+  <span>ICB 1121 · Escuela de Ingeniería Bioquímica · PUCV</span>
+  <a id="openTeacher">Acceso profesor</a>
+</footer>
+
+<button class="jump" id="jump">↑ Ver diagrama</button>
+
+<div class="overlay" id="tOverlay">
+  <div class="modal">
+    <div id="tLogin">
+      <h2>Acceso profesor</h2>
+      <p class="small">Ingresa la contraseña del curso para verificar códigos.</p>
+      <input type="password" id="tPass" placeholder="Contraseña" autocomplete="off">
+      <div id="tPassErr" class="warn" style="display:none;margin-bottom:10px">Contraseña incorrecta.</div>
+      <div class="actions">
+        <button class="btn primary" id="tEnter">Entrar</button>
+        <button class="btn ghost" id="tClose1">Cerrar</button>
+      </div>
+    </div>
+
+    <div id="tPanel" style="display:none">
+      <h2>Verificación de códigos</h2>
+      <p class="small">Ingresa el nombre del estudiante y el código que entregó.</p>
+      <input type="text" id="tName" placeholder="Nombre del estudiante" autocomplete="off">
+      <input type="text" id="tCode" class="mono" placeholder="XXXX-XXXX-XXXX" autocomplete="off">
+      <div class="actions">
+        <button class="btn primary" id="tVerify">Verificar</button>
+        <button class="btn ghost" id="tClose2">Cerrar</button>
+      </div>
+      <div id="tRes"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+"use strict";
+
+/* =====================================================================
+   1. DATOS DEL PROBLEMA Y PREGUNTAS
+   ===================================================================== */
+const INITIAL_ANN = {
+  1 : [["M","M_{1} = 1 kg","dato"]],
+  5 : [["A","X_{a,5} = 1","dato"]],
+  6 : [["S","X_{s,6} = 0,54","dato"]],
+  7 : [["S","X_{s,7} = 0,60","dato"],["A","X_{a,7} = 0,40","dato"]],
+  9 : [["A","X_{a,9} = 1","dato"]],
+  10: [["S","X_{s,10} = 0,72","dato"]]
+};
+
+const QUESTIONS = [
+{
+  tag:"Lectura del diagrama",
+  q:"¿Cuántas etapas (operaciones unitarias) tiene el proceso?",
+  type:"choice",
+  options:["2 etapas","3 etapas","4 etapas","10 etapas"],
+  correct:2,
+  why:`<p>El proceso tiene <b>4 etapas</b>: Mezcla 1, Evaporación 1, Mezcla 2 y Evaporación 2. Cada bloque del diagrama es una operación unitaria.</p>
+       <p>Las <b>10</b> flechas numeradas son <i>corrientes</i>, no etapas: transportan materia entre las etapas o hacia los alrededores.</p>`,
+  reveal:{chip:"Proceso de 4 etapas y 10 corrientes"}
+},
+{
+  tag:"Base de cálculo · corriente 2",
+  q:"Tomando como base 1 kg de azúcar, ¿cuántos kg de leche ingresan a la Mezcla 1?",
+  type:"choice",
+  options:["1,90 kg","2,00 kg","2,10 kg","2,40 kg"],
+  correct:2,
+  why:`<p>La receta indica 2 L de leche por cada kg de azúcar, y un balance de masa necesita <b>masa</b>, no volumen. Se convierte con la densidad:</p>
+       <span class="eq">M<sub>2</sub> = 2 L × 1,05 kg/L = <b>2,1 kg</b></span>
+       <p>Responder 2,0 kg equivale a olvidar la densidad y suponer que la leche pesa 1 kg/L.</p>`,
+  reveal:{ann:{2:[["M","M_{2} = 2,1 kg","calc"]]}}
+},
+{
+  tag:"Fracciones másicas · corriente 2",
+  q:"¿Cuáles son las fracciones másicas de la corriente 2 (leche)?",
+  type:"choice",
+  options:[
+    "X<sub>s,2</sub> = 0,88 ; X<sub>a,2</sub> = 0,12",
+    "X<sub>s,2</sub> = 0,12 ; X<sub>a,2</sub> = 0,88",
+    "X<sub>s,2</sub> = 0,126 ; X<sub>a,2</sub> = 0,924",
+    "X<sub>s,2</sub> = 1,05 ; X<sub>a,2</sub> = 0"
+  ],
+  correct:1,
+  why:`<p>El enunciado entrega directamente la composición de la leche: 12 % sólidos y 88 % agua, en peso. Como son porcentajes <b>de la corriente completa</b>, se traducen de inmediato a fracciones másicas:</p>
+       <span class="eq">X<sub>s,2</sub> = 0,12 &nbsp;&nbsp; X<sub>a,2</sub> = 0,88 &nbsp;&nbsp; (suman 1)</span>
+       <p>La densidad no interviene aquí: ya se usó para pasar de litros a kilos.</p>`,
+  reveal:{ann:{2:[["S","X_{s,2} = 0,12","calc"],["A","X_{a,2} = 0,88","calc"]]}}
+},
+{
+  tag:"Fracciones másicas · corriente 3",
+  q:"¿Cuál es la composición de la corriente 3 (benzoato de potasio)?",
+  type:"choice",
+  options:[
+    "X<sub>s,3</sub> = 1 ; X<sub>a,3</sub> = 0",
+    "X<sub>s,3</sub> = 0,02 ; X<sub>a,3</sub> = 0,98",
+    "X<sub>s,3</sub> = 0 ; X<sub>a,3</sub> = 1",
+    "X<sub>s,3</sub> = 0,98 ; X<sub>a,3</sub> = 0,02"
+  ],
+  correct:0,
+  why:`<p>El dato dice que el benzoato <b>no tiene humedad</b>: es sólido puro.</p>
+       <span class="eq">X<sub>s,3</sub> = 1 &nbsp;&nbsp; X<sub>a,3</sub> = 0</span>
+       <p>El 2 % del enunciado <b>no</b> es una composición del benzoato: es la fracción que el benzoato representa dentro de la corriente 4. Son cosas distintas y conviene no mezclarlas.</p>`,
+  reveal:{ann:{3:[["S","X_{s,3} = 1","calc"],["A","X_{a,3} = 0","calc"]]}}
+},
+{
+  tag:"Especificación relativa",
+  q:"«En la mezcla obtenida (corriente 4), el benzoato debe ser el 2 % de la masa total». ¿Qué relación expresa correctamente esta condición?",
+  type:"choice",
+  options:[
+    "M<sub>4</sub> = 0,02 · M<sub>3</sub>",
+    "M<sub>3</sub> = 0,02 · (M<sub>1</sub> + M<sub>2</sub>)",
+    "M<sub>3</sub> = 0,02 · M<sub>4</sub>",
+    "M<sub>3</sub> = 0,98 · M<sub>4</sub>"
+  ],
+  correct:2,
+  why:`<p>Siempre hay que preguntarse: <i>¿el 2 % de qué?</i> Aquí está referido a la <b>masa total de la corriente 4</b>, y como la corriente 3 es benzoato puro, toda su masa es benzoato:</p>
+       <span class="eq">M<sub>3</sub> = 0,02 · M<sub>4</sub></span>
+       <p>Escribir M<sub>3</sub> = 0,02·(M<sub>1</sub>+M<sub>2</sub>) es un error clásico: deja fuera al propio benzoato, que también forma parte de la masa total de la corriente 4.</p>`,
+  reveal:{eq:"M<sub>3</sub> = 0,02 · M<sub>4</sub>"}
+},
+{
+  tag:"Balance de masa · Mezcla 1",
+  q:"Con un balance de masa total en la Mezcla 1, ¿cuánto valen M₄ y M₃?",
+  type:"choice",
+  options:[
+    "M<sub>4</sub> = 3,100 kg ; M<sub>3</sub> = 0,062 kg",
+    "M<sub>4</sub> = 3,163 kg ; M<sub>3</sub> = 0,063 kg",
+    "M<sub>4</sub> = 3,038 kg ; M<sub>3</sub> = 0,061 kg",
+    "M<sub>4</sub> = 3,163 kg ; M<sub>3</sub> = 0,633 kg"
+  ],
+  correct:1,
+  why:`<p>Balance de masa total en la Mezcla 1, reemplazando la relación anterior:</p>
+       <span class="eq">M<sub>1</sub> + M<sub>2</sub> + M<sub>3</sub> = M<sub>4</sub> &nbsp;→&nbsp; 1 + 2,1 + 0,02·M<sub>4</sub> = M<sub>4</sub></span>
+       <span class="eq">0,98 · M<sub>4</sub> = 3,1 &nbsp;→&nbsp; <b>M<sub>4</sub> = 3,163 kg</b> &nbsp;·&nbsp; M<sub>3</sub> = 0,02 · 3,163 = <b>0,063 kg</b></span>
+       <p>Responder M<sub>4</sub> = 3,100 kg es el error más frecuente: deja el benzoato fuera de la masa total, pese a que esa masa también atraviesa la frontera.</p>`,
+  reveal:{ann:{3:[["M","M_{3} = 0,063 kg","calc"]],4:[["M","M_{4} = 3,163 kg","calc"]]}}
+},
+{
+  tag:"Fracciones másicas · corriente 1",
+  q:"¿Cuáles son las fracciones másicas de la corriente 1 (azúcar)?",
+  type:"choice",
+  options:[
+    "X<sub>s,1</sub> = 0,12 ; X<sub>a,1</sub> = 0,88",
+    "X<sub>s,1</sub> = 1 ; X<sub>a,1</sub> = 0",
+    "X<sub>s,1</sub> = 0,5 ; X<sub>a,1</sub> = 0,5",
+    "X<sub>s,1</sub> = 0 ; X<sub>a,1</sub> = 1"
+  ],
+  correct:1,
+  why:`<p>El azúcar tampoco tiene humedad, así que es sólido puro igual que el benzoato:</p>
+       <span class="eq">X<sub>s,1</sub> = 1 &nbsp;&nbsp; X<sub>a,1</sub> = 0</span>
+       <p>Estas fracciones «obvias» son las que hacen resolubles los balances: anulan términos completos de la ecuación.</p>`,
+  reveal:{ann:{1:[["S","X_{s,1} = 1","calc"],["A","X_{a,1} = 0","calc"]]}}
+},
+{
+  tag:"Balance por componente · Mezcla 1",
+  q:"¿Cuál es la fracción másica de sólidos de la corriente 4?",
+  type:"choice",
+  options:["X<sub>s,4</sub> = 0,320","X<sub>s,4</sub> = 0,384","X<sub>s,4</sub> = 0,416","X<sub>s,4</sub> = 0,540"],
+  correct:2,
+  why:`<p>Balance de sólidos en la Mezcla 1: entran sólidos por las tres corrientes.</p>
+       <span class="eq">M<sub>1</sub>X<sub>s,1</sub> + M<sub>2</sub>X<sub>s,2</sub> + M<sub>3</sub>X<sub>s,3</sub> = M<sub>4</sub>X<sub>s,4</sub></span>
+       <span class="eq">1·1 + 2,1·0,12 + 0,063·1 = 1,315 kg de sólidos &nbsp;→&nbsp; X<sub>s,4</sub> = 1,315 / 3,163 = <b>0,416</b></span>
+       <p>Por diferencia, X<sub>a,4</sub> = 1 − 0,416 = 0,584. El 0,54 corresponde a la corriente 6, ya evaporada.</p>`,
+  reveal:{ann:{4:[["S","X_{s,4} = 0,416","calc"],["A","X_{a,4} = 0,584","calc"]]}}
+},
+{
+  tag:"Balance · Evaporación 1",
+  q:"Haciendo balances en la Evaporación 1, ¿cuánto valen M₆ y M₅?",
+  note:"Recuerda que la corriente 6 sale con 54 % de sólidos.",
+  type:"choice",
+  options:[
+    "M<sub>6</sub> = 1,708 kg ; M<sub>5</sub> = 1,455 kg",
+    "M<sub>6</sub> = 2,436 kg ; M<sub>5</sub> = 0,728 kg",
+    "M<sub>6</sub> = 1,315 kg ; M<sub>5</sub> = 1,848 kg",
+    "M<sub>6</sub> = 2,436 kg ; M<sub>5</sub> = 1,315 kg"
+  ],
+  correct:1,
+  why:`<p>El vapor de agua no arrastra sólidos, así que todos los sólidos de la corriente 4 salen en la corriente 6:</p>
+       <span class="eq">M<sub>4</sub>·X<sub>s,4</sub> = M<sub>6</sub>·X<sub>s,6</sub> &nbsp;→&nbsp; 3,163 · 0,416 = M<sub>6</sub> · 0,54 &nbsp;→&nbsp; <b>M<sub>6</sub> = 2,436 kg</b></span>
+       <p>Y con el balance total de la etapa:</p>
+       <span class="eq">M<sub>4</sub> = M<sub>5</sub> + M<sub>6</sub> &nbsp;→&nbsp; M<sub>5</sub> = 3,163 − 2,436 = <b>0,728 kg</b></span>
+       <p>Dos errores que aparecen en las alternativas: calcular 3,163 · 0,54 = 1,708 (aplicar la fracción a la masa total en vez de plantear el balance de sólidos), y confundir M<sub>5</sub> con la masa de sólidos, 1,315 kg.</p>`,
+  reveal:{ann:{5:[["M","M_{5} = 0,728 kg","calc"]],6:[["M","M_{6} = 2,436 kg","calc"],["A","X_{a,6} = 0,46","calc"]]}}
+},
+{
+  tag:"Especificación relativa · Evaporación 2",
+  q:"En la segunda evaporación se retira el 50 % del agua de la mezcla. ¿Qué expresión representa a la corriente 9?",
+  type:"choice",
+  options:[
+    "M<sub>9</sub> = 0,5 · (2,436 + M<sub>7</sub>) = 1,218 + 0,5·M<sub>7</sub>",
+    "M<sub>9</sub> = 0,56 + 0,2 · M<sub>7</sub>",
+    "M<sub>9</sub> = 0,56 + 0,4 · M<sub>7</sub>",
+    "M<sub>9</sub> = 0,5 · 0,46 · 2,436 = 0,56"
+  ],
+  correct:1,
+  why:`<p>El 50 % está referido al <b>agua</b> de la corriente 8, no a su masa total. Esa agua tiene dos aportes: la que trae la corriente 6 y la del concentrado de lúcuma.</p>
+       <span class="eq">agua en 8 = X<sub>a,6</sub>M<sub>6</sub> + X<sub>a,7</sub>M<sub>7</sub> = 0,46 · 2,436 + 0,4 · M<sub>7</sub></span>
+       <span class="eq">M<sub>9</sub> = 0,5 · (0,46 · 2,436 + 0,4·M<sub>7</sub>) = <b>0,56 + 0,2·M<sub>7</sub></b></span>
+       <p>Olvidar el agua que aporta la lúcuma deja la expresión constante (0,56) y el sistema queda incompleto.</p>`,
+  reveal:{eq:"M<sub>9</sub> = 0,56 + 0,2 · M<sub>7</sub>"}
+},
+{
+  tag:"Balances · Mezcla 2 + Evaporación 2",
+  q:"Tomando como sistema el conjunto Mezcla 2 + Evaporación 2, ¿cuáles <b>dos</b> ecuaciones corresponden a balances de masa válidos?",
+  note:"Selecciona exactamente 2 opciones.",
+  type:"multi",
+  options:[
+    "2,436 · 0,54 + M<sub>7</sub> · 0,6 = M<sub>10</sub> · 0,72",
+    "2,436 + M<sub>7</sub> = M<sub>10</sub>",
+    "2,436 + M<sub>7</sub> = M<sub>9</sub> + M<sub>10</sub>",
+    "0,46 · 2,436 + 0,4 · M<sub>7</sub> = M<sub>9</sub>"
+  ],
+  correct:[0,2],
+  why:`<p>Con la frontera sobre las dos últimas etapas entran las corrientes 6 y 7, y salen las corrientes 9 y 10. La corriente 8 queda interna y desaparece de los balances.</p>
+       <p><b>Balance de sólidos</b> (el vapor de la corriente 9 no arrastra sólidos):</p>
+       <span class="eq">M<sub>6</sub>X<sub>s,6</sub> + M<sub>7</sub>X<sub>s,7</sub> = M<sub>10</sub>X<sub>s,10</sub> &nbsp;→&nbsp; 2,436·0,54 + 0,6·M<sub>7</sub> = 0,72·M<sub>10</sub></span>
+       <p><b>Balance de masa total:</b></p>
+       <span class="eq">M<sub>6</sub> + M<sub>7</sub> = M<sub>9</sub> + M<sub>10</sub> &nbsp;→&nbsp; 2,436 + M<sub>7</sub> = M<sub>9</sub> + M<sub>10</sub></span>
+       <p>La opción «2,436 + M<sub>7</sub> = M<sub>10</sub>» olvida el vapor retirado, y la última supondría que se evapora <i>toda</i> el agua y no el 50 %.</p>`,
+  reveal:{eq:["2,436 · 0,54 + 0,6 · M<sub>7</sub> = 0,72 · M<sub>10</sub>","2,436 + M<sub>7</sub> = M<sub>9</sub> + M<sub>10</sub>"]}
+},
+{
+  tag:"Resolución del sistema",
+  q:"Resuelve el sistema: ¿cuánto manjar se produce (M₁₀) y cuánta agua se retira en la segunda evaporación (M₉)?",
+  note:"Necesitarás obtener primero M₇ combinando las tres relaciones.",
+  type:"choice",
+  options:[
+    "M<sub>7</sub> ≈ 1,4 kg ; M<sub>10</sub> ≈ 3,0 kg ; M<sub>9</sub> ≈ 0,84 kg",
+    "M<sub>7</sub> ≈ 1,4 kg ; M<sub>10</sub> ≈ 3,8 kg ; M<sub>9</sub> = 0 kg",
+    "M<sub>7</sub> ≈ 0,8 kg ; M<sub>10</sub> ≈ 2,5 kg ; M<sub>9</sub> ≈ 0,72 kg",
+    "M<sub>7</sub> ≈ 2,1 kg ; M<sub>10</sub> ≈ 3,6 kg ; M<sub>9</sub> ≈ 0,98 kg"
+  ],
+  correct:0,
+  why:`<p>Reemplazando M<sub>9</sub> = 0,56 + 0,2·M<sub>7</sub> en el balance total, el sistema queda en M<sub>7</sub> y M<sub>10</sub>:</p>
+       <span class="eq">1,32 + 0,6·M<sub>7</sub> = 0,72·M<sub>10</sub></span>
+       <span class="eq">1,88 + 0,8·M<sub>7</sub> = M<sub>10</sub></span>
+       <p>Sustituyendo la segunda en la primera se obtiene <b>M<sub>7</sub> ≈ 1,4 kg</b> de concentrado de lúcuma, y con ello:</p>
+       <span class="eq"><b>M<sub>10</sub> ≈ 3,0 kg de manjar</b> &nbsp;·&nbsp; <b>M<sub>9</sub> ≈ 0,84 kg de agua evaporada</b></span>
+       <p><i>Ojo con el redondeo:</i> al despejar M<sub>7</sub> se divide por 0,024, un número muy pequeño, así que el resultado es muy sensible a los decimales que arrastres. Con la pauta redondeada se obtiene M<sub>7</sub> = 1,4 kg y con todos los decimales M<sub>7</sub> ≈ 1,46 kg (M<sub>10</sub> ≈ 3,04 y M<sub>9</sub> ≈ 0,85). Ambos caminos llevan a la misma alternativa, y es un buen recordatorio de que conviene arrastrar decimales hasta el final.</p>`,
+  reveal:{ann:{
+    7:[["M","M_{7} = 1,4 kg","calc"]],
+    9:[["M","M_{9} = 0,84 kg","calc"]],
+    10:[["M","M_{10} = 3,0 kg","calc"],["A","X_{a,10} = 0,28","calc"]]
+  }}
+}
+];
+
+const SUMMARY = [
+  ["M₂ (leche)","2,1 kg"],["M₃ (benzoato)","0,063 kg"],["M₄","3,163 kg"],
+  ["X<sub>s,4</sub>","0,416"],["M₅ (agua evap. 1)","0,728 kg"],["M₆","2,436 kg"],
+  ["M₇ (lúcuma)","≈ 1,4 kg"],["M₉ (agua evap. 2)","≈ 0,84 kg"],["M₁₀ (manjar)","≈ 3,0 kg"]
+];
+
+/* =====================================================================
+   2. ESTADO
+   ===================================================================== */
+const state = { idx:0, strikes:0, restarts:0, answered:false, sel:null, multi:new Set(), name:"", finished:false };
+const ann = {};
+const rels = [];
+const chips = [];
+
+const $  = s=>document.querySelector(s);
+const $$ = s=>Array.prototype.slice.call(document.querySelectorAll(s));
+
+/* =====================================================================
+   3. DIAGRAMA: anotaciones
+   ===================================================================== */
+const SVGNS = "http://www.w3.org/2000/svg";
+const POS = {
+  1 :{x:74, y:266, a:"start"},  2 :{x:243,y:140,a:"start"}, 3 :{x:215,y:286,a:"end"},
+  4 :{x:296,y:266,a:"start"},   5 :{x:463,y:140,a:"start"}, 6 :{x:516,y:266,a:"start"},
+  7 :{x:683,y:140,a:"start"},   8 :{x:736,y:266,a:"start"}, 9 :{x:903,y:140,a:"start"},
+  10:{x:952,y:266,a:"start"}
+};
+const ORDER = ["M","S","A"];
+
+function addAnn(stream, list, isNew){
+  if(!ann[stream]) ann[stream] = {};
+  list.forEach(function(it){ ann[stream][it[0]] = {t:it[1], cls:it[2], fresh:!!isNew}; });
+}
+
+/* "X_{s,4} = 0,416" -> texto con subíndices reales */
+function writeMarkup(textEl, str){
+  const re=/_\{([^}]*)\}/g;
+  let last=0, m, pendingUp=false;
+  const plain=function(txt){
+    if(!txt) return;
+    const t=document.createElementNS(SVGNS,"tspan");
+    t.setAttribute("font-size","12");
+    if(pendingUp){ t.setAttribute("dy","-3.2"); pendingUp=false; }
+    t.textContent=txt; textEl.appendChild(t);
+  };
+  while((m = re.exec(str))!==null){
+    plain(str.slice(last,m.index));
+    const sub=document.createElementNS(SVGNS,"tspan");
+    sub.setAttribute("dy", pendingUp ? "0" : "3.2");
+    sub.setAttribute("font-size","9");
+    sub.textContent=m[1]; textEl.appendChild(sub);
+    pendingUp=true;
+    last = m.index+m[0].length;
+  }
+  plain(str.slice(last));
+}
+
+function drawAnns(){
+  const g=$("#anns");
+  while(g.firstChild) g.removeChild(g.firstChild);
+  Object.keys(ann).forEach(function(s){
+    const p=POS[s]; if(!p) return;
+    let i=0;
+    ORDER.forEach(function(k){
+      const item=ann[s][k]; if(!item) return;
+      const t=document.createElementNS(SVGNS,"text");
+      t.setAttribute("x",p.x); t.setAttribute("y",p.y+i*15);
+      t.setAttribute("text-anchor",p.a);
+      t.setAttribute("class","ann "+item.cls+(item.fresh?" new":""));
+      writeMarkup(t,item.t); g.appendChild(t); i++;
+      item.fresh=false;
+    });
+  });
+}
+
+function drawRels(){
+  const ol=$("#rels");
+  while(ol.firstChild) ol.removeChild(ol.firstChild);
+  rels.forEach(function(r){ const li=document.createElement("li"); li.innerHTML=r; ol.appendChild(li); });
+  $("#relsEmpty").style.display = rels.length ? "none" : "block";
+  const cw=$("#chips");
+  while(cw.firstChild) cw.removeChild(cw.firstChild);
+  chips.forEach(function(c){ const s=document.createElement("span"); s.className="chip"; s.textContent=c; cw.appendChild(s); });
+}
+
+function applyReveal(r){
+  if(!r) return;
+  if(r.ann) Object.keys(r.ann).forEach(function(s){ addAnn(s,r.ann[s],true); });
+  if(r.eq) (Array.isArray(r.eq)?r.eq:[r.eq]).forEach(function(e){ if(rels.indexOf(e)<0) rels.push(e); });
+  if(r.chip && chips.indexOf(r.chip)<0) chips.push(r.chip);
+  drawAnns(); drawRels();
+}
+
+function resetDiagram(){
+  Object.keys(ann).forEach(function(k){ delete ann[k]; });
+  rels.length=0; chips.length=0;
+  Object.keys(INITIAL_ANN).forEach(function(s){ addAnn(s, INITIAL_ANN[s], false); });
+  drawAnns(); drawRels();
+}
+
+/* =====================================================================
+   4. ZOOM
+   ===================================================================== */
+const DGM_W=1060;
+let zoom=1;
+function checkHint(){
+  const sc=$("#scroller");
+  $("#scrollHint").classList.toggle("on", sc.scrollWidth-sc.clientWidth-sc.scrollLeft>8);
+}
+function applyZoom(z){
+  zoom=Math.min(1.8,Math.max(0.55,z));
+  $("#dgm").style.width=(DGM_W*zoom)+"px";
+  setTimeout(checkHint,40);
+}
+function fitZoom(){ applyZoom(Math.min(1,$("#scroller").clientWidth/DGM_W)); }
+$("#zIn").onclick =function(){ applyZoom(zoom+0.15); };
+$("#zOut").onclick=function(){ applyZoom(zoom-0.15); };
+$("#zFit").onclick=fitZoom;
+function initZoom(){
+  const w=$("#scroller").clientWidth;
+  applyZoom(w>=DGM_W ? 1 : Math.max(0.78, w/DGM_W));
+}
+
+/* =====================================================================
+   5. UTILIDADES Y CÓDIGO
+   ===================================================================== */
+function parseNum(s){
+  if(s==null) return NaN;
+  const t=String(s).trim().replace(/\s|kg/gi,"").replace(",",".");
+  if(t==="") return NaN;
+  return parseFloat(t);
+}
+function normName(s){
+  return String(s||"").toLowerCase()
+    .normalize("NFD").replace(/[\u0300-\u036f]/g,"")
+    .replace(/[^a-z\s]/g," ").split(/\s+/).filter(Boolean).sort().join(" ");
+}
+function fnv(s){
+  let h=0x811c9dc5>>>0;
+  for(let i=0;i<s.length;i++){ h^=s.charCodeAt(i); h=Math.imul(h,0x01000193)>>>0; }
+  return h>>>0;
+}
+function b36(n,len){
+  let s=(n>>>0).toString(36).toUpperCase();
+  while(s.length<len) s="0"+s;
+  return s.slice(-len);
+}
+const SALT="ICB1121::manjar-lucuma::balance-de-masa";
+const TEACHER_PASS="ICB1121";
+
+function dayOfYear(d){
+  const start=new Date(d.getFullYear(),0,0);
+  return Math.floor((d-start)/86400000);
+}
+function makeCode(name,restarts,errors){
+  const now=new Date();
+  const body =
+    b36(dayOfYear(now),2) +
+    b36(Math.min(35,Math.max(0,now.getFullYear()-2026)),1) +
+    b36(Math.min(35,restarts),1) +
+    b36(Math.min(35,errors),1) +
+    b36(fnv("N|"+normName(name)),2) +
+    b36(Math.floor(Math.random()*1296),2);
+  const full=body+b36(fnv(SALT+"|"+body),3);
+  return full.slice(0,4)+"-"+full.slice(4,8)+"-"+full.slice(8,12);
+}
+function checkCode(code,name){
+  const raw=String(code||"").toUpperCase().replace(/[^A-Z0-9]/g,"");
+  if(raw.length!==12) return {valid:false,reason:"El código debe tener 12 caracteres (formato XXXX-XXXX-XXXX)."};
+  const body=raw.slice(0,9), chk=raw.slice(9);
+  if(b36(fnv(SALT+"|"+body),3)!==chk) return {valid:false,reason:"Código inválido: no fue generado por esta actividad, o está mal transcrito."};
+  const v=function(c){ return parseInt(c,36); };
+  const doy=parseInt(body.slice(0,2),36), yr=2026+v(body[2]);
+  const d=new Date(yr,0,doy);
+  const nameOk = body.slice(5,7)===b36(fnv("N|"+normName(name)),2);
+  return {
+    valid:true, nameOk:nameOk,
+    fecha:d.toLocaleDateString("es-CL",{day:"2-digit",month:"2-digit",year:"numeric"}),
+    restarts:v(body[3]), errors:v(body[4])
+  };
+}
+
+/* =====================================================================
+   6. RENDER
+   ===================================================================== */
+function updateChrome(){
+  $("#pnum").textContent = state.finished ? "Actividad completada" : "Pregunta "+(state.idx+1)+" de "+QUESTIONS.length;
+  $("#barFill").style.width = ((state.finished?QUESTIONS.length:state.idx)/QUESTIONS.length*100)+"%";
+  $("#lives").innerHTML = state.finished ? "" :
+    (state.strikes===0 ? "Sin errores · margen: 1" : "<b>1 error</b> · el siguiente reinicia");
+}
+
+function render(){
+  updateChrome();
+  if(state.finished){ renderFinal(); return; }
+  const q=QUESTIONS[state.idx];
+  state.answered=false; state.sel=null; state.multi=new Set();
+
+  const c=$("#qCard");
+  c.className="card q-card";
+  while(c.firstChild) c.removeChild(c.firstChild);
+
+  const tag=document.createElement("div"); tag.className="q-tag"; tag.textContent=q.tag; c.appendChild(tag);
+  const qt=document.createElement("div"); qt.className="q-text"; qt.innerHTML=q.q; c.appendChild(qt);
+  if(q.note){ const n=document.createElement("p"); n.className="q-note"; n.textContent=q.note; c.appendChild(n); }
+
+  if(q.type==="choice"||q.type==="multi"){
+    const box=document.createElement("div"); box.className="opts";
+    q.options.forEach(function(o,i){
+      const b=document.createElement("button"); b.className="opt"; b.type="button"; b.dataset.i=i;
+      b.innerHTML='<span class="mk">'+String.fromCharCode(65+i)+'</span><span class="txt">'+o+'</span>';
+      b.onclick=function(){
+        if(state.answered) return;
+        if(q.type==="choice"){
+          state.sel=i;
+          $$("#qCard .opt").forEach(function(x){ x.classList.toggle("sel",+x.dataset.i===i); });
+        }else{
+          if(state.multi.has(i)) state.multi.delete(i); else state.multi.add(i);
+          $$("#qCard .opt").forEach(function(x){ x.classList.toggle("sel",state.multi.has(+x.dataset.i)); });
+        }
+        $("#btnCheck").disabled=false;
+      };
+      box.appendChild(b);
+    });
+    c.appendChild(box);
+  } else {
+    const box=document.createElement("div"); box.className="fields";
+    q.fields.forEach(function(f,i){
+      const d=document.createElement("div"); d.className="field";
+      d.innerHTML='<label for="f'+i+'">'+f.label+'</label><input id="f'+i+'" type="text" inputmode="decimal" autocomplete="off" placeholder="0,000">';
+      box.appendChild(d);
+    });
+    c.appendChild(box);
+  }
+
+  const fb=document.createElement("div"); fb.id="fbZone"; c.appendChild(fb);
+  const act=document.createElement("div"); act.className="actions"; act.id="actZone";
+  const btn=document.createElement("button");
+  btn.className="btn primary"; btn.id="btnCheck"; btn.textContent="Comprobar";
+  btn.disabled = (q.type!=="numeric");
+  btn.onclick=check;
+  act.appendChild(btn); c.appendChild(act);
+
+  if(q.type==="numeric"){
+    $$("#qCard .field input").forEach(function(inp){
+      inp.addEventListener("keydown",function(e){ if(e.key==="Enter"&&!state.answered) check(); });
+    });
+  }
+}
+
+function showInlineWarn(msg){
+  const z=$("#actZone"); let w=z.querySelector(".warn");
+  if(!w){ w=document.createElement("span"); w.className="warn"; z.appendChild(w); }
+  w.textContent=msg;
+}
+
+function check(){
+  const q=QUESTIONS[state.idx];
+  if(state.answered) return;
+  let ok=false;
+
+  if(q.type==="choice"){
+    if(state.sel===null) return;
+    ok = state.sel===q.correct;
+  } else if(q.type==="multi"){
+    if(state.multi.size!==q.correct.length){
+      showInlineWarn("Debes seleccionar exactamente "+q.correct.length+" opciones."); return;
+    }
+    ok = q.correct.every(function(i){ return state.multi.has(i); });
+  } else {
+    const vals=q.fields.map(function(f,i){ return parseNum($("#f"+i).value); });
+    if(vals.some(function(v){ return isNaN(v); })){ showInlineWarn("Completa ambos campos con un número."); return; }
+    ok = q.fields.every(function(f,i){ return Math.abs(vals[i]-f.value)<=f.tol; });
+    q.fields.forEach(function(f,i){
+      const inp=$("#f"+i);
+      inp.parentElement.classList.add(Math.abs(vals[i]-f.value)<=f.tol?"good":"bad");
+      inp.readOnly=true;
+    });
+  }
+
+  state.answered=true;
+  lockOptions(q);
+  if(ok) onCorrect(q); else onWrong(q);
+}
+
+function lockOptions(q){
+  if(q.type!=="choice"&&q.type!=="multi") return;
+  $$("#qCard .opt").forEach(function(el){
+    const i=+el.dataset.i;
+    el.classList.add("locked"); el.classList.remove("sel");
+    const isCorrect = q.type==="choice" ? i===q.correct : q.correct.indexOf(i)>=0;
+    const picked = q.type==="choice" ? i===state.sel : state.multi.has(i);
+    if(isCorrect){ el.classList.add("good"); el.querySelector(".mk").textContent="✓"; }
+    else if(picked){ el.classList.add("bad"); el.querySelector(".mk").textContent="✗"; }
+  });
+}
+
+function nextButton(){
+  const b=document.createElement("button"); b.className="btn primary";
+  b.textContent = state.idx===QUESTIONS.length-1 ? "Finalizar →" : "Continuar →";
+  b.onclick=function(){
+    state.idx++;
+    if(state.idx>=QUESTIONS.length) state.finished=true;
+    render(); scrollToQuiz();
+  };
+  return b;
+}
+
+function onCorrect(q){
+  $("#fbZone").innerHTML='<div class="fb ok"><div class="h">✓ Correcto</div>'+q.why+'</div>';
+  applyReveal(q.reveal);
+  const act=$("#actZone");
+  while(act.firstChild) act.removeChild(act.firstChild);
+  act.appendChild(nextButton());
+  if(q.reveal && (q.reveal.ann||q.reveal.eq||q.reveal.chip)){
+    const n=document.createElement("span");
+    n.style.cssText="font-size:.84rem;color:var(--muted)";
+    n.textContent="El diagrama se actualizó ↑";
+    act.appendChild(n);
+  }
+}
+
+function onWrong(q){
+  state.strikes++;
+  const last = state.strikes>=2;
+  $("#fbZone").innerHTML='<div class="fb err"><div class="h">✗ Respuesta incorrecta</div>'+q.why+'</div>';
+  const act=$("#actZone");
+  while(act.firstChild) act.removeChild(act.firstChild);
+  if(last){
+    const p=document.createElement("p");
+    p.className="warn"; p.style.cssText="margin:0 0 10px;width:100%";
+    p.textContent="Segundo error: debes comenzar la actividad de nuevo. Revisa la explicación antes de reiniciar.";
+    act.appendChild(p);
+    const b=document.createElement("button"); b.className="btn primary"; b.textContent="Comenzar de nuevo";
+    b.onclick=function(){ state.restarts++; restart(); };
+    act.appendChild(b);
+  }else{
+    applyReveal(q.reveal);
+    act.appendChild(nextButton());
+    const n=document.createElement("span"); n.className="warn";
+    n.textContent="Sin margen: un nuevo error reinicia la actividad.";
+    act.appendChild(n);
+  }
+  updateChrome();
+}
+
+function scrollToQuiz(){
+  const y=$("#quizZone").getBoundingClientRect().top+window.pageYOffset-70;
+  window.scrollTo({top:y,behavior:"smooth"});
+}
+
+function restart(){
+  state.idx=0; state.strikes=0; state.answered=false; state.finished=false;
+  resetDiagram(); render();
+  window.scrollTo({top:0,behavior:"smooth"});
+}
+
+/* =====================================================================
+   7. PANTALLA FINAL
+   ===================================================================== */
+function renderFinal(){
+  const c=$("#qCard");
+  c.className="card final";
+  c.innerHTML =
+    '<h2>¡Problema resuelto!</h2>'+
+    '<p style="color:var(--muted);margin:4px 0 0">Completaste las 12 etapas de la resolución'+
+      (state.strikes?" con 1 error":" sin errores")+
+      (state.restarts?(" y "+state.restarts+" reinicio(s)"):"")+'.</p>'+
+    '<div id="nameZone" style="max-width:420px;margin:20px auto 0;text-align:left">'+
+      '<label for="finName" style="display:block;font-size:.86rem;color:var(--muted);font-weight:600;margin-bottom:5px">Escribe tu nombre completo para generar tu código</label>'+
+      '<input id="finName" type="text" placeholder="Nombre y apellido" autocomplete="name" '+
+        'style="width:100%;padding:11px 13px;border:1px solid var(--line);border-radius:9px;background:var(--bg);color:var(--ink);font-size:1rem">'+
+      '<div style="margin-top:10px"><button class="btn primary" id="genCode">Generar código</button></div>'+
+      '<p style="font-size:.8rem;color:var(--muted);margin-top:8px">El código queda ligado a tu nombre, así que debes entregarlo escrito tal como aquí.</p>'+
+    '</div>'+
+    '<div id="codeZone"></div>'+
+    '<div class="summary"><h2 style="font-size:1rem">Resumen de resultados</h2><table><tbody>'+
+      SUMMARY.map(function(r){ return '<tr><td>'+r[0]+'</td><td>'+r[1]+'</td></tr>'; }).join("")+
+    '</tbody></table></div>'+
+    '<div style="margin-top:18px"><button class="btn ghost" id="againBtn">Volver a empezar</button></div>';
+
+  $("#againBtn").onclick=function(){ state.restarts=0; restart(); };
+  $("#genCode").onclick=function(){
+    const n=$("#finName").value.trim();
+    if(normName(n).length<3){ alert("Escribe tu nombre completo."); return; }
+    state.name=n;
+    const code=makeCode(n,state.restarts,state.strikes);
+    $("#nameZone").style.display="none";
+    const safe=n.replace(/[<>&]/g,"");
+    $("#codeZone").innerHTML =
+      '<p style="margin:16px 0 0;color:var(--muted);font-size:.9rem">Código de <b>'+safe+'</b>:</p>'+
+      '<div class="codebox" id="theCode">'+code+'</div>'+
+      '<button class="btn" id="copyBtn">Copiar código</button>';
+    $("#copyBtn").onclick=function(){
+      const t=$("#theCode").textContent;
+      const done=function(){ $("#copyBtn").textContent="¡Copiado!"; };
+      if(navigator.clipboard&&navigator.clipboard.writeText){ navigator.clipboard.writeText(t).then(done,function(){}); }
+      else{
+        const ta=document.createElement("textarea"); ta.value=t; document.body.appendChild(ta);
+        ta.select(); try{ document.execCommand("copy"); done(); }catch(e){}
+        document.body.removeChild(ta);
+      }
+    };
+  };
+  updateChrome();
+}
+
+/* =====================================================================
+   8. PANEL PROFESOR
+   ===================================================================== */
+function closeT(){
+  $("#tOverlay").classList.remove("on");
+  $("#tLogin").style.display="block"; $("#tPanel").style.display="none";
+  $("#tPass").value=""; $("#tPassErr").style.display="none"; $("#tRes").innerHTML="";
+}
+$("#openTeacher").onclick=function(){ $("#tOverlay").classList.add("on"); $("#tPass").focus(); };
+$("#tClose1").onclick=closeT;
+$("#tClose2").onclick=closeT;
+$("#tOverlay").addEventListener("click",function(e){ if(e.target===$("#tOverlay")) closeT(); });
+
+function tryLogin(){
+  if($("#tPass").value.trim()===TEACHER_PASS){
+    $("#tLogin").style.display="none"; $("#tPanel").style.display="block"; $("#tName").focus();
+  }else{ $("#tPassErr").style.display="block"; }
+}
+$("#tEnter").onclick=tryLogin;
+$("#tPass").addEventListener("keydown",function(e){ if(e.key==="Enter") tryLogin(); });
+
+function verify(){
+  const r=checkCode($("#tCode").value,$("#tName").value);
+  const z=$("#tRes");
+  if(!r.valid){ z.innerHTML='<div class="res err"><b>✗ No válido.</b><br>'+r.reason+'</div>'; return; }
+  if(!r.nameOk){
+    z.innerHTML='<div class="res err"><b>⚠ Código auténtico, pero no corresponde a ese nombre.</b>'+
+      '<ul><li>Fecha de emisión: '+r.fecha+'</li><li>Reinicios: '+r.restarts+'</li><li>Errores: '+r.errors+'</li></ul>'+
+      '<p style="margin:8px 0 0">Fue generado con otro nombre: revisa la ortografía, o si el código proviene de un compañero.</p></div>';
+    return;
+  }
+  z.innerHTML='<div class="res ok"><b>✓ Código válido y corresponde al nombre ingresado.</b>'+
+    '<ul><li>Fecha de emisión: '+r.fecha+'</li>'+
+    '<li>Reinicios antes de completar: <b>'+r.restarts+'</b></li>'+
+    '<li>Errores en el intento final: <b>'+r.errors+'</b></li></ul></div>';
+}
+$("#tVerify").onclick=verify;
+$("#tCode").addEventListener("keydown",function(e){ if(e.key==="Enter") verify(); });
+
+/* =====================================================================
+   9. ARRANQUE
+   ===================================================================== */
+$("#btnRestart").onclick=function(){
+  if(confirm("¿Reiniciar la actividad desde la primera pregunta?")){ state.restarts++; restart(); }
+};
+
+const jump=$("#jump");
+jump.onclick=function(){ $("#dgmCard").scrollIntoView({behavior:"smooth",block:"center"}); };
+if("IntersectionObserver" in window){
+  new IntersectionObserver(function(es){
+    jump.classList.toggle("on", !es[0].isIntersecting && !state.finished);
+  },{threshold:0.12}).observe($("#dgmCard"));
+}
+$("#scroller").addEventListener("scroll",checkHint);
+window.addEventListener("resize",checkHint);
+
+if(window.innerWidth>820) $("#stmt").open=true;
+resetDiagram();
+initZoom();
+render();
+</script>
+</body>
+</html>
